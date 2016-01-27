@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'quiz',
     'mcq',
-    'objective'
+    'objective',
+    'home'
 ]
 
 MIDDLEWARE_CLASSES = [

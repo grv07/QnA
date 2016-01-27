@@ -19,7 +19,6 @@ class CategoryManager(models.Manager):
     def new_category(self, category):
         new_category = self.create(category=re.sub('\s+', '-', category)
                                    .lower())
-
         new_category.save()
         return new_category
 
@@ -580,6 +579,3 @@ class Question(models.Model):
 
     def __str__(self):
         return self.content
-
-
-# Create your models here.
