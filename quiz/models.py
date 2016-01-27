@@ -66,7 +66,7 @@ class SubCategory(models.Model):
 class Quiz(models.Model):
 
     title = models.CharField(
-        verbose_name=_("Title"),
+        verbose_name=_("Title"),unique = True,
         max_length=60, blank=False)
 
     description = models.TextField(
