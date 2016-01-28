@@ -10,4 +10,7 @@ urlpatterns = [
     
     #Category Related Urls
     url(r'^create/category/$', views.create_category),
+   
+    #SubCategory Related Urls
+    url(r'^create/subcategory/$', views.create_subcategory),
 ]

@@ -46,7 +46,7 @@ class SubCategory(models.Model):
 
     sub_category = models.CharField(
         verbose_name=_("Sub-Category"),
-        max_length=250, blank=True, null=True)
+        max_length=250)
 
     category = models.ForeignKey(
         Category, null=True, blank=True,
