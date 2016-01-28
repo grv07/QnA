@@ -28,8 +28,8 @@ class Category(models.Model):
 
     category = models.CharField(
         verbose_name=_("Category"),
-        max_length=250, blank=True,
-        unique=True, null=True)
+        max_length=250,
+        unique=True)
 
     objects = CategoryManager()
 
