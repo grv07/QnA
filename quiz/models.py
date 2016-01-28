@@ -19,7 +19,6 @@ class CategoryManager(models.Manager):
     def new_category(self, category):
         new_category = self.create(category=re.sub('\s+', '-', category)
                                    .lower())
-
         new_category.save()
         return new_category
 
@@ -41,6 +40,13 @@ class Category(models.Model):
     def __str__(self):
         return self.category
 
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        self.category = re.sub('\s+', '-', self.category).lower()
+
+        self.url = ''.join(letter for letter in self.category if
+                           letter.isalnum() or letter == '-')
+        
+        super(Category, self).save(force_insert, force_update, *args, **kwargs)
 
 @python_2_unicode_compatible
 class SubCategory(models.Model):
