@@ -3,5 +3,5 @@ from quiz import views
 
 urlpatterns = [
     url(r'^$', views.home),
-    url(r'^list/$', views.quiz_list),
+    url(r'^list$', views.quiz_list),
 ]

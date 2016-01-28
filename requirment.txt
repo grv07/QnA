@@ -7,3 +7,4 @@ py==1.4.31
 tox==2.3.1
 virtualenv==14.0.1
 wheel==0.24.0
+django-cors-headers

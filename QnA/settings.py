@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'quiz',
     'mcq',
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware', #remove because it need CSRF token auth ..
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -91,6 +93,11 @@ DATABASES = {
         }
     }
 
+
+# Hosts that are allowed to do cross-site requests 
+#CORS_ORIGIN_WHITELIST = ('localhost:5000/',)
+CORS_ORIGIN_ALLOW_ALL = True
+APPEND_SLASH=False
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
