@@ -13,6 +13,10 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
+
+#Allow a format url via append .json etc in url
+from rest_framework.urlpatterns import format_suffix_patterns
+
 from django.conf.urls import url, include
 from django.contrib import admin
 
@@ -20,3 +24,5 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^quiz/', include('quiz.urls')),
 ]
+
+urlpatterns = format_suffix_patterns(urlpatterns)
