@@ -8,9 +8,12 @@ urlpatterns = [
     url(r'^create/$', views.create_quiz),
     url(r'^delete/(?P<pk>[0-9]+)/$', views.delete_quiz),
     
-    #Category Related Urls
-    url(r'^create/category/$', views.create_category),
-   
+    #Category Related Urls 
+    url(r'^category/create/$', views.create_category),
+    url(r'^category/detail/(?P<pk>[0-9]+)/$', views.get_category),
+    url(r'^category/list/$', views.category_list),
+    url(r'^category/delete/(?P<pk>[0-9]+)/$', views.delete_category),
+
     #SubCategory Related Urls
-    url(r'^create/subcategory/$', views.create_subcategory),
+    url(r'^subcategory/create/$', views.create_subcategory),
 ]
