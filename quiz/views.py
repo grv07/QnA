@@ -1,23 +1,20 @@
-from django.http import HttpResponse
-
+from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
-from models import Quiz, Category
-from serializer import QuizSerializer, CategorySerializer
-from QnA.services.JSONResponse import JSONResponse
-from rest_framework import status
-
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
+
+from .models import Quiz, Category, SubCategory
+from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 def quiz_list(request, format = None):
 	"""
-	List all code Quiz, or create a new quiz.
-	
+	List all code Quiz, or create a new quiz.	
 	"""
 	quiz_list = Quiz.objects.all()
 	serializer = QuizSerializer(quiz_list, many = True)
@@ -45,7 +42,8 @@ def create_quiz(request, format = None):
 	List all code Quiz, or create a new quiz.
 
 	"""
-	serializer = QuizSerializer(data = request.POST)
+	serializer = QuizSerializer(data = request.data)
+
 	if serializer.is_valid():
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
@@ -60,7 +58,7 @@ def delete_quiz(request, pk, format = None):
 	try:
 		quiz = Quiz.objects.get(pk = pk)
 	except Quiz.DoesNotExist as e:
-		return Response({'msg': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
+		return Response({'msg': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 
 	if request.method == 'GET':
 		serializer = QuizSerializer(quiz)
@@ -68,7 +66,7 @@ def delete_quiz(request, pk, format = None):
 
 	elif request.method == 'DELETE':
 		quiz.delete()
-		return Response(status=status.HTTP_204_NO_CONTENT)
+		return Response(status = status.HTTP_204_NO_CONTENT)
 
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
@@ -77,7 +75,7 @@ def create_category(request):
 	"""
 	List all code Quiz, or create a new quiz.
 	"""
-	serializer = CategorySerializer(data = request.POST)
+	serializer = CategorySerializer(data = request.data)
 	if serializer.is_valid():
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
@@ -128,3 +126,19 @@ def delete_category(request, pk, format = None):
 		return Response(status=status.HTTP_204_NO_CONTENT)
 
 # Create your views here.
+
+#>>>>>>>>>>>>>>>>>>>>> SubCategory Base Functions Start <<<<<<<<<<<<<<<<<<<#
+
+@api_view(['POST'])
+def create_subcategory(request):
+	"""
+	List all code Quiz, or create a new quiz.
+
+	"""
+	serializer = SubCategorySerializer(data = request.data)
+	if serializer.is_valid():
+		serializer.save()
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+	
