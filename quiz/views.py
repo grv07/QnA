@@ -1,6 +1,4 @@
 from rest_framework.response import Response
-from rest_framework.parsers import JSONParser
-from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,16 +9,15 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
-# Quiz Base functions
-@api_view(['GET'])
+@api_view(['GET','POST'])
 def quiz_list(request, format = None):
 	"""
 	List all code Quiz, or create a new quiz.	
 	"""
 	quiz_list = Quiz.objects.all()
 	serializer = QuizSerializer(quiz_list, many = True)
-	return Response(serializer.data, status = status.HTTP_200_OK)
 
+	return Response(serializer.data, status = status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
 def get_quiz(request, pk ,format = None):
@@ -43,8 +40,8 @@ def create_quiz(request, format = None):
 	List all code Quiz, or create a new quiz.
 
 	"""
-	# if request.method == 'POST':
 	serializer = QuizSerializer(data = request.data)
+
 	if serializer.is_valid():
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
@@ -72,6 +69,7 @@ def delete_quiz(request, pk, format = None):
 
 
 
+
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
@@ -83,7 +81,6 @@ def create_category(request):
 	if serializer.is_valid():
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
-	
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
@@ -144,3 +141,4 @@ def delete_category(request, pk, format = None):
 	elif request.method == 'DELETE':
 		category.delete()
 		return Response(status=status.HTTP_204_NO_CONTENT)
+

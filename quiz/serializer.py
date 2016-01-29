@@ -8,14 +8,7 @@ class QuizSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = '__all__'
 
-class SubCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SubCategory
-        fields = '__all__'        
 
 	def validate_category(self, value):
 		import re
@@ -29,7 +22,12 @@ class SubCategorySerializer(serializers.ModelSerializer):
 				raise serializers.ValidationError("category name must be unique")
 		except Category.DoesNotExist as e:
 			return category_name
-
+			
 	class Meta:
 		model = Category
-		fields = '__all__'        
+		fields = '__all__'
+
+class SubCategorySerializer(serializers.ModelSerializer):
+	class Meta:
+		model = SubCategory
+		fields = '__all__'

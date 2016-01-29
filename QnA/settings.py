@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'quiz',
     'mcq',
     'objective',
-    'home'
+    'home',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -97,7 +97,7 @@ DATABASES = {
 # Hosts that are allowed to do cross-site requests 
 #CORS_ORIGIN_WHITELIST = ('localhost:5000/',)
 CORS_ORIGIN_ALLOW_ALL = True
-APPEND_SLASH=False
+APPEND_SLASH = True
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
