@@ -19,13 +19,10 @@ def quiz_list(request, format = None):
 	List all code Quiz, or create a new quiz.
 	
 	"""
-	if request.method == 'GET':
-		quiz_list = Quiz.objects.all()
-		serializer = QuizSerializer(quiz_list, many = True)
-		return Response(serializer.data, status = status.HTTP_200_OK)
+	quiz_list = Quiz.objects.all()
+	serializer = QuizSerializer(quiz_list, many = True)
 
-	return Response(status = status.HTTP_400_BAD_REQUEST)	
-
+	return Response(serializer.data, status = status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
 def get_quiz(request, pk ,format = None):
@@ -48,7 +45,6 @@ def create_quiz(request, format = None):
 	List all code Quiz, or create a new quiz.
 
 	"""
-	# if request.method == 'POST':
 	serializer = QuizSerializer(data = request.POST)
 	if serializer.is_valid():
 		serializer.save()
