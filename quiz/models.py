@@ -14,6 +14,13 @@ from django.conf import settings
 # from model_utils.managers import InheritanceManager
 
 
+
+QUESTION_DIFFICULTY_OPTIONS = (
+    ('Easy', _('E')),
+    ('Medium', _('M')),
+    ('Hard', _('H'))
+)
+
 class CategoryManager(models.Manager):
 
     def new_category(self, category):
@@ -574,6 +581,11 @@ class Question(models.Model):
                                                "after the question has "
                                                "been answered."),
                                    verbose_name=_('Explanation'))
+
+    level = models.CharField(max_length=10,default = 'E',
+                                choices=QUESTION_DIFFICULTY_OPTIONS,
+                                help_text=_("The difficulty level of a MCQQuestion"),
+                                verbose_name=_("Difficulty Level"))
 
     # objects = InheritanceManager()
 
