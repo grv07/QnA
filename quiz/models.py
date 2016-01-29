@@ -11,7 +11,7 @@ from django.utils.timezone import now
 from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 
-from model_utils.managers import InheritanceManager
+# from model_utils.managers import InheritanceManager
 
 
 class CategoryManager(models.Manager):
@@ -555,9 +555,7 @@ class Question(models.Model):
                                  null=True)
 
     sub_category = models.ForeignKey(SubCategory,
-                                     verbose_name=_("Sub-Category"),
-                                     blank=True,
-                                     null=True)
+                                     verbose_name=_("Sub-Category"))
 
     figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
                                blank=True,
@@ -577,12 +575,12 @@ class Question(models.Model):
                                                "been answered."),
                                    verbose_name=_('Explanation'))
 
-    objects = InheritanceManager()
+    # objects = InheritanceManager()
 
     class Meta:
         verbose_name = _("Question")
         verbose_name_plural = _("Questions")
-        ordering = ['category']
+        # ordering = ['category']
 
     def __str__(self):
         return self.content

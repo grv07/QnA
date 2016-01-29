@@ -23,6 +23,7 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^quiz/', include('quiz.urls')),
+    url(r'^question/', include('mcq.urls')),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

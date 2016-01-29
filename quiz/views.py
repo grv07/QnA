@@ -1,6 +1,4 @@
 from rest_framework.response import Response
-from rest_framework.parsers import JSONParser
-from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,7 +9,7 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
-@api_view(['GET'])
+@api_view(['GET','POST'])
 def quiz_list(request, format = None):
 	"""
 	List all code Quiz, or create a new quiz.	
@@ -79,7 +77,6 @@ def create_category(request):
 	if serializer.is_valid():
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
-	
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
@@ -141,4 +138,4 @@ def create_subcategory(request):
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
-	
+

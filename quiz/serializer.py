@@ -8,7 +8,6 @@ class QuizSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
-<<<<<<< HEAD
 
 	def validate_category(self, value):
 		import re
@@ -25,14 +24,9 @@ class CategorySerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Category
-		fields = '__all__'        
-=======
-    class Meta:
-        model = Category
-        fields = '__all__'
+		fields = '__all__'      
 
 class SubCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = SubCategory
-        fields = '__all__'        
->>>>>>> aac132096233f6c826755e2644b50ec17c573af8
+        fields = '__all__'      
