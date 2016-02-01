@@ -66,6 +66,10 @@ def delete_quiz(request, pk, format = None):
 		quiz.delete()
 		return Response(status = status.HTTP_204_NO_CONTENT)
 
+
+
+
+
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
@@ -102,7 +106,7 @@ def category_list(request, format = None):
 	category_list = Category.objects.all()
 	serializer = CategorySerializer(category_list, many = True)
 	return Response(serializer.data, status = status.HTTP_200_OK)
-
+	
 
 @api_view(['GET', 'DELETE'])
 def delete_category(request, pk, format = None):
@@ -122,7 +126,8 @@ def delete_category(request, pk, format = None):
 		category.delete()
 		return Response(status=status.HTTP_204_NO_CONTENT)
 
-# Create your views here.
+
+
 
 #>>>>>>>>>>>>>>>>>>>>> SubCategory Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
@@ -137,5 +142,18 @@ def create_subcategory(request):
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_subcategory(request, pk, format = None):
+	"""
+	Either get a single subcategory or all.
+	"""
+	try:
+		if type(pk) == int:
+			quiz_list = Quiz.objects.all()
+			serializer = QuizSerializer(quiz_list, many = True)
+
+
 
 

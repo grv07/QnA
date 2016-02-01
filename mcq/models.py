@@ -11,13 +11,6 @@ ANSWER_ORDER_OPTIONS = (
     ('none', _('None'))
 )
 
-QUESTION_DIFFICULTY_OPTIONS = (
-    ('easy', _('E')),
-    ('midium', _('M')),
-    ('hard', _('H'))
-)
-
-
 class MCQuestion(Question):
     answer_order = models.CharField(
         max_length=30, null=True, blank=True,
@@ -26,12 +19,6 @@ class MCQuestion(Question):
                     "answer options are displayed "
                     "to the user"),
         verbose_name=_("Answer Order"))
-
-    difficulty_level = models.CharField(
-        max_length=10,default = 'E',
-        choices=QUESTION_DIFFICULTY_OPTIONS,
-        help_text=_("The defficulty level of a MCQQuestion"),
-        verbose_name=_("Answer Level"))
 
     def check_if_correct(self, guess):
         answer = Answer.objects.get(id=guess)
