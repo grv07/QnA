@@ -11,4 +11,6 @@ def create_answer(question, options):
 		serializer = AnswerSerializer(data = option)
 		if serializer.is_valid():
 			serializer.save()
+		else:
+			print serializer.errors
 	return True

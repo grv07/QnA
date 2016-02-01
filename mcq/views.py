@@ -8,21 +8,31 @@ from serializer import MCQuestionSerializer
 
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
-@api_view(['POST'])
+@api_view(['POST','GET'])
 def create_mcq(request):
 	"""
 	Create a MCQuestion ... 
 	"""
 	serializer = MCQuestionSerializer(data = request.data)
-	print request.data
+	options = []
+	options_data = request.data.get('optioncontent', None)
+	correct_option = request.data.get('correctoption', None)
 	if serializer.is_valid():
-		mcq = serializer.save()
-		options = [{'content':'text','correct':True},
-				{'content':'text','correct':False},{'content':'text','correct':False}]
+		if options_data and options_data:
+			for optionid, content in options_data.items():
+				c = { 'content' : str(content), 'correct' : False }
+				if optionid == correct_option:
+					c['correct'] = True
+				options.append(c)
+			mcq = serializer.save()
+			# options = [{'content':'text','correct':True},
+			# 		{'content':'text','correct':False},{'content':'text','correct':False}]
 
-		if answer_engine.create_answer(mcq, options):
-				print 'Save Answer successfully'
-		return Response(serializer.data, status = status.HTTP_200_OK)
+			if answer_engine.create_answer(mcq, options):
+					print 'Save Answer successfully'
+			return Response(serializer.data, status = status.HTTP_200_OK)
+		else:
+			return Response({'errors' : 'Options must be provided with correct answer.'}, status = status.HTTP_400_BAD_REQUEST)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)	
 
 
