@@ -105,6 +105,7 @@ DATABASES = {
         }
     }
 
+# AUTH_USER_MODEL = 'home.UserProfile'
 
 # Hosts that are allowed to do cross-site requests 
 #CORS_ORIGIN_WHITELIST = ('localhost:5000/',)

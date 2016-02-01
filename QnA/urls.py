@@ -24,9 +24,10 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^quiz/', include('quiz.urls')),
     url(r'^question/', include('mcq.urls')),
+    url(r'^', include('home.urls')),
+
     url(r'^api-token-auth/', 'rest_framework_jwt.views.obtain_jwt_token'),
     url(r'^api-token-verify/', 'rest_framework_jwt.views.verify_jwt_token'),
 ]
-
 
 urlpatterns = format_suffix_patterns(urlpatterns)

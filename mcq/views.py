@@ -1,6 +1,5 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from rest_framework import status
 
 from QnA.services import answer_engine
@@ -82,7 +81,6 @@ def all_mcq(request):
 		return Response({'msg': 'Question does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		return Response({'msg': 'Something went terrible wrong'}, status = status.HTTP_400_BAD_REQUEST)
-
 
 #>>>>>>>>>>>>>> MCQ Answer<<<<<<<<<<<<<<<<<<<#
 
