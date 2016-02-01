@@ -16,5 +16,5 @@ urlpatterns = [
 
     #SubCategory Related Urls
     url(r'^subcategory/create/$', views.create_subcategory),
-    url(r'^subcategory/get/all/$', views.get_subcategory),
+    url(r'^subcategory/get/(?P<pk>[a-l0-9]+)/$', views.get_subcategory),
 ]

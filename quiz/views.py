@@ -106,7 +106,7 @@ def category_list(request, format = None):
 	category_list = Category.objects.all()
 	serializer = CategorySerializer(category_list, many = True)
 	return Response(serializer.data, status = status.HTTP_200_OK)
-	
+
 
 @api_view(['GET', 'DELETE'])
 def delete_category(request, pk, format = None):
@@ -150,9 +150,24 @@ def get_subcategory(request, pk, format = None):
 	Either get a single subcategory or all.
 	"""
 	try:
-		if type(pk) == int:
-			quiz_list = Quiz.objects.all()
-			serializer = QuizSerializer(quiz_list, many = True)
+		data = {}
+		if pk == 'all':
+			subcategory_list = SubCategory.objects.all()
+			serializer = SubCategorySerializer(subcategory_list, many = True)
+			print serializer.data
+			return Response(serializer.data, status = status.HTTP_200_OK)
+		else:
+			if pk.isnumeric():
+				subcategory = SubCategory.objects.get(category = pk)
+				serializer = SubCategorySerializer(subcategory, many = False)
+				return Response(serializer.data, status = status.HTTP_200_OK)
+		return Response({'msg': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+	except SubCategory.DoesNotExist as e:
+		print e.args
+		return Response({'msg': 'Sub-category not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 
 
 

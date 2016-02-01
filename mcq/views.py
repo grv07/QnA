@@ -15,10 +15,9 @@ def create_mcq(request):
 	Create a MCQuestion ... 
 	"""
 	serializer = MCQuestionSerializer(data = request.data)
+	print request.data
 	if serializer.is_valid():
 		mcq = serializer.save()
-		answer_engine.create_answer
-		
 		options = [{'content':'text','correct':True},
 				{'content':'text','correct':False},{'content':'text','correct':False}]
 
@@ -64,7 +63,19 @@ def all_mcq(request):
 	List of all MCQuestion's.
 	"""
 	try:
+		from collections import defaultdict
 		mcq_question_list = MCQuestion.objects.all()
+		data = defaultdict(list)
+		for mcq in mcq_question_list:
+			data[mcq.sub_category].append(
+				{	
+					'level' : mcq.level,
+					'id' : mcq.id,
+					'question' : mcq.content,
+
+				}
+				)
+		print data
 		serializer = MCQuestionSerializer(mcq_question_list, many = True)
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except MCQuestion.DoesNotExist as e:
