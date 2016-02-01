@@ -13,8 +13,6 @@ from django.conf import settings
 
 # from model_utils.managers import InheritanceManager
 
-
-
 QUESTION_DIFFICULTY_OPTIONS = (
     ('Easy', _('E')),
     ('Medium', _('M')),
