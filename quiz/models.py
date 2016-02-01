@@ -13,7 +13,6 @@ from django.conf import settings
 
 # from model_utils.managers import InheritanceManager
 
-
 class CategoryManager(models.Manager):
 
     def new_category(self, category):
