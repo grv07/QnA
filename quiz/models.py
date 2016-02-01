@@ -14,9 +14,9 @@ from django.conf import settings
 # from model_utils.managers import InheritanceManager
 
 QUESTION_DIFFICULTY_OPTIONS = (
-    ('E', _('E')),
-    ('M', _('M')),
-    ('H', _('H'))
+	('E', _('E')),
+	('M', _('M')),
+	('H', _('H'))
 )
 
 class CategoryManager(models.Manager):
@@ -70,8 +70,8 @@ class SubCategory(models.Model):
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
 
-    def __str__(self):
-        return self.sub_category
+	def __str__(self):
+		return self.sub_category
 
 
 
