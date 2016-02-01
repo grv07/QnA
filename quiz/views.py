@@ -166,9 +166,3 @@ def get_subcategory(request, pk, format = None):
 		print e.args
 		return Response({'msg': 'Sub-category not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
-
-
-
-
-
