@@ -153,7 +153,6 @@ def get_subcategory(request, pk, format = None):
 		if type(pk) == int:
 			quiz_list = Quiz.objects.all()
 			serializer = QuizSerializer(quiz_list, many = True)
-
-
-
+	except Exception as e:
+		print e.args		
 
