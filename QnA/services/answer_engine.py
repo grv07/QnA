@@ -8,9 +8,10 @@ def create_answer(question, options):
 	ex. options = [{'content':'text','correct':True},{'content':'text','correct':False},{'content':'text','correct':False}]
 	'''
 	for option in options:
+		option.update({ 'question' : question})
 		serializer = AnswerSerializer(data = option)
 		if serializer.is_valid():
 			serializer.save()
 		else:
-			print serializer.errors
-	return True
+			return (False, serializer.errors,)
+	return (True, None,)

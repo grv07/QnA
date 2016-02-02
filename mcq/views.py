@@ -27,12 +27,13 @@ def create_mcq(request):
 			mcq = serializer.save()
 			# options = [{'content':'text','correct':True},
 			# 		{'content':'text','correct':False},{'content':'text','correct':False}]
-
-			if answer_engine.create_answer(mcq, options):
-					print 'Save Answer successfully'
-			return Response(serializer.data, status = status.HTTP_200_OK)
+			isAnswerSaved, errors = answer_engine.create_answer(mcq, options)
+			if not isAnswerSaved:
+				return Response(errors, status = status.HTTP_400_BAD_REQUEST)
+			else:
+				return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
-			return Response({'errors' : 'Options must be provided with correct answer.'}, status = status.HTTP_400_BAD_REQUEST)
+			return Response({'optionerrors' : 'Options must be provided with correct answer.'}, status = status.HTTP_400_BAD_REQUEST)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)	
 
 
