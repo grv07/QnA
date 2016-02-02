@@ -5,4 +5,5 @@ urlpatterns = [
 	#URL entry for mcqQuestions Models
 	url(r'^login/$', views.login_user),
 	url(r'^register/$', views.register_user),
+	url(r'^logout/$', views.logout_user),
 ]
