@@ -4,7 +4,8 @@ from quiz import views
 urlpatterns = [
 
 	url(r'^detail/(?P<pk>[0-9]+)/$', views.get_quiz),
-	url(r'^list/$', views.quiz_list),
+	url(r'^get/(?P<pk>[a-l0-9]+)/$', views.quiz_list),
+
 	url(r'^create/$', views.create_quiz),
 	url(r'^delete/(?P<pk>[0-9]+)/$', views.delete_quiz),
 	
@@ -17,5 +18,5 @@ urlpatterns = [
     #SubCategory Related Urls
     url(r'^subcategory/create/$', views.create_subcategory),
     url(r'^subcategory/get/(?P<pk>[a-l0-9]+)/$', views.get_subcategory),
-    url(r'^question/all/$', views.my_all_questions),
+    url(r'^questions/all/$', views.all_questions),
 ]

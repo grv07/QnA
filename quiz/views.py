@@ -12,16 +12,27 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
-@api_view(['GET','POST'])
+@api_view(['GET'])
 @permission_classes((AllowAny,))
-def quiz_list(request, format = None):
+def quiz_list(request, pk, format = None):
 	"""
-	List all code Quiz, or create a new quiz.	
+	Either get a single quiz or all.
 	"""
-	quiz_list = Quiz.objects.all()
-	serializer = QuizSerializer(quiz_list, many = True)
+	try:
+		if pk == 'all':
+			quiz_list = Quiz.objects.all()
+			serializer = QuizSerializer(quiz_list, many = True)
+		else:
+			if pk.isnumeric():
+				quiz = Quiz.objects.get(category = pk)
+				serializer = QuizSerializer(quiz, many = False)
+			else:
+				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	except Quiz.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
 
-	return Response(serializer.data, status = status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
 @permission_classes((AllowAny,))
@@ -159,18 +170,16 @@ def get_subcategory(request, pk, format = None):
 	Either get a single subcategory or all.
 	"""
 	try:
-		data = {}
 		if pk == 'all':
 			subcategory_list = SubCategory.objects.all()
 			serializer = SubCategorySerializer(subcategory_list, many = True)
-			print serializer.data
-			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
 			if pk.isnumeric():
 				subcategory = SubCategory.objects.get(category = pk)
 				serializer = SubCategorySerializer(subcategory, many = False)
-				return Response(serializer.data, status = status.HTTP_200_OK)
-		return Response({'msg': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+			else:
+				return Response({'msg': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		return Response(serializer.data, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'msg': 'Sub-category not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -179,19 +188,19 @@ def get_subcategory(request, pk, format = None):
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-def my_all_questions(request):
+def all_questions(request):
 	"""
 	List all code Quiz, or create a new quiz.
 
 	"""
-	user =  User.objects.get(pk = 1)
-	quizs = Quiz.objects.filter(user = user)
-	questions = []
-	for quiz in quizs:
-		categories = Category.objects.filter(quiz = quiz)
-		for category in categories:
-			for sub_category in SubCategory.objects.filter(category = category):
-				print sub_category
+	# user =  User.objects.get(pk = 1)
+	# quizs = Quiz.objects.filter(user = user)
+	# questions = []
+	# for quiz in quizs:
+	# 	categories = Category.objects.filter(quiz = quiz)
+	# 	for category in categories:
+	# 		for sub_category in SubCategory.objects.filter(category = category):
+	# 			print sub_category
 
 		# print categories
 	# print categories
@@ -200,5 +209,5 @@ def my_all_questions(request):
 	# serializer = QuestionSerializer(questions)
 	# if serializer.is_valid():
 		# serializer.save()
-	return Response(serializer.data, status = status.HTTP_200_OK)
+	# return Response(serializer.data, status = status.HTTP_200_OK)
 	# return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
