@@ -59,6 +59,8 @@ MIDDLEWARE_CLASSES = [
 
 ROOT_URLCONF = 'QnA.urls'
 
+JWT_VERIFY = False
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

@@ -1,15 +1,19 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import Quiz, Category, SubCategory
-from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
+from django.contrib.auth.models import User
+
+from .models import Quiz, Category, SubCategory, Question
+from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET','POST'])
+@permission_classes((AllowAny,))
 def quiz_list(request, format = None):
 	"""
 	List all code Quiz, or create a new quiz.	
@@ -20,6 +24,7 @@ def quiz_list(request, format = None):
 	return Response(serializer.data, status = status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
+@permission_classes((AllowAny,))
 def get_quiz(request, pk ,format = None):
 	"""
 	Quiz detail with pk.
@@ -35,6 +40,7 @@ def get_quiz(request, pk ,format = None):
 
 
 @api_view(['POST'])
+@permission_classes((AllowAny,))
 def create_quiz(request, format = None):
 	"""
 	List all code Quiz, or create a new quiz.
@@ -49,6 +55,7 @@ def create_quiz(request, format = None):
 
 
 @api_view(['GET', 'DELETE'])
+@permission_classes((AllowAny,))
 def delete_quiz(request, pk, format = None):
 	"""
 	Delete a quiz or GET a quiz details.
@@ -73,6 +80,7 @@ def delete_quiz(request, pk, format = None):
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
+@permission_classes((AllowAny,))
 def create_category(request):
 	"""
 	List all code Quiz, or create a new quiz.
@@ -132,6 +140,7 @@ def delete_category(request, pk, format = None):
 #>>>>>>>>>>>>>>>>>>>>> SubCategory Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
+@permission_classes((AllowAny,))
 def create_subcategory(request):
 	"""
 	List all code Quiz, or create a new quiz.
@@ -166,3 +175,30 @@ def get_subcategory(request, pk, format = None):
 		print e.args
 		return Response({'msg': 'Sub-category not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
+#>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
+
+@api_view(['GET'])
+def my_all_questions(request):
+	"""
+	List all code Quiz, or create a new quiz.
+
+	"""
+	user =  User.objects.get(pk = 1)
+	quizs = Quiz.objects.filter(user = user)
+	questions = []
+	for quiz in quizs:
+		categories = Category.objects.filter(quiz = quiz)
+		for category in categories:
+			for sub_category in SubCategory.objects.filter(category = category):
+				print sub_category
+
+		# print categories
+	# print categories
+	# for categories
+	# serializer = QuizSerializer(quiz)
+	# serializer = QuestionSerializer(questions)
+	# if serializer.is_valid():
+		# serializer.save()
+	return Response(serializer.data, status = status.HTTP_200_OK)
+	# return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)

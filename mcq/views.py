@@ -1,5 +1,7 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 from rest_framework import status
 
 from QnA.services import answer_engine
@@ -8,7 +10,10 @@ from serializer import MCQuestionSerializer
 
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
-@api_view(['POST','GET'])
+
+
+@api_view(['POST'])
+@permission_classes((AllowAny,))
 def create_mcq(request):
 	"""
 	Create a MCQuestion ... 
@@ -68,6 +73,7 @@ def del_mcq(request, pk):
 	
 
 @api_view(['GET'])
+@permission_classes((AllowAny,))
 def all_mcq(request):
 	"""	
 	List of all MCQuestion's.
@@ -76,16 +82,6 @@ def all_mcq(request):
 		from collections import defaultdict
 		mcq_question_list = MCQuestion.objects.all()
 		data = defaultdict(list)
-		for mcq in mcq_question_list:
-			data[mcq.sub_category].append(
-				{	
-					'level' : mcq.level,
-					'id' : mcq.id,
-					'question' : mcq.content,
-
-				}
-				)
-		print data
 		serializer = MCQuestionSerializer(mcq_question_list, many = True)
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except MCQuestion.DoesNotExist as e:

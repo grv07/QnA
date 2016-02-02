@@ -10,6 +10,8 @@ from django.utils.translation import ugettext as _
 from django.utils.timezone import now
 from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
+from django.contrib.auth.models import User
+
 
 # from model_utils.managers import InheritanceManager
 
@@ -19,64 +21,10 @@ QUESTION_DIFFICULTY_OPTIONS = (
 	('H', _('H'))
 )
 
-class CategoryManager(models.Manager):
-
-	def new_category(self, category):
-		new_category = self.create(category=re.sub('\s+', '-', category)
-								   .lower())
-		new_category.save()
-		return new_category
-
-
-@python_2_unicode_compatible
-class Category(models.Model):
-
-	category = models.CharField(
-		verbose_name=_("Category"),
-		max_length=250,
-		unique=True)
-
-	objects = CategoryManager()
-
-	class Meta:
-		verbose_name = _("Category")
-		verbose_name_plural = _("Categories")
-
-	def __str__(self):
-		return self.category
-
-	def save(self, force_insert=False, force_update=False, *args, **kwargs):
-		self.category = re.sub('\s+', '-', self.category).lower()
-
-		self.url = ''.join(letter for letter in self.category if
-						   letter.isalnum() or letter == '-')
-		
-		super(Category, self).save(force_insert, force_update, *args, **kwargs)
-
-@python_2_unicode_compatible
-class SubCategory(models.Model):
-
-	sub_category = models.CharField(
-		verbose_name=_("Sub-Category"),
-		max_length=250)
-
-	category = models.ForeignKey(
-		Category, null=True, blank=True,
-		verbose_name=_("Category"))
-
-	objects = CategoryManager()
-
-	class Meta:
-		verbose_name = _("Sub-Category")
-		verbose_name_plural = _("Sub-Categories")
-
-	def __str__(self):
-		return self.sub_category
-
-
-
 @python_2_unicode_compatible
 class Quiz(models.Model):
+
+	user = models.ForeignKey(User,default = '1')
 
 	title = models.CharField(
 		verbose_name=_("Title"),unique = True,
@@ -90,10 +38,6 @@ class Quiz(models.Model):
 		max_length=60, blank=False,
 		help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
-
-	category = models.ForeignKey(
-		Category, null=True, blank=True,
-		verbose_name=_("Category"))
 
 	random_order = models.BooleanField(
 		blank=False, default=False,
@@ -184,6 +128,63 @@ class Quiz(models.Model):
 
 	def anon_q_data(self):
 		return str(self.id) + "_data"
+
+
+class CategoryManager(models.Manager):
+
+	def new_category(self, category):
+		new_category = self.create(category=re.sub('\s+', '-', category)
+								   .lower())
+		new_category.save()
+		return new_category
+
+
+@python_2_unicode_compatible
+class Category(models.Model):
+
+	category = models.CharField(
+		verbose_name=_("Category"),
+		max_length=250,
+		unique=True)
+
+	quiz = models.ForeignKey(
+		Quiz, verbose_name=_("Quiz"))
+
+	objects = CategoryManager()
+
+	class Meta:
+		verbose_name = _("Category")
+		verbose_name_plural = _("Categories")
+
+	def __str__(self):
+		return self.category
+
+	def save(self, force_insert=False, force_update=False, *args, **kwargs):
+		self.category = re.sub('\s+', '-', self.category).lower()
+
+		self.url = ''.join(letter for letter in self.category if
+						   letter.isalnum() or letter == '-')
+		
+		super(Category, self).save(force_insert, force_update, *args, **kwargs)
+
+@python_2_unicode_compatible
+class SubCategory(models.Model):
+
+	sub_category_name = models.CharField(
+		verbose_name=_("Sub-Category"),
+		max_length=250)
+
+	category = models.ForeignKey(
+		Category,verbose_name=_("Category"))
+
+	objects = CategoryManager()
+
+	class Meta:
+		verbose_name = _("Sub-Category")
+		verbose_name_plural = _("Sub-Categories")
+
+	def __str__(self):
+		return self.sub_category_name
 
 
 class ProgressManager(models.Manager):
@@ -553,15 +554,13 @@ class Question(models.Model):
 
 	quiz = models.ManyToManyField(Quiz,
 								  verbose_name=_("Quiz"),
-								  blank=True)
+								  null = False)
 
-	category = models.ForeignKey(Category,
-								 verbose_name=_("Category"),
-								 blank=True,
-								 null=True)
+	category = models.ForeignKey(Category, verbose_name=_("Category"))
 
-	sub_category = models.ForeignKey(SubCategory,
-									 verbose_name=_("Sub-Category"))
+	sub_category = models.ForeignKey(SubCategory,blank=True,
+							   		null=True,
+									verbose_name=_("Sub-Category"))
 
 	figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
 							   blank=True,
