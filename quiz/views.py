@@ -13,17 +13,17 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-def quiz_list(request, pk, format = None):
+def quiz_list(request, userid, quizid, format = None):
 	"""
 	Either get a single quiz or all.
 	"""
 	try:
-		if pk == 'all':
-			quiz_list = Quiz.objects.all()
+		if quizid == 'all':
+			quiz_list = Quiz.objects.filter(user=userid).order_by('id')
 			serializer = QuizSerializer(quiz_list, many = True)
 		else:
-			if pk.isnumeric():
-				quiz = Quiz.objects.get(category = pk)
+			if quizid.isnumeric():
+				quiz = Quiz.objects.get(id = quizid, user=userid)
 				serializer = QuizSerializer(quiz, many = False)
 			else:
 				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
@@ -89,11 +89,12 @@ def delete_quiz(request, pk, format = None):
 @api_view(['POST'])
 def create_category(request):
 	"""
-	List all code Quiz, or create a new quiz.
+	Create a category
 	"""
+	print request.data
 	serializer = CategorySerializer(data = request.data)
 	if serializer.is_valid():
-		serializer.save()
+		# serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
