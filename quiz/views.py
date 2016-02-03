@@ -13,7 +13,6 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-@permission_classes((AllowAny,))
 def quiz_list(request, pk, format = None):
 	"""
 	Either get a single quiz or all.
@@ -35,7 +34,6 @@ def quiz_list(request, pk, format = None):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes((AllowAny,))
 def get_quiz(request, pk ,format = None):
 	"""
 	Quiz detail with pk.
@@ -51,7 +49,6 @@ def get_quiz(request, pk ,format = None):
 
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def create_quiz(request, format = None):
 	"""
 	List all code Quiz, or create a new quiz.
@@ -66,7 +63,6 @@ def create_quiz(request, format = None):
 
 
 @api_view(['GET', 'DELETE'])
-@permission_classes((AllowAny,))
 def delete_quiz(request, pk, format = None):
 	"""
 	Delete a quiz or GET a quiz details.
@@ -91,7 +87,6 @@ def delete_quiz(request, pk, format = None):
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def create_category(request):
 	"""
 	List all code Quiz, or create a new quiz.
@@ -151,7 +146,6 @@ def delete_category(request, pk, format = None):
 #>>>>>>>>>>>>>>>>>>>>> SubCategory Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def create_subcategory(request):
 	"""
 	List all code Quiz, or create a new quiz.

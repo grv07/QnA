@@ -24,7 +24,7 @@ QUESTION_DIFFICULTY_OPTIONS = (
 @python_2_unicode_compatible
 class Quiz(models.Model):
 
-	user = models.ForeignKey(User,default = '1')
+	user = models.ForeignKey(User, default = '1')
 
 	title = models.CharField(
 		verbose_name=_("Title"),unique = True,

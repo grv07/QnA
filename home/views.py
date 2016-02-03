@@ -28,13 +28,15 @@ def login_user(request):
 			isPasswordCorrect = user.check_password(request.data.get('password'))
 			if isPasswordCorrect:
 				token = generate_token(user)
-				return Response({'username':request.data.get('username'),'email': user.email,'token':token}, status = status.HTTP_200_OK)
+				return Response({'username':request.data.get('username'),'email': user.email,'token':token, 'userID':user.id}, status = status.HTTP_200_OK)
 			else:
 				return Response({'errors':'Incorrect credentials. Password is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 	except User.DoesNotExist as e:
 		return Response({'errors':'Incorrect credentials. Username is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 
  
+
+@api_view(['POST'])
 def logout_user(request, format=None):
 	from django.http import JsonResponse
 	from django.contrib.auth import logout
