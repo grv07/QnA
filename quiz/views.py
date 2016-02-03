@@ -91,12 +91,19 @@ def create_category(request):
 	"""
 	Create a category
 	"""
-	print request.data
-	serializer = CategorySerializer(data = request.data)
-	if serializer.is_valid():
-		# serializer.save()
+	try:
+		for quiz in list(request.data.get('quiz', None)):
+			request.data['quiz'] = quiz
+			print request.data
+			serializer = CategorySerializer(data = request.data)
+			if serializer.is_valid():
+				serializer.save()
+			else:
+				print serializer.errors
 		return Response(serializer.data, status = status.HTTP_200_OK)
-	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+	except Exception as e:
+		print e.args
+		return Response({'errors' : 'Cannot create the category.'}, status = status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
 def get_category(request, pk ,format = None):
