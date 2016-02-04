@@ -40,6 +40,9 @@ def create_mcq(request):
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)	
 
 
+def save_XLS_to_MCQ(request):
+	pass
+
 @api_view(['GET','POST'])
 def get_mcq_detail(request, pk):
 	"""

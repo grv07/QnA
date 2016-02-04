@@ -18,21 +18,8 @@ def quiz_list(request, userid, format = None):
 	Either get a single quiz or all.
 	"""
 	try:
-<<<<<<< HEAD
 		quiz_list = Quiz.objects.filter(user=userid).order_by('id')
 		serializer = QuizSerializer(quiz_list, many = True)
-		
-=======
-		if quizid == 'all':
-			quizzes = Quiz.objects.filter(user=userid).order_by('id')
-			serializer = QuizSerializer(quizzes, many = True)
-		else:
-			if quizid.isnumeric():
-				quiz = Quiz.objects.get(id = quizid, user=userid)
-				serializer = QuizSerializer(quiz, many = False)
-			else:
-				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
->>>>>>> 7c862d80211bc9be59bc24825cf5f93c4174bc22
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except Quiz.DoesNotExist as e:
 		print e.args
@@ -232,3 +219,6 @@ def all_questions(request):
 		# serializer.save()
 	# return Response(serializer.data, status = status.HTTP_200_OK)
 	# return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+	pass
+		
