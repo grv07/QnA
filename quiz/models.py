@@ -554,12 +554,12 @@ class Question(models.Model):
 
 	quiz = models.ManyToManyField(Quiz,
 								  verbose_name=_("Quiz"),
-								  null = False)
+								  null = True)
 
-	category = models.ForeignKey(Category, verbose_name=_("Category"))
+	category = models.ForeignKey(Category, verbose_name=_("Category"), null = True)
 
-	sub_category = models.ForeignKey(SubCategory,blank=True,
-							   		null=True,
+	sub_category = models.ForeignKey(SubCategory,blank=False,
+							   		null=False,
 									verbose_name=_("Sub-Category"))
 
 	figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
