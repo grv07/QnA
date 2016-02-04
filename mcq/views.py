@@ -30,8 +30,6 @@ def create_mcq(request):
 					c['correct'] = True
 				options.append(c)
 			mcq = serializer.save()
-			# options = [{'content':'text','correct':True},
-			# 		{'content':'text','correct':False},{'content':'text','correct':False}]
 			isAnswerSaved, errors = answer_engine.create_answer(mcq, options)
 			if not isAnswerSaved:
 				return Response(errors, status = status.HTTP_400_BAD_REQUEST)

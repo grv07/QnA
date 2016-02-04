@@ -18,9 +18,21 @@ def quiz_list(request, userid, format = None):
 	Either get a single quiz or all.
 	"""
 	try:
+<<<<<<< HEAD
 		quiz_list = Quiz.objects.filter(user=userid).order_by('id')
 		serializer = QuizSerializer(quiz_list, many = True)
 		
+=======
+		if quizid == 'all':
+			quizzes = Quiz.objects.filter(user=userid).order_by('id')
+			serializer = QuizSerializer(quizzes, many = True)
+		else:
+			if quizid.isnumeric():
+				quiz = Quiz.objects.get(id = quizid, user=userid)
+				serializer = QuizSerializer(quiz, many = False)
+			else:
+				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+>>>>>>> 7c862d80211bc9be59bc24825cf5f93c4174bc22
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except Quiz.DoesNotExist as e:
 		print e.args
@@ -86,14 +98,9 @@ def create_category(request):
 	Create a category
 	"""
 	try:
-		for quiz in list(request.data.get('quiz', None)):
-			request.data['quiz'] = quiz
-			print request.data
-			serializer = CategorySerializer(data = request.data)
-			if serializer.is_valid():
-				serializer.save()
-			else:
-				print serializer.errors
+		serializer = CategorySerializer(data = request.data)
+		if serializer.is_valid():
+			serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
@@ -113,15 +120,29 @@ def get_category(request, pk ,format = None):
 	serializer = CategorySerializer(category)
 	return Response(serializer.data, status = status.HTTP_200_OK)
 
-@api_view(['GET', 'POST'])
-def category_list(request, format = None):
+@api_view(['GET'])
+def category_list(request, userid, quizid, format = None):
 	"""
-	List all category.
-	
+	Either get a single quiz or all.
 	"""
-	category_list = Category.objects.all()
-	serializer = CategorySerializer(category_list, many = True)
-	return Response(serializer.data, status = status.HTTP_200_OK)
+	try:
+		categories = []
+		if quizid == 'all':
+			for quiz in Quiz.objects.filter(user=userid).order_by('id'):
+				for category in Category.objects.filter(quiz=quiz):
+					categories.append(category)
+			serializer = CategorySerializer(categories, many = True)
+		else:
+			if quizid.isnumeric():
+				for quiz in Quiz.objects.filter(id=quizid, user=userid).order_by('id'):
+					categories = Category.objects.filter(quiz=quiz)
+				serializer = CategorySerializer(categories, many = True)
+			else:
+				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	except Category.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET', 'DELETE'])
@@ -161,24 +182,28 @@ def create_subcategory(request):
 
 
 @api_view(['GET'])
-def get_subcategory(request, pk, format = None):
+def get_subcategory(request, userid, quizid, categoryid, format = None):
 	"""
 	Either get a single subcategory or all.
 	"""
 	try:
-		if pk == 'all':
-			subcategory_list = SubCategory.objects.all()
-			serializer = SubCategorySerializer(subcategory_list, many = True)
+		subcategories = []
+		if quizid == 'all' and categoryid == 'all':
+			for quiz in Quiz.objects.filter(user=userid):
+				for category in Category.objects.filter(quiz=quiz):
+					for subcategory in SubCategory.objects.filter(category=category):
+						subcategories.append(subcategory)
+			serializer = SubCategorySerializer(subcategories, many = True)
 		else:
-			if pk.isnumeric():
-				subcategory = SubCategory.objects.get(category = pk)
+			if quizid.isnumeric() and categoryid.isnumeric():
+				subcategory = SubCategory.objects.get(category=Category.objects.get(id=categoryid, quiz=Quiz.objects.filter(id=quizid, user=userid)))
 				serializer = SubCategorySerializer(subcategory, many = False)
 			else:
-				return Response({'msg': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
-		return Response({'msg': 'Sub-category not found'}, status=status.HTTP_404_NOT_FOUND)
+		return Response({'errors': 'Sub-category not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
