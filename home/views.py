@@ -38,7 +38,6 @@ def login_user(request):
 
 @api_view(['POST'])
 def logout_user(request, format=None):
-	from django.http import JsonResponse
 	from django.contrib.auth import logout
 	logout(request)
-	return JsonResponse({'status': 'success'}, status=204)
+	return Response({'status': 'success'}, status=204)

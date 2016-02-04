@@ -22,7 +22,7 @@ class CategorySerializer(serializers.ModelSerializer):
 				raise serializers.ValidationError("category name must be unique")
 		except Category.DoesNotExist as e:
 			return category_name
-			
+
 	class Meta:
 		model = Category
 		fields = '__all__'

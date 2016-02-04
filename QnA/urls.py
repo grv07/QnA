@@ -16,7 +16,7 @@ Including another URLconf
 
 #Allow a format url via append .json etc in url
 from rest_framework.urlpatterns import format_suffix_patterns
-
+from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token
 from django.conf.urls import url, include
 from django.contrib import admin
 
@@ -26,8 +26,8 @@ urlpatterns = [
     url(r'^question/', include('mcq.urls')),
     url(r'^', include('home.urls')),
 
-    url(r'^api-token-auth/', 'rest_framework_jwt.views.obtain_jwt_token'),
-    url(r'^api-token-verify/', 'rest_framework_jwt.views.verify_jwt_token'),
+    url(r'^api-token-auth/', obtain_jwt_token),
+    url(r'^api-token-verify/', verify_jwt_token),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

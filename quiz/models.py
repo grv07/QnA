@@ -12,9 +12,6 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 from django.contrib.auth.models import User
 
-
-# from model_utils.managers import InheritanceManager
-
 QUESTION_DIFFICULTY_OPTIONS = (
 	('E', _('E')),
 	('M', _('M')),
