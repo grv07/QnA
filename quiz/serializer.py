@@ -32,7 +32,6 @@ class SubCategorySerializer(serializers.ModelSerializer):
 		model = SubCategory
 		fields = '__all__'
 
-
 class QuestionSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Question

@@ -13,20 +13,14 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-def quiz_list(request, pk, format = None):
+def quiz_list(request, userid, format = None):
 	"""
 	Either get a single quiz or all.
 	"""
 	try:
-		if pk == 'all':
-			quiz_list = Quiz.objects.all()
-			serializer = QuizSerializer(quiz_list, many = True)
-		else:
-			if pk.isnumeric():
-				quiz = Quiz.objects.get(category = pk)
-				serializer = QuizSerializer(quiz, many = False)
-			else:
-				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		quiz_list = Quiz.objects.filter(user=userid).order_by('id')
+		serializer = QuizSerializer(quiz_list, many = True)
+		
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except Quiz.DoesNotExist as e:
 		print e.args
@@ -89,13 +83,21 @@ def delete_quiz(request, pk, format = None):
 @api_view(['POST'])
 def create_category(request):
 	"""
-	List all code Quiz, or create a new quiz.
+	Create a category
 	"""
-	serializer = CategorySerializer(data = request.data)
-	if serializer.is_valid():
-		serializer.save()
+	try:
+		for quiz in list(request.data.get('quiz', None)):
+			request.data['quiz'] = quiz
+			print request.data
+			serializer = CategorySerializer(data = request.data)
+			if serializer.is_valid():
+				serializer.save()
+			else:
+				print serializer.errors
 		return Response(serializer.data, status = status.HTTP_200_OK)
-	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+	except Exception as e:
+		print e.args
+		return Response({'errors' : 'Cannot create the category.'}, status = status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
 def get_category(request, pk ,format = None):
