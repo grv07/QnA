@@ -7,6 +7,7 @@ from rest_framework import status
 from django.contrib.auth.models import User
 
 from .models import Quiz, Category, SubCategory, Question
+from mcq.models import Answer
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
 
 
@@ -171,7 +172,7 @@ def create_subcategory(request):
 @api_view(['GET'])
 def get_subcategory(request, userid, quizid, categoryid, format = None):
 	"""
-	Either get a single subcategory or all.
+	Either get all subcategories under each quiz and category or get subcategories under specifc quiz and category.
 	"""
 	try:
 		subcategories = []
@@ -196,29 +197,42 @@ def get_subcategory(request, userid, quizid, categoryid, format = None):
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-def all_questions(request):
+def all_questions(request, userid, quizid, categoryid, subcategoryid):
 	"""
-	List all code Quiz, or create a new quiz.
-
+	Either get all questions under each quiz and category or get questions under specifc quiz and category.
+	Format : 
 	"""
-	# user =  User.objects.get(pk = 1)
-	# quizs = Quiz.objects.filter(user = user)
-	# questions = []
-	# for quiz in quizs:
-	# 	categories = Category.objects.filter(quiz = quiz)
-	# 	for category in categories:
-	# 		for sub_category in SubCategory.objects.filter(category = category):
-	# 			print sub_category
-
-		# print categories
-	# print categories
-	# for categories
-	# serializer = QuizSerializer(quiz)
-	# serializer = QuestionSerializer(questions)
-	# if serializer.is_valid():
-		# serializer.save()
-	# return Response(serializer.data, status = status.HTTP_200_OK)
-	# return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
-
-	pass
-		
+	try:
+		quizzes = {}
+		if quizid == 'all' and categoryid == 'all' and subcategoryid == 'all':
+			for quiz in Quiz.objects.filter(user=userid):
+				quizzes[quiz.title] = {}
+				categories = {}
+				for category in Category.objects.filter(quiz=quiz):
+					categories[category.category] = {}
+					subcategories = {}
+					for subcategory in SubCategory.objects.filter(category=category):
+						subcategories[subcategory.sub_category_name] = {}
+						questions = []
+						for question in Question.objects.filter(sub_category=subcategory):
+							d = {
+								'id' : question.id,
+								'level' : question.level,
+								'content' : question.content,
+								'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
+							}
+							questions.append(d)
+						subcategories[subcategory.sub_category_name] = questions
+					categories[category.category].update(subcategories)
+				quizzes[quiz.title].update(categories)
+			return Response(quizzes, status = status.HTTP_200_OK)
+		else:
+			if quizid.isnumeric() and categoryid.isnumeric():
+				subcategory = SubCategory.objects.get(category=Category.objects.get(id=categoryid, quiz=Quiz.objects.filter(id=quizid, user=userid)))
+				serializer = SubCategorySerializer(subcategory, many = False)
+			else:
+				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		# return Response(serializer.data, status = status.HTTP_200_OK)
+	except SubCategory.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		

@@ -17,5 +17,7 @@ urlpatterns = [
     #SubCategory Related Urls
     url(r'^subcategory/create/$', views.create_subcategory),
     url(r'^subcategory/get/(?P<userid>\d+)/(?P<quizid>[a-l0-9]+)/(?P<categoryid>[a-l0-9]+)/$', views.get_subcategory),
-    url(r'^questions/all/$', views.all_questions),
+
+    #Questions Related Urls
+    url(r'^questions/get/(?P<userid>\d+)/(?P<quizid>[a-l0-9]+)/(?P<categoryid>[a-l0-9]+)/(?P<subcategoryid>[a-l0-9]+)/$', views.all_questions),
 ]
