@@ -197,51 +197,46 @@ def get_subcategory(request, userid, quizid, categoryid, format = None):
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-def all_questions(request, userid, quizid, categoryid, subcategoryid):
+def all_questions(request, userid):
 	"""
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	Format : 
 	"""
 	try:
-		quizzes = {}
+		quizzes = []
 		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
-		if quizid == 'all' and categoryid == 'all' and subcategoryid == 'all':
-			for quiz in Quiz.objects.filter(user=userid):
-				quizzes[quiz.title] = {}
-				categories = {}
-				for category in Category.objects.filter(quiz=quiz):
-					categories[category.category] = {}
-					subcategories = {}
-					for subcategory in SubCategory.objects.filter(category=category):
-						subcategories[subcategory.sub_category_name] = {}
-						questions = []
-						for question in Question.objects.filter(sub_category=subcategory):
-							d = {
-								'id' : question.id,
-								'level' : question.level,
-								'content' : question.content,
-								'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-							}
-							if question.level == 'E':
-								questions_level_info[0] = questions_level_info[0] + 1
-							elif question.level == 'M':
-								questions_level_info[1] = questions_level_info[1] + 1
-							else:
-								questions_level_info[2] = questions_level_info[2] + 1
-							questions.append(d)
-						subcategories[subcategory.sub_category_name] = questions
-					categories[category.category].update(subcategories)
-				quizzes[quiz.title].update(categories)
-			questions_level_info[3] = sum(questions_level_info)
-			quizzes['questionsLevelInfo'] = questions_level_info
-			return Response(quizzes, status = status.HTTP_200_OK)
-		else:
-			# if quizid.isnumeric() and categoryid.isnumeric():
-			# 	subcategory = SubCategory.objects.get(category=Category.objects.get(id=categoryid, quiz=Quiz.objects.filter(id=quizid, user=userid)))
-			# 	serializer = SubCategorySerializer(subcategory, many = False)
-			# else:
-			return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
-		# return Response(serializer.data, status = status.HTTP_200_OK)
+		for q in Quiz.objects.filter(user=userid):
+			qz = {}
+			qz['title'] = q.title
+			qz['categories'] = []
+			for c in Category.objects.filter(quiz=q):
+				ca = {}
+				ca['category'] = c.category
+				ca['subcategories'] = []
+				for sc in SubCategory.objects.filter(category=c):
+					sca = {}
+					sca['subcategory'] = sc.sub_category_name
+					sca['questions'] = []
+					for question in Question.objects.filter(sub_category=sc):
+						d = {
+							'id' : question.id,
+							'level' : question.level,
+							'content' : question.content,
+							'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
+						}
+						if question.level == 'easy':
+							questions_level_info[0] = questions_level_info[0] + 1
+						elif question.level == 'medium':
+							questions_level_info[1] = questions_level_info[1] + 1
+						else:
+							questions_level_info[2] = questions_level_info[2] + 1
+						sca['questions'].append(d)
+					ca['subcategories'].append(sca)
+				qz['categories'].append(ca)
+			quizzes.append(qz)
+		questions_level_info[3] = sum(questions_level_info)
+		quizzes.insert(0,{'questions_level_info' : questions_level_info})
+		return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		

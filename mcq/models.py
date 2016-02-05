@@ -6,9 +6,9 @@ from quiz.models import Question
 
 
 ANSWER_ORDER_OPTIONS = (
-    ('content', _('Content')),
-    ('random', _('Random')),
-    ('none', _('None'))
+    ('content', _('CONTENT')),
+    ('random', _('RANDOM')),
+    ('none', _('NONE'))
 )
 
 class MCQuestion(Question):

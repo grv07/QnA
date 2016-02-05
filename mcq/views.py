@@ -18,6 +18,9 @@ def create_mcq(request):
 	"""
 	Create a MCQuestion ... 
 	"""
+	split = request.data['sub_category'].split('-')
+	request.data['sub_category'] = split[1]
+	request.data['category'] = split[0]
 	serializer = MCQuestionSerializer(data = request.data)
 	options = []
 	options_data = request.data.get('optioncontent', None)

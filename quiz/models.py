@@ -13,9 +13,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 
 QUESTION_DIFFICULTY_OPTIONS = (
-	('E', _('E')),
-	('M', _('M')),
-	('H', _('H'))
+	('easy', _('EASY')),
+	('medium', _('MEDIUM')),
+	('hard', _('HARD'))
 )
 
 @python_2_unicode_compatible
@@ -553,7 +553,7 @@ class Question(models.Model):
 								  verbose_name=_("Quiz"),
 								  null = True)
 
-	category = models.ForeignKey(Category, verbose_name=_("Category"), null = True)
+	category = models.ForeignKey(Category, verbose_name=_("Category"), null = False)
 
 	sub_category = models.ForeignKey(SubCategory,blank=False,
 							   		null=False,
@@ -577,7 +577,7 @@ class Question(models.Model):
 											   "been answered."),
 								   verbose_name=_('Explanation'))
 
-	level = models.CharField(max_length=10,default = 'E',
+	level = models.CharField(max_length=10,default = 'easy',
 								choices=QUESTION_DIFFICULTY_OPTIONS,
 								help_text=_("The difficulty level of a MCQQuestion"),
 								verbose_name=_("Difficulty Level"))
