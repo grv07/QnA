@@ -10,6 +10,34 @@ from serializer import MCQuestionSerializer
 
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def save_XLS_to_MCQ(request):
+	from pyexcel_xls import get_data
+	data = get_data("mcq_model.xls")
+
+	# row_names =  data[0]
+	total_entries = len(data)
+	import collections	
+	# temp_data = ['quiz','category', 'sub_category','level','explanation','','','','','','','','','','']
+	temp_data = data[0]
+	# This dict contains raw-way data with specified keys from temp_data or xls keys
+	data_dict = collections.OrderedDict({})
+	
+	data_list = []
+	for row_name in temp_data:
+		data_dict.update({row_name : ''})
+	
+	# Create empty value dict. for each mcq entry ..
+	for i, list_data in enumerate(data[1:]):
+		data_list.append(data_dict.copy())
+		for j, mcq_data in enumerate(list_data):
+			data_list[i][temp_data[j]] = str(mcq_data)
+	# DONE ........
+	
+	print data_list
+	
+	return Response({'msg' : data_list}, status = status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -19,9 +47,14 @@ def create_mcq(request):
 	Create a MCQuestion ... 
 	"""
 	serializer = MCQuestionSerializer(data = request.data)
+	print serializer
 	options = []
 	options_data = request.data.get('optioncontent', None)
 	correct_option = request.data.get('correctoption', None)
+
+	print options_data
+	print correct_option
+	
 	if serializer.is_valid():
 		if options_data and options_data:
 			for optionid, content in options_data.items():
@@ -39,9 +72,6 @@ def create_mcq(request):
 			return Response({'optionerrors' : 'Options must be provided with correct answer.'}, status = status.HTTP_400_BAD_REQUEST)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)	
 
-
-def save_XLS_to_MCQ(request):
-	pass
 
 @api_view(['GET','POST'])
 def get_mcq_detail(request, pk):

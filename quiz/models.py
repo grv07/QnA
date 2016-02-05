@@ -549,9 +549,7 @@ class Question(models.Model):
 	Shared properties placed here.
 	"""
 
-	quiz = models.ManyToManyField(Quiz,
-								  verbose_name=_("Quiz"),
-								  null = True)
+	quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"))
 
 	category = models.ForeignKey(Category, verbose_name=_("Category"), null = True)
 
