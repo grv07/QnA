@@ -20,4 +20,7 @@ urlpatterns = [
 
     #Questions Related Urls
     url(r'^questions/get/(?P<userid>\d+)/$', views.all_questions),
+    url(r'^question/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.get_or_update_question),
+    url(r'^answers/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.get_or_update_answers),
+
 ]

@@ -8,8 +8,8 @@ from django.contrib.auth.models import User
 
 from .models import Quiz, Category, SubCategory, Question
 from mcq.models import Answer
+from mcq.serializer import AnswerSerializer
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
-
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
@@ -200,7 +200,6 @@ def get_subcategory(request, userid, quizid, categoryid, format = None):
 def all_questions(request, userid):
 	"""
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
-	Format : 
 	"""
 	try:
 		quizzes = []
@@ -240,3 +239,60 @@ def all_questions(request, userid):
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		
+
+
+@api_view(['GET', 'PUT'])
+def get_or_update_question(request, userid, questionid):
+	"""
+	Get a single question or update.
+	"""
+	try:
+		question = Question.objects.get(id = questionid)
+	except Question.DoesNotExist:
+		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
+	if request.method == 'GET':
+		questionserializer = QuestionSerializer(question, many = False)
+		answers = Answer.objects.filter(question = question)
+		answerserializer = AnswerSerializer(answers, many = True)
+		result = dict(questionserializer.data)
+		result.update( { 'options' : answerserializer.data } )
+		result['category'] = question.category.category
+		result['sub_category'] = question.sub_category.sub_category_name
+		return Response({ 'question' : result }, status = status.HTTP_200_OK)
+
+	elif request.method == 'PUT':
+		request.data.update({ 'category': question.category.id, 'sub_category': question.sub_category.id})
+		serializer = QuestionSerializer(question, data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data, status = status.HTTP_200_OK)
+		print serializer.errors
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT'])
+def get_or_update_answers(request, userid, questionid):
+	"""
+	Get answers to a question or update.
+	"""
+	try:
+		question = Question.objects.get(id = questionid)
+	except Question.DoesNotExist:
+		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
+	if request.method == 'GET':
+		answers = Answer.objects.filter(question = question)
+		answerserializer = AnswerSerializer(answers, many = True)
+		result = { 'content' : question.content }
+		result['category'] = question.category.category
+		result['sub_category'] = question.sub_category.sub_category_name
+		result['options'] = answerserializer.data
+		return Response({ 'answers' : result }, status = status.HTTP_200_OK)
+
+	elif request.method == 'PUT':
+		print request.data
+		# serializer = QuestionSerializer(question, data=request.data)
+		# if serializer.is_valid():
+		# 	serializer.save()
+		# 	return Response(serializer.data, status = status.HTTP_200_OK)
+		# print serializer.errors
+		# return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)	
