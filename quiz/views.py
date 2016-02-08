@@ -241,8 +241,8 @@ def all_questions(request, userid):
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		
 
 
-@api_view(['GET', 'PUT'])
-def get_or_update_question(request, userid, questionid):
+@api_view(['GET', 'PUT', 'DELETE'])
+def question_operations(request, userid, questionid):
 	"""
 	Get a single question or update.
 	"""
@@ -266,21 +266,32 @@ def get_or_update_question(request, userid, questionid):
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status = status.HTTP_200_OK)
-		print serializer.errors
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+	elif request.method == 'DELETE':
+		try:
+			question.delete()
+			return Response(status=status.HTTP_204_NO_CONTENT)
+		except Exception as e:
+			print e.args
+			return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+"""
+{u'correctoption': u'35', u'optionContent': {u'33': u'1-', u'32': u'2-', u'35': u'1+', u'34': u'2+'}} 
+"""
 
 @api_view(['GET', 'PUT'])
-def get_or_update_answers(request, userid, questionid):
+def answers_operations(request, userid, questionid):
 	"""
 	Get answers to a question or update.
 	"""
 	try:
 		question = Question.objects.get(id = questionid)
+		answers = Answer.objects.filter(question = question)
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
 	if request.method == 'GET':
-		answers = Answer.objects.filter(question = question)
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = { 'content' : question.content }
 		result['category'] = question.category.category
@@ -289,10 +300,13 @@ def get_or_update_answers(request, userid, questionid):
 		return Response({ 'answers' : result }, status = status.HTTP_200_OK)
 
 	elif request.method == 'PUT':
-		print request.data
-		# serializer = QuestionSerializer(question, data=request.data)
-		# if serializer.is_valid():
-		# 	serializer.save()
-		# 	return Response(serializer.data, status = status.HTTP_200_OK)
-		# print serializer.errors
-		# return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)	
+		optionsContent = dict(request.data.get('optionsContent'))
+		for answer in answers:
+			d = { 'correct' : False, 'content' : optionsContent[str(answer.id)], 'question' : question.id }
+			if request.data.get('correctOption') == str(answer.id):
+				print answer.id
+				d['correct'] = True
+			serializer = AnswerSerializer(answer,data=d)
+			if serializer.is_valid():
+				serializer.save()
+		return Response({}, status = status.HTTP_200_OK)
