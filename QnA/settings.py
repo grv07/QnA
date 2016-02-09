@@ -25,6 +25,7 @@ SECRET_KEY = 'd*fdv&4b@m2wh+)erw5@(7ouc9%71p$ktf6wi_^3zhn6$p_$50'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 ALLOWED_HOSTS = []
 
 
@@ -112,7 +113,7 @@ DATABASES = {
 # Hosts that are allowed to do cross-site requests 
 #CORS_ORIGIN_WHITELIST = ('localhost:5000/',)
 CORS_ORIGIN_ALLOW_ALL = True
-APPEND_SLASH = True
+APPEND_SLASH = False
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators

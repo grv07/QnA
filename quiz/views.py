@@ -324,3 +324,34 @@ def answers_operations(request, userid, questionid):
 			if serializer.is_valid():
 				serializer.save()
 		return Response({}, status = status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes((AllowAny,))
+def download_xls_file(request):
+	from QnA.services.utility import MCQ_FILE_ROWS
+	from pyexcel_xls import save_data
+	import collections
+
+	que_type = request.data.get('que_type')	
+	sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
+	sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
+	
+	try:
+		sub_category = SubCategory.objects.get(pk = sub_category_id,sub_category_name = sub_category_name)
+	except SubCategory.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
+	data = collections.OrderedDict() # from collections import OrderedDict
+	_quiz_obj =  sub_category.category.quiz
+	data.update({"Sheet 1": [MCQ_FILE_ROWS,[_quiz_obj.title, sub_category.category.category_name, sub_category_name]]})
+	save_data(sub_category_name+"_file.xls", data)
+	
+	from django.http import FileResponse
+	response = FileResponse(open(sub_category_name+"_file.xls", 'rb'))
+	try:
+		import os
+		os.remove(sub_category_name+"_file.xls")
+	except OSError:
+		pass
+
+	return response

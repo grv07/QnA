@@ -23,5 +23,5 @@ urlpatterns = [
     url(r'^questions/get/(?P<userid>\d+)/$', views.all_questions),
     url(r'^question/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.question_operations),
     url(r'^answers/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.answers_operations),
-
+    url(r'^question/download/xls/$', views.download_xls_file),
 ]
