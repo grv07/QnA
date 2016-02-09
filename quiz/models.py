@@ -13,9 +13,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 
 QUESTION_DIFFICULTY_OPTIONS = (
-	('E', _('E')),
-	('M', _('M')),
-	('H', _('H'))
+	('easy', _('EASY')),
+	('medium', _('MEDIUM')),
+	('hard', _('HARD'))
 )
 
 @python_2_unicode_compatible
@@ -24,7 +24,7 @@ class Quiz(models.Model):
 	user = models.ForeignKey(User, default = '1')
 
 	title = models.CharField(
-		verbose_name=_("Title"),unique = True,
+		verbose_name=_("Title"),
 		max_length=60, blank=False)
 
 	description = models.TextField(
@@ -104,6 +104,7 @@ class Quiz(models.Model):
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
 	class Meta:
+		unique_together = ('user', 'title',)
 		verbose_name = _("Quiz")
 		verbose_name_plural = _("Quizzes")
 
@@ -139,10 +140,10 @@ class CategoryManager(models.Manager):
 @python_2_unicode_compatible
 class Category(models.Model):
 
-	category = models.CharField(
+	category_name = models.CharField(
 		verbose_name=_("Category"),
 		max_length=250,
-		unique=True)
+		unique = True)
 
 	quiz = models.ForeignKey(
 		Quiz, verbose_name=_("Quiz"))
@@ -154,10 +155,10 @@ class Category(models.Model):
 		verbose_name_plural = _("Categories")
 
 	def __str__(self):
-		return self.category
+		return self.category_name
 
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
-		self.category = re.sub('\s+', '-', self.category).lower()
+		self.category_name = re.sub('\s+', '-', self.category_name).lower()
 
 		self.url = ''.join(letter for letter in self.category if
 						   letter.isalnum() or letter == '-')
@@ -549,7 +550,7 @@ class Question(models.Model):
 	Shared properties placed here.
 	"""
 
-	quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"))
+	quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"), null = True)
 
 	category = models.ForeignKey(Category, verbose_name=_("Category"), null = True)
 

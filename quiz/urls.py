@@ -20,4 +20,5 @@ urlpatterns = [
 
     #Questions Related Urls
     url(r'^questions/get/(?P<userid>\d+)/(?P<quizid>[a-l0-9]+)/(?P<categoryid>[a-l0-9]+)/(?P<subcategoryid>[a-l0-9]+)/$', views.all_questions),
+    url(r'^question/download/xls/$', views.download_xls_file),
 ]
