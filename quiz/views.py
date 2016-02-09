@@ -16,7 +16,7 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 @api_view(['GET'])
 def quiz_list(request, userid, format = None):
 	"""
-	Either get a single quiz or all.
+	Get all quizzes.
 	"""
 	try:
 		quiz_list = Quiz.objects.filter(user=userid).order_by('id')
@@ -27,19 +27,33 @@ def quiz_list(request, userid, format = None):
 		return Response({'errors': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(['GET', 'POST'])
-def get_quiz(request, pk ,format = None):
+@api_view(['GET'])
+def get_quiz(request, userid, quizid ,format = None):
 	"""
-	Quiz detail with pk.
-	
+	Get a quiz.	
 	"""
 	try:
-		quiz = Quiz.objects.get(pk = pk)
+		quiz = Quiz.objects.get(id = quizid, user = userid)
 	except Quiz.DoesNotExist as e:
-		return Response({'msg': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
-
+		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 	serializer = QuizSerializer(quiz)
 	return Response(serializer.data, status = status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+def update_quiz(request, userid, quizid ,format = None):
+	"""
+	Update a quiz.	
+	"""
+	try:
+		quiz = Quiz.objects.get(id = quizid, user = userid)
+	except Quiz.DoesNotExist as e:
+		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+	serializer = QuizSerializer(quiz, data = request.data)
+	if serializer.is_valid():
+		serializer.save()
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

@@ -3,9 +3,10 @@ from quiz import views
 
 urlpatterns = [
 
-	url(r'^detail/(?P<pk>[0-9]+)/$', views.get_quiz),
+	url(r'^detail/(?P<userid>\d+)/(?P<quizid>\d+)/$', views.get_quiz),
 	url(r'^get/(?P<userid>\d+)/quiz/$', views.quiz_list),
 	url(r'^create/$', views.create_quiz),
+	url(r'^update/(?P<userid>\d+)/(?P<quizid>\d+)/$', views.update_quiz),
 	url(r'^delete/(?P<pk>[0-9]+)/$', views.delete_quiz),
 	
 	#Category Related Urls 
