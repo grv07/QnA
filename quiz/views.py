@@ -224,7 +224,7 @@ def all_questions(request, userid):
 			qz['categories'] = []
 			for c in Category.objects.filter(quiz=q):
 				ca = {}
-				ca['category'] = c.category
+				ca['category'] = c.category_name
 				ca['subcategories'] = []
 				for sc in SubCategory.objects.filter(category=c):
 					sca = {}
@@ -270,7 +270,7 @@ def question_operations(request, userid, questionid):
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = dict(questionserializer.data)
 		result.update( { 'options' : answerserializer.data } )
-		result['category'] = question.category.category
+		result['category'] = question.category.category_name
 		result['sub_category'] = question.sub_category.sub_category_name
 		return Response({ 'question' : result }, status = status.HTTP_200_OK)
 
@@ -301,13 +301,14 @@ def answers_operations(request, userid, questionid):
 	Get answers to a question or update.
 	"""
 	try:
-		question = Question.objects.get(id = questionid)
+		question = Question.objects.get(pk = questionid)
 		answers = Answer.objects.filter(question = question)
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
 	if request.method == 'GET':
 		answerserializer = AnswerSerializer(answers, many = True)
-		result = { 'content' : question.content }
+		result = {}
+		result['content'] = question.content
 		result['category'] = question.category.category
 		result['sub_category'] = question.sub_category.sub_category_name
 		result['options'] = answerserializer.data
@@ -337,7 +338,7 @@ def download_xls_file(request):
 	sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
 	
 	try:
-		sub_category = SubCategory.objects.get(pk = sub_category_id,sub_category_name = sub_category_name)
+		sub_category = SubCategory.objects.get(pk = sub_category_id, sub_category_name = sub_category_name)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
