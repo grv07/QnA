@@ -89,6 +89,9 @@ class Quiz(models.Model):
 					" taken by users who can edit"
 					" quizzes."))
 
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
+
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		self.url = re.sub('\s+', '-', self.url).lower()
 
@@ -107,6 +110,7 @@ class Quiz(models.Model):
 		unique_together = ('user', 'title',)
 		verbose_name = _("Quiz")
 		verbose_name_plural = _("Quizzes")
+		# ordering = ['updated_date']
 
 	def __str__(self):
 		return self.title
@@ -160,7 +164,7 @@ class Category(models.Model):
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		self.category_name = re.sub('\s+', '-', self.category_name).lower()
 
-		self.url = ''.join(letter for letter in self.category if
+		self.url = ''.join(letter for letter in self.category_name if
 						   letter.isalnum() or letter == '-')
 		
 		super(Category, self).save(force_insert, force_update, *args, **kwargs)
@@ -229,7 +233,7 @@ class Progress(models.Model):
 		output = {}
 
 		for cat in Category.objects.all():
-			to_find = re.escape(cat.category) + r",(\d+),(\d+),"
+			to_find = re.escape(cat.category_name) + r",(\d+),(\d+),"
 			#  group 1 is score, group 2 is highest possible
 
 			match = re.search(to_find, self.score, re.IGNORECASE)
@@ -244,11 +248,11 @@ class Progress(models.Model):
 				except:
 					percent = 0
 
-				output[cat.category] = [score, possible, percent]
+				output[cat.category_name] = [score, possible, percent]
 
 			else:  # if category has not been added yet, add it.
-				self.score += cat.category + ",0,0,"
-				output[cat.category] = [0, 0]
+				self.score += cat.category_name + ",0,0,"
+				output[cat.category_name] = [0, 0]
 
 		if len(self.score) > len(score_before):
 			# If a new category has been added, save changes.
@@ -555,7 +559,7 @@ class Question(models.Model):
 	category = models.ForeignKey(Category, verbose_name=_("Category"), null = False)
 
 	sub_category = models.ForeignKey(SubCategory,blank=False,
-							   		null=False,
+									null=False,
 									verbose_name=_("Sub-Category"))
 
 	figure = models.ImageField(upload_to='uploads/%Y/%m/%d',

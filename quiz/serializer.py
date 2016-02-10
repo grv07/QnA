@@ -12,14 +12,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 	def validate_category(self, value):
 		import re
-		"""
-		remove all spaces with '-'' when save to DB
-		"""
 		category_name = re.sub('\s+', '-', value).lower()
 		try:
 			category_obj =  Category.objects.get(category = category_name)
 			if category_obj:
-				raise serializers.ValidationError("category name must be unique")
+				raise serializers.ValidationError("Category name must be unique")
 		except Category.DoesNotExist as e:
 			return category_name
 

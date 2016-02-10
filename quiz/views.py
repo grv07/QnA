@@ -4,8 +4,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from django.contrib.auth.models import User
+from QnA.services.utility import get_questions_format
 
+from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
 from mcq.models import Answer
 from mcq.serializer import AnswerSerializer
@@ -30,7 +31,7 @@ def quiz_list(request, userid, format = None):
 @api_view(['GET'])
 def get_quiz(request, userid, quizid ,format = None):
 	"""
-	Get a quiz.	
+	Get a quiz.
 	"""
 	try:
 		quiz = Quiz.objects.get(id = quizid, user = userid)
@@ -216,44 +217,59 @@ def all_questions(request, userid):
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
 	try:
-		quizzes = []
-		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
-		for q in Quiz.objects.filter(user=userid):
-			qz = {}
-			qz['title'] = q.title
-			qz['categories'] = []
-			for c in Category.objects.filter(quiz=q):
-				ca = {}
-				ca['category'] = c.category_name
-				ca['subcategories'] = []
-				for sc in SubCategory.objects.filter(category=c):
-					sca = {}
-					sca['subcategory'] = sc.sub_category_name
-					sca['questions'] = []
-					for question in Question.objects.filter(sub_category=sc):
-						d = {
-							'id' : question.id,
-							'level' : question.level,
-							'content' : question.content,
-							'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-						}
-						if question.level == 'easy':
-							questions_level_info[0] = questions_level_info[0] + 1
-						elif question.level == 'medium':
-							questions_level_info[1] = questions_level_info[1] + 1
-						else:
-							questions_level_info[2] = questions_level_info[2] + 1
-						sca['questions'].append(d)
-					ca['subcategories'].append(sca)
-				qz['categories'].append(ca)
-			quizzes.append(qz)
-		questions_level_info[3] = sum(questions_level_info)
-		quizzes.insert(0,{'questions_level_info' : questions_level_info})
+		quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
 		return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		
 
+
+@api_view(['GET'])
+def all_questions_under_quiz(request, userid, quizid):
+	"""
+	Get all questions under a quiz.
+	"""
+	try:
+		quiz = Quiz.objects.get(id=quizid, user=userid)
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
+		return Response(quizzes, status = status.HTTP_200_OK)
+	except SubCategory.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def all_questions_under_category(request, userid, quizid, categoryid):
+	"""
+	Get all questions under a quiz and a category.
+	"""
+	try:
+		quiz = Quiz.objects.get(id=quizid, user=userid)
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
+		return Response(quizzes, status = status.HTTP_200_OK)
+	except SubCategory.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def all_questions_under_subcategory(request, userid, quizid, categoryid, subcategoryid):
+	"""
+	Either get all questions under each quiz and category or get questions under specifc quiz and category.
+	"""
+	try:
+		quiz = Quiz.objects.get(id=quizid, user=userid)
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
+		return Response(quizzes, status = status.HTTP_200_OK)
+	except SubCategory.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def filtered_questions(request, userid, categoryid, subcategoryid):
+	print userid, categoryid, subcategoryid
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def question_operations(request, userid, questionid):
@@ -291,9 +307,6 @@ def question_operations(request, userid, questionid):
 			return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-"""
-{u'correctoption': u'35', u'optionContent': {u'33': u'1-', u'32': u'2-', u'35': u'1+', u'34': u'2+'}} 
-"""
 
 @api_view(['GET', 'PUT'])
 def answers_operations(request, userid, questionid):
@@ -309,7 +322,7 @@ def answers_operations(request, userid, questionid):
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = {}
 		result['content'] = question.content
-		result['category'] = question.category.category
+		result['category'] = question.category.category_name
 		result['sub_category'] = question.sub_category.sub_category_name
 		result['options'] = answerserializer.data
 		return Response({ 'answers' : result }, status = status.HTTP_200_OK)
