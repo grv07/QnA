@@ -224,7 +224,7 @@ def all_questions(request, userid):
 			qz['categories'] = []
 			for c in Category.objects.filter(quiz=q):
 				ca = {}
-				ca['category'] = c.category
+				ca['category'] = c.category_name
 				ca['subcategories'] = []
 				for sc in SubCategory.objects.filter(category=c):
 					sca = {}
@@ -270,7 +270,7 @@ def question_operations(request, userid, questionid):
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = dict(questionserializer.data)
 		result.update( { 'options' : answerserializer.data } )
-		result['category'] = question.category.category
+		result['category'] = question.category.category_name
 		result['sub_category'] = question.sub_category.sub_category_name
 		return Response({ 'question' : result }, status = status.HTTP_200_OK)
 
@@ -308,7 +308,7 @@ def answers_operations(request, userid, questionid):
 	if request.method == 'GET':
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = { 'content' : question.content }
-		result['category'] = question.category.category
+		result['category'] = question.category.category_name
 		result['sub_category'] = question.sub_category.sub_category_name
 		result['options'] = answerserializer.data
 		return Response({ 'answers' : result }, status = status.HTTP_200_OK)
