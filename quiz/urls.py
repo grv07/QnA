@@ -21,6 +21,9 @@ urlpatterns = [
 
     #Questions Related Urls
     url(r'^questions/get/(?P<userid>\d+)/$', views.all_questions),
+    url(r'^questions/get/(?P<userid>\d+)/(?P<quizid>\d+)/$', views.all_questions_under_quiz),
+    url(r'^questions/get/(?P<userid>\d+)/(?P<quizid>\d+)/(?P<categoryid>\d+)/$', views.all_questions_under_category),
+    url(r'^questions/get/(?P<userid>\d+)/(?P<quizid>\d+)/(?P<categoryid>\d+)/(?P<subcategoryid>\d+)/$', views.all_questions_under_subcategory),
     url(r'^question/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.question_operations),
     url(r'^answers/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.answers_operations),
     url(r'^question/download/xls/$', views.download_xls_file),
