@@ -1,3 +1,17 @@
+from django.utils.translation import ugettext as _
+
+QUESTION_DIFFICULTY_OPTIONS = (
+	('easy', _('EASY')),
+	('medium', _('MEDIUM')),
+	('hard', _('HARD'))
+)
+
+ANSWER_ORDER_OPTIONS = (
+    ('content', _('CONTENT')),
+    ('random', _('RANDOM')),
+    ('none', _('NONE'))
+)
+
 MCQ_FILE_ROWS = ['quiz', 'category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
 'option4', 'option5', 'option6', 'correctoption', 'content']
 

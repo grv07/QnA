@@ -12,11 +12,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 from django.contrib.auth.models import User
 
-QUESTION_DIFFICULTY_OPTIONS = (
-	('easy', _('EASY')),
-	('medium', _('MEDIUM')),
-	('hard', _('HARD'))
-)
+from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS
 
 @python_2_unicode_compatible
 class Quiz(models.Model):
