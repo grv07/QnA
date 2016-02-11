@@ -100,14 +100,8 @@ def save_XLS_to_MCQ(request):
 @permission_classes((AllowAny,))
 def create_mcq(request, xls_read_data = None):
 	"""
-	Create a MCQuestion ... 
+	Create a MCQuestion. 
 	"""
-# <<<<<<< HEAD
-# 	split = request.data['sub_category'].split('-')
-# 	request.data['sub_category'] = split[1]
-# 	request.data['category'] = split[0]
-# 	serializer = MCQuestionSerializer(data = request.data)
-# =======
 	if xls_read_data:
 		last_resp = []
 		for data in xls_read_data:

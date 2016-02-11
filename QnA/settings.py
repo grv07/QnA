@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'mcq',
     'objective',
     'home',
+    'quizstack',
 ]
 
 MIDDLEWARE_CLASSES = [

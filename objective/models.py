@@ -40,4 +40,4 @@ class ObjectiveQuestion(Question):
     class Meta:
         verbose_name = _("Objective Question")
         verbose_name_plural = _("Objective Questions")
-        ordering = ['category']
+        # ordering = ['category']

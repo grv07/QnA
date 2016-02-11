@@ -149,8 +149,7 @@ class Category(models.Model):
 		max_length=250,
 		unique = True)
 
-	quiz = models.ForeignKey(
-		Quiz, verbose_name=_("Quiz"))
+	user = models.ForeignKey(User, default = '1')
 
 	objects = CategoryManager()
 
@@ -176,8 +175,11 @@ class SubCategory(models.Model):
 		verbose_name=_("Sub-Category"),
 		max_length=250)
 
+	user = models.ForeignKey(User, default = '1')
+
 	category = models.ForeignKey(
-		Category,verbose_name=_("Category"))
+		Category,verbose_name=_("Category"), null=True)
+
 
 	objects = CategoryManager()
 
@@ -554,9 +556,9 @@ class Question(models.Model):
 	Shared properties placed here.
 	"""
 
-	quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"), null = True)
+	# quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"), null = True)
 
-	category = models.ForeignKey(Category, verbose_name=_("Category"), null = False)
+	# category = models.ForeignKey(Category, verbose_name=_("Category"), null = False)
 
 	sub_category = models.ForeignKey(SubCategory,blank=False,
 									null=False,
@@ -590,7 +592,6 @@ class Question(models.Model):
 	class Meta:
 		verbose_name = _("Question")
 		verbose_name_plural = _("Questions")
-		# ordering = ['category']
 
 	def __str__(self):
 		return self.content

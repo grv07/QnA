@@ -184,21 +184,19 @@ def create_subcategory(request):
 
 
 @api_view(['GET'])
-def get_subcategory(request, userid, quizid, categoryid, format = None):
+def get_subcategory(request, userid, categoryid, format = None):
 	"""
 	Either get all subcategories under each quiz and category or get subcategories under specifc quiz and category.
 	"""
 	try:
 		subcategories = []
-		if quizid == 'all' and categoryid == 'all':
-			for quiz in Quiz.objects.filter(user=userid):
-				for category in Category.objects.filter(quiz=quiz):
-					for subcategory in SubCategory.objects.filter(category=category):
-						subcategories.append(subcategory)
+		if categoryid == 'all':
+			for subcategory in SubCategory.objects.filter(user=userid):
+				subcategories.append(subcategory)
 			serializer = SubCategorySerializer(subcategories, many = True)
 		else:
-			if quizid.isnumeric() and categoryid.isnumeric():
-				subcategory = SubCategory.objects.get(category=Category.objects.get(id=categoryid, quiz=Quiz.objects.filter(id=quizid, user=userid)))
+			if categoryid.isnumeric():
+				subcategory = SubCategory.objects.get(category=categoryid, user=userid)
 				serializer = SubCategorySerializer(subcategory, many = False)
 			else:
 				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
@@ -216,44 +214,29 @@ def all_questions(request, userid):
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
 	try:
-		quizzes = []
 		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
-		# quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
-		quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
-		qz = {}
-		qz['id'] = quiz.id
-		qz['title'] = quiz.title
-		qz['categories'] = []
-		for c in Category.objects.filter(quiz=quiz):
-			ca = {}
-			ca['category'] = c.category_name
-			ca['id'] = c.id
-			ca['subcategories'] = []
-			for sc in SubCategory.objects.filter(category=c):
-				sca = {}
-				sca['subcategory'] = sc.sub_category_name
-				sca['id'] = sc.id
-				sca['questions'] = []
-				for question in Question.objects.filter(sub_category=sc)[:10]:
-					d = {
-						'id' : question.id,
-						'level' : question.level,
-						'content' : question.content,
-						'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-					}
-					if question.level == 'easy':
-						questions_level_info[0] = questions_level_info[0] + 1
-					elif question.level == 'medium':
-						questions_level_info[1] = questions_level_info[1] + 1
-					else:
-						questions_level_info[2] = questions_level_info[2] + 1
-					sca['questions'].append(d)
-				ca['subcategories'].append(sca)
-			qz['categories'].append(ca)
-		quizzes.append(qz)
+		sc = SubCategory.objects.filter(user=userid)[0]
+		sca = {}
+		sca['subcategory'] = sc.sub_category_name
+		sca['id'] = sc.id
+		sca['questions'] = []
+		for question in Question.objects.filter(sub_category=sc)[:10]:
+			d = {
+				'id' : question.id,
+				'level' : question.level,
+				'content' : question.content,
+				'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
+			}
+			if question.level == 'easy':
+				questions_level_info[0] = questions_level_info[0] + 1
+			elif question.level == 'medium':
+				questions_level_info[1] = questions_level_info[1] + 1
+			else:
+				questions_level_info[2] = questions_level_info[2] + 1
+			sca['questions'].append(d)
 		questions_level_info[3] = sum(questions_level_info)
-		quizzes.insert(0,{'questions_level_info' : questions_level_info})
-		return Response(quizzes, status = status.HTTP_200_OK)
+		sca['questions_level_info'] = questions_level_info
+		return Response(sca, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		
@@ -422,12 +405,11 @@ def question_operations(request, userid, questionid):
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = dict(questionserializer.data)
 		result.update( { 'options' : answerserializer.data } )
-		result['category'] = question.category.category_name
 		result['sub_category'] = question.sub_category.sub_category_name
 		return Response({ 'question' : result }, status = status.HTTP_200_OK)
 
 	elif request.method == 'PUT':
-		request.data.update({ 'category': question.category.id, 'sub_category': question.sub_category.id})
+		request.data.update({'sub_category': question.sub_category.id})
 		serializer = QuestionSerializer(question, data=request.data)
 		if serializer.is_valid():
 			serializer.save()
@@ -457,7 +439,6 @@ def answers_operations(request, userid, questionid):
 	if request.method == 'GET':
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = { 'content' : question.content }
-		result['category'] = question.category.category_name
 		result['sub_category'] = question.sub_category.sub_category_name
 		result['options'] = answerserializer.data
 		return Response({ 'answers' : result }, status = status.HTTP_200_OK)
@@ -479,18 +460,21 @@ def answers_operations(request, userid, questionid):
 def download_xls_file(request):
 	from QnA.services.utility import MCQ_FILE_ROWS
 	from pyexcel_xls import save_data
-	import collections
+	from collections import OrderedDict
 
 	que_type = request.data.get('que_type')	
-	sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
-	sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
-	
+	if request.data.get('sub_cat_info'):
+		sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
+		sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
+	else:
+		return Response({'errors': 'Select a sub-category first.'}, status=status.HTTP_400_BAD_REQUEST)
+
 	try:
 		sub_category = SubCategory.objects.get(pk = sub_category_id,sub_category_name = sub_category_name)
-	except SubCategory.DoesNotExist as e:
+	except SubCategory.DoesNotExist  as e:
 		print e.args
-		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
-	data = collections.OrderedDict() # from collections import OrderedDict
+		return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+	data = OrderedDict()
 	_quiz_obj =  sub_category.category.quiz
 	data.update({"Sheet 1": [MCQ_FILE_ROWS,[_quiz_obj.title, sub_category.category.category_name, sub_category_name]]})
 	save_data(sub_category_name+"_file.xls", data)
