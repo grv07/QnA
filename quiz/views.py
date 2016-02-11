@@ -4,8 +4,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from django.contrib.auth.models import User
+from QnA.services.utility import get_questions_format
 
+from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
 from mcq.models import Answer
 from mcq.serializer import AnswerSerializer
@@ -30,7 +31,7 @@ def quiz_list(request, userid, format = None):
 @api_view(['GET'])
 def get_quiz(request, userid, quizid ,format = None):
 	"""
-	Get a quiz.	
+	Get a quiz.
 	"""
 	try:
 		quiz = Quiz.objects.get(id = quizid, user = userid)
@@ -237,6 +238,9 @@ def all_questions(request, userid):
 		questions_level_info[3] = sum(questions_level_info)
 		sca['questions_level_info'] = questions_level_info
 		return Response(sca, status = status.HTTP_200_OK)
+		# quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
+		# quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
+		# return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)		
@@ -248,42 +252,8 @@ def all_questions_under_quiz(request, userid, quizid):
 	Get all questions under a quiz.
 	"""
 	try:
-		quizzes = []
-		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
 		quiz = Quiz.objects.get(id=quizid, user=userid)
-		qz = {}
-		qz['id'] = quiz.id
-		qz['title'] = quiz.title
-		qz['categories'] = []
-		for c in Category.objects.filter(quiz=quiz):
-			ca = {}
-			ca['category'] = c.category_name
-			ca['id'] = c.id
-			ca['subcategories'] = []
-			for sc in SubCategory.objects.filter(category=c):
-				sca = {}
-				sca['subcategory'] = sc.sub_category_name
-				sca['id'] = sc.id
-				sca['questions'] = []
-				for question in Question.objects.filter(sub_category=sc)[:10]:
-					d = {
-						'id' : question.id,
-						'level' : question.level,
-						'content' : question.content,
-						'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-					}
-					if question.level == 'easy':
-						questions_level_info[0] = questions_level_info[0] + 1
-					elif question.level == 'medium':
-						questions_level_info[1] = questions_level_info[1] + 1
-					else:
-						questions_level_info[2] = questions_level_info[2] + 1
-					sca['questions'].append(d)
-				ca['subcategories'].append(sca)
-			qz['categories'].append(ca)
-		quizzes.append(qz)
-		questions_level_info[3] = sum(questions_level_info)
-		quizzes.insert(0,{'questions_level_info' : questions_level_info})
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
 		return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
@@ -296,42 +266,8 @@ def all_questions_under_category(request, userid, quizid, categoryid):
 	Get all questions under a quiz and a category.
 	"""
 	try:
-		quizzes = []
-		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
 		quiz = Quiz.objects.get(id=quizid, user=userid)
-		qz = {}
-		qz['id'] = quiz.id
-		qz['title'] = quiz.title
-		qz['categories'] = []
-		category = Category.objects.get(id=categoryid, quiz=quiz)
-		ca = {}
-		ca['id'] = category.id
-		ca['category'] = category.category_name
-		ca['subcategories'] = []
-		for sc in SubCategory.objects.filter(category=category):
-			sca = {}
-			sca['subcategory'] = sc.sub_category_name
-			sca['id'] = sc.id
-			sca['questions'] = []
-			for question in Question.objects.filter(sub_category=sc)[:10]:
-				d = {
-					'id' : question.id,
-					'level' : question.level,
-					'content' : question.content,
-					'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-				}
-				if question.level == 'easy':
-					questions_level_info[0] = questions_level_info[0] + 1
-				elif question.level == 'medium':
-					questions_level_info[1] = questions_level_info[1] + 1
-				else:
-					questions_level_info[2] = questions_level_info[2] + 1
-				sca['questions'].append(d)
-			ca['subcategories'].append(sca)
-		qz['categories'].append(ca)
-		quizzes.append(qz)
-		questions_level_info[3] = sum(questions_level_info)
-		quizzes.insert(0,{'questions_level_info' : questions_level_info})
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
 		return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
@@ -344,46 +280,12 @@ def all_questions_under_subcategory(request, userid, quizid, categoryid, subcate
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
 	try:
-		quizzes = []
-		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
 		quiz = Quiz.objects.get(id=quizid, user=userid)
-		qz = {}
-		qz['id'] = quiz.id
-		qz['title'] = quiz.title
-		qz['categories'] = []
-		category = Category.objects.get(id=categoryid, quiz=quiz)
-		ca = {}
-		ca['id'] = category.id
-		ca['category'] = category.category_name
-		ca['subcategories'] = []
-		subcategory = SubCategory.objects.get(id=subcategoryid, category=category)
-		sca = {}
-		sca['subcategory'] = subcategory.sub_category_name
-		sca['id'] = subcategory.id
-		sca['questions'] = []
-		for question in Question.objects.filter(category=category, sub_category=subcategory)[:10]:
-			d = {
-				'id' : question.id,
-				'level' : question.level,
-				'content' : question.content,
-				'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-			}
-			if question.level == 'easy':
-				questions_level_info[0] = questions_level_info[0] + 1
-			elif question.level == 'medium':
-				questions_level_info[1] = questions_level_info[1] + 1
-			else:
-				questions_level_info[2] = questions_level_info[2] + 1
-			sca['questions'].append(d)
-		ca['subcategories'].append(sca)
-		qz['categories'].append(ca)
-		quizzes.append(qz)
-		questions_level_info[3] = sum(questions_level_info)
-		quizzes.insert(0,{'questions_level_info' : questions_level_info})
+		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
 		return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
-		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
+		return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])
@@ -432,7 +334,7 @@ def answers_operations(request, userid, questionid):
 	Get answers to a question or update.
 	"""
 	try:
-		question = Question.objects.get(id = questionid)
+		question = Question.objects.get(pk = questionid)
 		answers = Answer.objects.filter(question = question)
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -470,8 +372,8 @@ def download_xls_file(request):
 		return Response({'errors': 'Select a sub-category first.'}, status=status.HTTP_400_BAD_REQUEST)
 
 	try:
-		sub_category = SubCategory.objects.get(pk = sub_category_id,sub_category_name = sub_category_name)
-	except SubCategory.DoesNotExist  as e:
+		sub_category = SubCategory.objects.get(pk = sub_category_id, sub_category_name = sub_category_name)
+	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 	data = OrderedDict()
@@ -486,5 +388,4 @@ def download_xls_file(request):
 		os.remove(sub_category_name+"_file.xls")
 	except OSError:
 		pass
-
 	return response
