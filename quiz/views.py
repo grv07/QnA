@@ -14,18 +14,18 @@ from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 
-@api_view(['GET'])
-def quiz_list(request, userid, format = None):
-	"""
-	Get all quizzes.
-	"""
-	try:
-		quiz_list = Quiz.objects.filter(user=userid).order_by('id')
-		serializer = QuizSerializer(quiz_list, many = True)
-		return Response(serializer.data, status = status.HTTP_200_OK)
-	except Quiz.DoesNotExist as e:
-		print e.args
-		return Response({'errors': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
+# @api_view(['GET'])
+# def quiz_list(request, userid, format = None):
+# 	"""
+# 	Get all quizzes.
+# 	"""
+# 	try:
+# 		quiz_list = Quiz.objects.filter(user=userid).order_by('id')
+# 		serializer = QuizSerializer(quiz_list, many = True)
+# 		return Response(serializer.data, status = status.HTTP_200_OK)
+# 	except Quiz.DoesNotExist as e:
+# 		print e.args
+# 		return Response({'errors': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])
@@ -33,12 +33,22 @@ def get_quiz(request, userid, quizid ,format = None):
 	"""
 	Get a quiz.
 	"""
-	try:
-		quiz = Quiz.objects.get(id = quizid, user = userid)
-	except Quiz.DoesNotExist as e:
-		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
-	serializer = QuizSerializer(quiz)
-	return Response(serializer.data, status = status.HTTP_200_OK)
+	if quizid == 'all':
+		try:
+			quiz_list = Quiz.objects.filter(user=userid).order_by('id')
+			serializer = QuizSerializer(quiz_list, many = True)
+			return Response(serializer.data, status = status.HTTP_200_OK)
+		except Quiz.DoesNotExist as e:
+			print e.args
+			return Response({'errors': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
+	elif quizid.isnumeric():
+		try:
+			quiz = Quiz.objects.get(id = quizid, user = userid)
+			print quiz
+		except Quiz.DoesNotExist as e:
+			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+		serializer = QuizSerializer(quiz)
+		return Response(serializer.data, status = status.HTTP_200_OK)
 
 
 @api_view(['PUT'])
@@ -210,34 +220,34 @@ def get_subcategory(request, userid, categoryid, format = None):
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['GET'])
-def all_questions(request, userid):
+def all_questions(request, user_id):
 	"""
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
 	try:
-		questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
-		sc = SubCategory.objects.filter(user=userid)[0]
-		sca = {}
-		sca['subcategory'] = sc.sub_category_name
-		sca['id'] = sc.id
-		sca['questions'] = []
-		for question in Question.objects.filter(sub_category=sc)[:10]:
-			d = {
-				'id' : question.id,
-				'level' : question.level,
-				'content' : question.content,
-				'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct } for answer in Answer.objects.filter(question=question)]
-			}
-			if question.level == 'easy':
-				questions_level_info[0] = questions_level_info[0] + 1
-			elif question.level == 'medium':
-				questions_level_info[1] = questions_level_info[1] + 1
+		if request.query_params.get('subCategoryId'):
+			subcategory_id = request.query_params.get('subCategoryId')
+			if request.query_params.get('questionFormat'):
+				result = get_questions_format(user_id, subcategory_id, True)
+				result['section_level'] = []
+				if result['questions_level_info'][0] != 0:
+					result['section_level'] += ['easy']
+				if result['questions_level_info'][1] != 0:
+					result['section_level'] += ['medium']
+				if result['questions_level_info'][2] != 0:
+					result['section_level'] += ['difficult']
+				result['duration'] = result['questions_level_info'][3]*2
+				result['no_questions'] = result['questions_level_info'][3]
+				result['correct_grade'] = 1
+				result['incorrect_grade'] = 0
+				result['q_type'] = 'mcq'
+				result['sectionname'] = 'Section#1'
+				result = [result]		# Must be a list
 			else:
-				questions_level_info[2] = questions_level_info[2] + 1
-			sca['questions'].append(d)
-		questions_level_info[3] = sum(questions_level_info)
-		sca['questions_level_info'] = questions_level_info
-		return Response(sca, status = status.HTTP_200_OK)
+				result = get_questions_format(user_id, subcategory_id)
+		else:
+			result = get_questions_format(user_id)
+		return Response(result, status = status.HTTP_200_OK)
 		# quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
 		# quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
 		# return Response(quizzes, status = status.HTTP_200_OK)
@@ -275,14 +285,17 @@ def all_questions_under_category(request, userid, quizid, categoryid):
 
 
 @api_view(['GET'])
-def all_questions_under_subcategory(request, userid, quizid, categoryid, subcategoryid):
+def all_questions_under_subcategory(request, user_id, subcategory_id):
 	"""
-	Either get all questions under each quiz and category or get questions under specifc quiz and category.
+	Either get all questions under specifc subcategory.
 	"""
 	try:
-		quiz = Quiz.objects.get(id=quizid, user=userid)
-		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
-		return Response(quizzes, status = status.HTTP_200_OK)
+		print request.query_params.get('questionFormat')
+		if request.query_params.get('questionFormat'):
+			quizzes = get_questions_format(user_id, subcategory_id, True)
+		else:
+			quizzes = get_questions_format(user_id, subcategory_id)
+		print quizzes
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)

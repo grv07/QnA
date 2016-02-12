@@ -1,4 +1,3 @@
-
-# Create your views here.
+from quiz.models import SubCategory, Category, Quiz, Question
 
 
