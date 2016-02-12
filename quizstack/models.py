@@ -18,7 +18,7 @@ class QuizStack(models.Model):
 	""" Model to represent Comments Database """
 	quiz = models.ForeignKey(Quiz, related_name = 'quizstack_quiz')
 	subcategory = models.ForeignKey(SubCategory, related_name = 'quizstack_subcategory')
-	sectionname = models.CharField(max_length = 30)
+	sectionname = models.CharField(max_length = 30, default='section#1')
 	section_level = models.CharField(max_length = 30, choices = QUESTION_DIFFICULTY_OPTIONS, default='easy')
 	q_type = models.CharField(max_length = 30)
 	no_questions = models.IntegerField()
