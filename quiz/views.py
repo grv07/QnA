@@ -134,22 +134,21 @@ def get_category(request, pk ,format = None):
 	return Response(serializer.data, status = status.HTTP_200_OK)
 
 @api_view(['GET'])
-def category_list(request, userid, quizid, format = None):
+def category_list(request, userid, categoryid, format = None):
 	"""
 	Either get a single quiz or all.
 	"""
 	try:
 		categories = []
-		if quizid == 'all':
-			for quiz in Quiz.objects.filter(user=userid).order_by('id'):
-				for category in Category.objects.filter(quiz=quiz):
-					categories.append(category)
+		print '-------------'
+		if categoryid == 'all':
+			for category in Category.objects.filter(user=userid):
+				categories.append(category)
 			serializer = CategorySerializer(categories, many = True)
 		else:
-			if quizid.isnumeric():
-				for quiz in Quiz.objects.filter(id=quizid, user=userid).order_by('id'):
-					categories = Category.objects.filter(quiz=quiz)
-				serializer = CategorySerializer(categories, many = True)
+			if categoryid.isnumeric():
+				category = Category.objects.filter(id=categoryid, user=userid)
+				serializer = CategorySerializer(category, many = False)
 			else:
 				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
 		return Response(serializer.data, status = status.HTTP_200_OK)
