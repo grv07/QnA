@@ -240,12 +240,13 @@ def all_questions(request, user_id):
 				result['correct_grade'] = 1
 				result['incorrect_grade'] = 0
 				result['q_type'] = 'mcq'
-				result['sectionname'] = 'Section#1'
+				result['sectionname'] = 'S#1'
 				result = [result]		# Must be a list
 			else:
 				result = get_questions_format(user_id, subcategory_id)
 		else:
 			result = get_questions_format(user_id)
+		print result
 		return Response(result, status = status.HTTP_200_OK)
 		# quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
 		# quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
@@ -294,7 +295,6 @@ def all_questions_under_subcategory(request, user_id, subcategory_id):
 			quizzes = get_questions_format(user_id, subcategory_id, True)
 		else:
 			quizzes = get_questions_format(user_id, subcategory_id)
-		print quizzes
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
@@ -377,6 +377,7 @@ def download_xls_file(request):
 	from collections import OrderedDict
 
 	que_type = request.data.get('que_type')	
+	print request.data
 	if request.data.get('sub_cat_info'):
 		sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
 		sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
@@ -389,8 +390,7 @@ def download_xls_file(request):
 		print e.args
 		return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 	data = OrderedDict()
-	_quiz_obj =  sub_category.category.quiz
-	data.update({"Sheet 1": [MCQ_FILE_ROWS,[_quiz_obj.title, sub_category.category.category_name, sub_category_name]]})
+	data.update({"Sheet 1": [MCQ_FILE_ROWS,[sub_category.category.category_name, sub_category_name]]})
 	save_data(sub_category_name+"_file.xls", data)
 	
 	from django.http import FileResponse

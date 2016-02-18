@@ -51,7 +51,6 @@ class MCQuestion(Question):
 class Answer(models.Model):
     question = models.ForeignKey(MCQuestion, verbose_name=_("Question"))
 
-
     content = models.CharField(max_length=1000,
                                blank=False,
                                help_text=_("Enter the answer text that "
