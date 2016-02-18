@@ -140,7 +140,6 @@ def category_list(request, userid, categoryid, format = None):
 	"""
 	try:
 		categories = []
-		print '-------------'
 		if categoryid == 'all':
 			for category in Category.objects.filter(user=userid):
 				categories.append(category)
@@ -228,19 +227,20 @@ def all_questions(request, user_id):
 			subcategory_id = request.query_params.get('subCategoryId')
 			if request.query_params.get('questionFormat'):
 				result = get_questions_format(user_id, subcategory_id, True)
-				result['section_level'] = []
+				result['level'] = []
 				if result['questions_level_info'][0] != 0:
-					result['section_level'] += ['easy']
+					result['level'] += ['easy']
 				if result['questions_level_info'][1] != 0:
-					result['section_level'] += ['medium']
+					result['level'] += ['medium']
 				if result['questions_level_info'][2] != 0:
-					result['section_level'] += ['difficult']
+					result['level'] += ['hard']
 				result['duration'] = result['questions_level_info'][3]*2
 				result['no_questions'] = result['questions_level_info'][3]
 				result['correct_grade'] = 1
 				result['incorrect_grade'] = 0
-				result['q_type'] = 'mcq'
+				result['que_type'] = 'mcq'
 				result['sectionname'] = 'Section#1'
+				result['subcategory_id'] = subcategory_id
 				result = [result]		# Must be a list
 			else:
 				result = get_questions_format(user_id, subcategory_id)
