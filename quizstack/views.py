@@ -37,5 +37,3 @@ def get_quizstack(request, quiz_id, quizstack_id):
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)
-
-

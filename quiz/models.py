@@ -12,7 +12,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS
+from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
 
 @python_2_unicode_compatible
 class Quiz(models.Model):
@@ -577,6 +577,11 @@ class Question(models.Model):
 											   "after the question has "
 											   "been answered."),
 								   verbose_name=_('Explanation'))
+
+	que_type = models.CharField(max_length = 10,null= True,
+								choices=QUESTION_TYPE_OPTIONS,
+								help_text=_("Type of Question"),
+								verbose_name=_("Question Type"))
 
 	level = models.CharField(max_length=10,default = 'easy',
 								choices=QUESTION_DIFFICULTY_OPTIONS,
