@@ -24,7 +24,7 @@ def create_quizstack(request):
 def get_quizstack(request, quiz_id, quizstack_id):
 	if quizstack_id == 'all':
 		try:
-			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('id')
+			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('-id')
 			serializer = QuizStackSerializer(quizstack_list, many = True)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
@@ -35,5 +35,24 @@ def get_quizstack(request, quiz_id, quizstack_id):
 			quizstack = QuizStack.objects.get(id = quizstack_id, quiz=quiz_id)
 			serializer = QuizStackSerializer(quiz, many=False)
 			return Response(serializer.data, status = status.HTTP_200_OK)
+		except QuizStack.DoesNotExist as e:
+			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_quizstack(request, quiz_id, quizstack_id):
+	if quizstack_id == 'all':
+		try:
+			quizstack_list = QuizStack.objects.filter(quiz=quiz_id)
+			for quizstack in quizstack_list:
+				quizstack.delete()
+			return Response(status = status.HTTP_200_OK)
+		except QuizStack.DoesNotExist as e:
+			print e.args
+			return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)
+	elif quizstack_id.isnumeric():
+		try:
+			quizstack = QuizStack.objects.get(id = quizstack_id, quiz=quiz_id)
+			quizstack.delete()
+			return Response(status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)

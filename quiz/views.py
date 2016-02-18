@@ -246,7 +246,6 @@ def all_questions(request, user_id):
 				result = get_questions_format(user_id, subcategory_id)
 		else:
 			result = get_questions_format(user_id)
-		print result
 		return Response(result, status = status.HTTP_200_OK)
 		# quiz = Quiz.objects.filter(user=userid).order_by('id')[0]
 		# quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
