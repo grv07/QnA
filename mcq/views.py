@@ -12,7 +12,6 @@ from serializer import MCQuestionSerializer
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def save_XLS_to_MCQ(request):
 	# Touch on your risk ...
 	'''

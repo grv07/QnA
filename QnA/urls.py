@@ -22,9 +22,10 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^', include('home.urls')),
     url(r'^quiz/', include('quiz.urls')),
     url(r'^question/', include('mcq.urls')),
-    url(r'^', include('home.urls')),
+    url(r'^question', include('objective.urls')),
     url(r'^stack/', include('quizstack.urls')),
     url(r'^api-token-auth/', obtain_jwt_token),
     url(r'^api-token-verify/', verify_jwt_token),
