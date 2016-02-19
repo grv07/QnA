@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from django.utils.translation import ugettext as _
-
+from mcq.models import MCQuestion
+from objective.models import ObjectiveQuestion
 from django.db import models
 from quiz.models import Quiz, SubCategory
 from QnA.services.utility import ANSWER_ORDER_OPTIONS, QUESTION_DIFFICULTY_OPTIONS
@@ -12,23 +13,6 @@ QuizStack model & manager
 class QuizStackManager(models.Manager):
 	def list_all(self, uuid, start=0 , end=5):
 		pass
-
-	def get_quiz_questions(self, que_type, level, question_order, ):
-		'level, que_type, no_questions, question_order'
-		'''Get all questions according to given criteria.'''
-		if que_type == 'mcq':
-			questions = MCQQuestion.objects.filter(sub_category = self.subcategory, level = level)
-		else:
-			questions = ObjectiveQuestion.objects.filter(sub_category = self.subcategory, level = level)
-		
-		# Suffle a list if want random order
-		if question_order == 'random':
-			from random import shuffle
-			questions = shuffle(questions[:criteria.get(no_questions)])
-		# Don't shuffle just slice list
-		else:
-			questions = questions[:criteria.get(no_questions)]
-		return questions
 
 class QuizStack(models.Model):
 	""" Model to represent Comments Database """
@@ -60,3 +44,19 @@ class QuizStack(models.Model):
 
 	def save(self, *args, **kwargs):
 		super(QuizStack, self).save(*args, **kwargs)
+
+	def get_quiz_questions(self, que_type, level, question_order, no_questions):
+		'level, que_type, no_questions, question_order'
+		'''Get all questions according to given criteria.'''
+		if que_type == 'mcq':
+			questions = MCQuestion.objects.filter(sub_category = self.subcategory, level = level)
+		else:
+			questions = ObjectiveQuestion.objects.filter(sub_category = self.subcategory, level = level)
+		
+		# Suffle a list if want random order
+		if question_order == 'random':
+			questions = questions.order_by('?')[:no_questions]
+		# Don't shuffle just slice list
+		else:
+			questions = questions[:no_questions]
+		return questions
