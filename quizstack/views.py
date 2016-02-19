@@ -76,5 +76,5 @@ def get_quizstack_questions(request, quiz_id):
 			else:
 				add_section['question_stack'].append(_data)
 				add_section['total_questions'] += 1
-
+	# print _added_sections			
 	return Response({'data':_added_sections}, status = status.HTTP_200_OK)			 
