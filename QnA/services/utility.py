@@ -23,10 +23,12 @@ MCQ_FILE_ROWS = ['category', 'sub_category', 'level', 'explanation', 'answer_ord
 'option4', 'option5', 'option6', 'correctoption', 'content']
 
 
-def get_questions_format(user_id, subcategory_id=None, question_format=False):
+def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
 	from quiz.models import Question, SubCategory
 	from mcq.models import Answer
-	questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
+	
+	# [Easy, Medium ,Hard, Total]
+	questions_level_info = [0 , 0, 0, 0] 
 	if subcategory_id:
 		sc = SubCategory.objects.get(id=subcategory_id, user=user_id)
 		questions = Question.objects.filter(sub_category=sc)
@@ -51,7 +53,7 @@ def get_questions_format(user_id, subcategory_id=None, question_format=False):
 			questions_level_info[1] = questions_level_info[1] + 1
 		else:
 			questions_level_info[2] = questions_level_info[2] + 1
-		if not question_format:
+		if not is_have_sub_category:
 			sca['questions'].append(d)
 	questions_level_info[3] = sum(questions_level_info)
 	sca['questions_level_info'] = questions_level_info
