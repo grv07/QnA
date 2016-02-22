@@ -65,20 +65,41 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 @permission_classes((AllowAny,))
 # Touch this on your own risk ;)
 def get_quizstack_questions(request, quiz_id):
+	'''Create a test json with { data:[{'question_stack': [{'content': u'???', 'que_type': u'mcq', 
+				'options': [{'content': u'op', 'id': 8}, 
+							{'content': u'op', 'id': 9}],
+							'id': 27, 'level': u'easy'}], 
+							'time_duration': 150,
+							'section_name': u'Name',
+							'total_questions': 1}, ... , ... , ...
+							]}'''
 	quiz_stack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('id')
 	_added_sections = []
 	for quiz_stack in quiz_stack_list:
 		_questions = quiz_stack.get_quiz_questions(quiz_stack.que_type, quiz_stack.level, quiz_stack.question_order, quiz_stack.no_questions)
 		
+		# This function is for get a True >> if new section encounter or False and previous one objects for question stack entry.  
 		def _get_section_name_for_que(_added_sections):
 			for add_section in _added_sections:
 			 	if add_section['section_name'] == quiz_stack.section_name:
 			 		return (False, add_section)
 			 	else:
-			 		_tup_section =  (True, {'section_name':quiz_stack.section_name, 'total_questions':0 ,'question_stack':[]})
+			 		_tup_section =  (True, {'section_name':quiz_stack.section_name, 'total_questions':0, 'time_duration':0, 'question_stack':[]})
 			else:
-				_tup_section =  (True, {'section_name':quiz_stack.section_name, 'total_questions':0, 'question_stack':[]})		
+				_tup_section =  (True, {'section_name':quiz_stack.section_name, 'total_questions':0, 'time_duration':0, 'question_stack':[]})		
 			return _tup_section
+		
+		is_new,add_section = _get_section_name_for_que(_added_sections)
+		
+		if is_new:
+			question_stack = add_section['question_stack']
+			add_section['total_questions'] += 1 
+			add_section['time_duration'] += int(quiz_stack.duration)
+			_added_sections.append(add_section)
+		else:
+			question_stack = add_section['question_stack']
+			add_section['total_questions'] += 1
+			add_section['time_duration'] += int(quiz_stack.duration)
 
 		for question in _questions:
 			_data = {
@@ -89,13 +110,5 @@ def get_quizstack_questions(request, quiz_id):
 			'options'  : [{ 'id' : answer.id, 'content' : answer.content, 
 			} for answer in Answer.objects.filter(question=question)]
 			}
-			is_new,add_section = _get_section_name_for_que(_added_sections)
-			if is_new:
-				add_section['question_stack'].append(_data)
-				add_section['total_questions'] += 1 
-				_added_sections.append(add_section)
-			else:
-				add_section['question_stack'].append(_data)
-				add_section['total_questions'] += 1
-	# print _added_sections			
+			question_stack.append(_data)
 	return Response({'data':_added_sections}, status = status.HTTP_200_OK)			 
