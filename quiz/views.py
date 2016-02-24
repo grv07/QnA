@@ -4,12 +4,14 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from QnA.services.utility import get_questions_format
+from QnA.services.utility import get_questions_format, QUESTION_TYPE_OPTIONS, BLANK_HTML
 
 from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
 from mcq.models import Answer
 from mcq.serializer import AnswerSerializer
+from objective.serializer import ObjectiveQuestionSerializer
+from objective.models import ObjectiveQuestion
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
@@ -309,6 +311,7 @@ def question_operations(request, userid, questionid):
 	Get a single question or update.
 	"""
 	try:
+		print request.data
 		question = Question.objects.get(id = questionid)
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -323,7 +326,14 @@ def question_operations(request, userid, questionid):
 
 	elif request.method == 'PUT':
 		request.data.update({'sub_category': question.sub_category.id})
-		serializer = QuestionSerializer(question, data=request.data)
+		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
+			serializer = QuestionSerializer(question, data=request.data)
+		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
+			if BLANK_HTML in request.data['content']:
+				request.data['content'] = request.data['content'].replace(BLANK_HTML,' <> ').replace('&nbsp;', ' ')
+				serializer = ObjectiveQuestionSerializer(question, data = request.data)
+			else:
+				return Response({ "content" : ["No blank field present.Please add one."] } , status = status.HTTP_400_BAD_REQUEST)
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status = status.HTTP_200_OK)
@@ -346,32 +356,46 @@ def answers_operations(request, userid, questionid):
 	"""
 	try:
 		question = Question.objects.get(pk = questionid)
-		answers = Answer.objects.filter(question = question)
+		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
+			answers = Answer.objects.filter(question = question)
+		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
+			answer = ObjectiveQuestion.objects.get(pk=question)
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
 	if request.method == 'GET':
-		answerserializer = AnswerSerializer(answers, many = True)
-		result = { 'content' : question.content }
-		result['sub_category'] = question.sub_category.sub_category_name
-		result['options'] = answerserializer.data
+		result = {}
+		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
+			answerserializer = AnswerSerializer(answers, many = True)
+			result['options'] = answerserializer.data
+		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
+			result['correct'] = answer.correct
+		result['content'] = question.content
+		result['sub_category_name'] = question.sub_category.sub_category_name
+		result['sub_category'] = question.sub_category.id
 		return Response({ 'answers' : result }, status = status.HTTP_200_OK)
 
 	elif request.method == 'PUT':
-		optionsContent = dict(request.data.get('optionsContent'))
-		for answer in answers:
-			d = { 'correct' : False, 'content' : optionsContent[str(answer.id)], 'question' : question.id }
-			if request.data.get('correctOption') == str(answer.id):
-				print answer.id
-				d['correct'] = True
-			serializer = AnswerSerializer(answer,data=d)
+		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
+			optionsContent = dict(request.data.get('optionsContent'))
+			for answer in answers:
+				d = { 'correct' : False, 'content' : optionsContent[str(answer.id)], 'question' : question.id }
+				if request.data.get('correctOption') == str(answer.id):
+					d['correct'] = True
+				serializer = AnswerSerializer(answer,data=d)
+				if serializer.is_valid():
+					serializer.save()
+		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
+			serializer = ObjectiveQuestionSerializer(answer, request.data)
 			if serializer.is_valid():
 				serializer.save()
+			else:
+				print serializer.errors
 		return Response({}, status = status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def download_xls_file(request):
-	from QnA.services.utility import MCQ_FILE_ROWS
+	from QnA.services.utility import MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
 	from pyexcel_xls import save_data
 	from collections import OrderedDict
 
@@ -389,14 +413,17 @@ def download_xls_file(request):
 		print e.args
 		return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 	data = OrderedDict()
-	data.update({"Sheet 1": [MCQ_FILE_ROWS,[sub_category.category.category_name, sub_category_name]]})
-	save_data(sub_category_name+"_file.xls", data)
+	if que_type == 'mcq':
+		data.update({"Sheet 1": [MCQ_FILE_COLS,["abcd", sub_category_name]]})
+	elif que_type == 'objective':
+		data.update({"Sheet 1": [OBJECTIVE_FILE_COLS,[sub_category_name]]})
+	save_data(sub_category_name+"_"+que_type+"_file.xls", data)
 	
 	from django.http import FileResponse
-	response = FileResponse(open(sub_category_name+"_file.xls", 'rb'))
+	response = FileResponse(open(sub_category_name+"_"+que_type+"_file.xls", 'rb'))
 	try:
 		import os
-		os.remove(sub_category_name+"_file.xls")
+		os.remove(sub_category_name+"_"+que_type+"_file.xls")
 	except OSError:
 		pass
 	return response

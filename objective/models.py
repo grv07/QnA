@@ -19,7 +19,7 @@ class ObjectiveQuestion(Question):
         # else:
         #     return False
 
-        if guess == self.correct:
+        if guess.lower() == self.correct.lower():
             return True
         else:
             return False
@@ -29,7 +29,8 @@ class ObjectiveQuestion(Question):
                  'content': 'True'},
                 {'correct': self.check_if_correct("False"),
                  'content': 'False'}]
-
+    def get_answer(self):
+        return self.correct
     def get_answers_list(self):
         return [(True, True), (False, False)]
 

@@ -545,6 +545,9 @@ class Sitting(models.Model):
 		return answered, total
 
 
+def figure_directory(instance, filename):
+    return '/qna/media/{0}/{1}/{2}'.format(instance.sub_category.sub_category_name, instance.que_type, filename)
+
 @python_2_unicode_compatible
 class Question(models.Model):
 	"""
@@ -560,7 +563,7 @@ class Question(models.Model):
 									null=False,
 									verbose_name=_("Sub-Category"))
 
-	figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
+	figure = models.ImageField(upload_to=figure_directory,
 							   blank=True,
 							   null=True,
 							   verbose_name=_("Figure"))

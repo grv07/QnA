@@ -19,13 +19,18 @@ ANSWER_ORDER_OPTIONS = (
     ('none', _('NONE'))
 )
 
-MCQ_FILE_ROWS = ['category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
+MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
 'option4', 'option5', 'option6', 'correctoption', 'content']
+
+OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'content']
+
+BLANK_HTML = '<<Answer>>'
 
 
 def get_questions_format(user_id, subcategory_id=None, question_format=False):
 	from quiz.models import Question, SubCategory
 	from mcq.models import Answer
+	from objective.models import ObjectiveQuestion
 	questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
 	if subcategory_id:
 		sc = SubCategory.objects.get(id=subcategory_id, user=user_id)
@@ -42,9 +47,13 @@ def get_questions_format(user_id, subcategory_id=None, question_format=False):
 			'id' : question.id,
 			'level' : question.level,
 			'content' : question.content,
-			'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct 
-			} for answer in Answer.objects.filter(question=question)]
-		}
+			'que_type' : question.que_type,
+			}
+		if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+			d.update({ 'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct 
+			} for answer in Answer.objects.filter(question=question)] })
+		elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
+			d.update({ 'correct': ObjectiveQuestion.objects.get(pk=question).get_answer()  })
 		if question.level == 'easy':
 			questions_level_info[0] = questions_level_info[0] + 1
 		elif question.level == 'medium':
