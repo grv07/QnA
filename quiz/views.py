@@ -286,6 +286,7 @@ def question_operations(request, userid, questionid):
 	"""
 	Get a single question or update.
 	"""
+	import os
 	try:
 		print request.data
 		question = Question.objects.get(id = questionid)
@@ -301,13 +302,21 @@ def question_operations(request, userid, questionid):
 		return Response({ 'question' : result }, status = status.HTTP_200_OK)
 
 	elif request.method == 'PUT':
-		request.data.update({'sub_category': question.sub_category.id})
-		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
-			serializer = QuestionSerializer(question, data=request.data)
-		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
-			if BLANK_HTML in request.data['content']:
-				request.data['content'] = request.data['content'].replace(BLANK_HTML,' <> ').replace('&nbsp;', ' ')
-				serializer = ObjectiveQuestionSerializer(question, data = request.data)
+		data = {}
+		data['explanation'] = request.data['data[explanation]']
+		data['level'] = request.data['data[level]']
+		if request.data.get('data[figure]', None):
+			data['figure'] = request.data['data[figure]']
+			if question.figure:
+				os.remove(str(question.figure))
+		data['sub_category'] = question.sub_category.id
+		if request.data.get('data[que_type]') == QUESTION_TYPE_OPTIONS[0][0]:
+			data['content'] = request.data['data[content]']
+			serializer = QuestionSerializer(question, data = data)
+		elif request.data.get('data[que_type]') == QUESTION_TYPE_OPTIONS[1][0]:
+			if BLANK_HTML in request.data['data[content]']:
+				data['content'] = request.data['data[content]'].replace(BLANK_HTML,' <> ').replace('&nbsp;', ' ')
+				serializer = ObjectiveQuestionSerializer(question, data = data)
 			else:
 				return Response({ "content" : ["No blank field present.Please add one."] } , status = status.HTTP_400_BAD_REQUEST)
 		if serializer.is_valid():
@@ -318,7 +327,6 @@ def question_operations(request, userid, questionid):
 	elif request.method == 'DELETE':
 		try:
 			if question.figure:
-				import os
 				os.remove(str(question.figure))
 			question.delete()
 			return Response(status=status.HTTP_204_NO_CONTENT)

@@ -24,7 +24,7 @@ def save_XLS_to_MCQ(request):
 	from quiz.models import Category, SubCategory
 
 	# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
-	f = request.data['file']
+	f = request.data['figure']
 
 	with open('mcq_read_now.xls', 'wb+') as destination:
 		for chunk in f.chunks():
