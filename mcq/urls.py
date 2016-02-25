@@ -9,5 +9,4 @@ urlpatterns = [
     url(r'^create/$', views.create_mcq),
     url(r'^del/(?P<pk>[0-9]+)/$', views.del_mcq),
     url(r'^bulkupload/$', views.save_XLS_to_MCQ),
-
 ]

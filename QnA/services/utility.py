@@ -29,7 +29,7 @@ BLANK_HTML = '<<Answer>>'
 # UPLOAD_LOCATION = '/qna/media/'
 
 
-def get_questions_format(user_id, subcategory_id=None, question_format=False):
+def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
 	from quiz.models import Question, SubCategory
 	from mcq.models import Answer
 	from objective.models import ObjectiveQuestion
@@ -62,7 +62,7 @@ def get_questions_format(user_id, subcategory_id=None, question_format=False):
 			questions_level_info[1] = questions_level_info[1] + 1
 		else:
 			questions_level_info[2] = questions_level_info[2] + 1
-		if not question_format:
+		if not is_have_sub_category:
 			sca['questions'].append(d)
 	questions_level_info[3] = sum(questions_level_info)
 	sca['questions_level_info'] = questions_level_info

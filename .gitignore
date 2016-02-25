@@ -4,4 +4,4 @@
 .tox
 *.egg
 mcq_read_now.xls
-
+npm-debug.log
