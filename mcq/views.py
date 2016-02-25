@@ -118,10 +118,21 @@ def create_mcq(request, xls_read_data = None):
 			else:
 				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
 	else:
-		serializer = MCQuestionSerializer(data = request.data)
-		options_data = request.data.get('optioncontent', None)
-		correct_option = request.data.get('correctoption', None)
-		return save_mcq_question(request, serializer, options_data, correct_option)
+		data = {}
+		data['content'] = request.data['data[content]']
+		data['explanation'] = request.data['data[explanation]']
+		data['correctoption'] = request.data['data[correctoption]']
+		data['level'] = request.data['data[level]']
+		data['sub_category'] = request.data['data[sub_category]']
+		data['que_type'] = request.data['data[que_type]']
+		data['answer_order'] = request.data['data[answer_order]']		
+		data['figure'] = request.data.get('figure', None)
+		data['options_data'] = {}
+		for i in '123456789':
+			if request.data.get('data[optioncontent]['+i+']', None):
+				data['options_data'][i] = request.data.get('data[optioncontent]['+str(i)+']')
+		serializer = MCQuestionSerializer(data = data)
+		return save_mcq_question(request, serializer, data['options_data'], data['correctoption'])
 
 
 @api_view(['POST'])
@@ -135,8 +146,7 @@ def save_mcq_question(request, serializer, options_data, correct_option):
 				if int(optionid) == int(correct_option):
 					c['correct'] = True
 				options.append(c)
-			mcq = serializer.save()
-			
+			mcq = serializer.save()			
 			isAnswerSaved, errors = answer_engine.create_answer(mcq, options)
 			if not isAnswerSaved:
 				return Response(errors, status = status.HTTP_400_BAD_REQUEST)

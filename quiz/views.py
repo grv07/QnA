@@ -341,6 +341,9 @@ def question_operations(request, userid, questionid):
 
 	elif request.method == 'DELETE':
 		try:
+			if question.figure:
+				import os
+				os.remove(str(question.figure))
 			question.delete()
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		except Exception as e:

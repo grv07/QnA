@@ -26,7 +26,7 @@ OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'conte
 
 BLANK_HTML = '<<Answer>>'
 
-UPLOAD_LOCATION = '/qna/media/'
+# UPLOAD_LOCATION = '/qna/media/'
 
 
 def get_questions_format(user_id, subcategory_id=None, question_format=False):
