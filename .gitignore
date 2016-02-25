@@ -3,3 +3,5 @@
 *.egg-info*
 .tox
 *.egg
+mcq_read_now.xls
+

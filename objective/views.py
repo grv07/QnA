@@ -1,8 +1,10 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser
 from .serializer import ObjectiveQuestionSerializer
 from rest_framework import status
-from QnA.services.utility import BLANK_HTML, OBJECTIVE_FILE_COLS
+from QnA.services.utility import BLANK_HTML, OBJECTIVE_FILE_COLS, UPLOAD_LOCATION
 
 
 @api_view(['POST'])
@@ -51,20 +53,29 @@ def save_XLS_to_OBJECTIVE(request):
 
 
 @api_view(['POST'])
-def create_objective(request, questions_list = None):
+@permission_classes((AllowAny,))
+@parser_classes((MultiPartParser,))
+def create_objective(request):
 	try:
-		# print request.data['figure']
-		print request.data
-		# if BLANK_HTML in request.data['content']:
-		# 	request.data['content'] = request.data['content'].replace(BLANK_HTML,'<>')
-		# 	serializer = ObjectiveQuestionSerializer(data = request.data)
-		# 	if serializer.is_valid():
-		# 		serializer.save()
-		# 		return Response(serializer.data, status = status.HTTP_200_OK)
-		# 	else:
-		# 		return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
-		# else:
-		# 	return Response({ "content" : ["No blank field present.Please add one."] } , status = status.HTTP_400_BAD_REQUEST)
+
+		# print request.data
+		if BLANK_HTML in request.data['data[content]']:
+			data = {}
+			data['content'] = request.data['data[content]'].replace(BLANK_HTML,'<>')
+			data['explanation'] = request.data['data[explanation]']
+			data['correct'] = request.data['data[correct]']
+			data['level'] = request.data['data[level]']
+			data['sub_category'] = request.data['data[sub_category]']
+			data['que_type'] = request.data['data[que_type]']
+			data['figure'] = request.data.get('figure', None)
+			serializer = ObjectiveQuestionSerializer(data = data)
+			if serializer.is_valid():
+				serializer.save()
+				return Response(serializer.data, status = status.HTTP_200_OK)
+			else:
+				return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+		else:
+			return Response({ "content" : ["No blank field present.Please add one."] } , status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		print e.args
 		return Response({ "errors" : "Unable to create this question. Server error." }, status = status.HTTP_400_BAD_REQUEST)

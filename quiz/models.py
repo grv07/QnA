@@ -546,7 +546,7 @@ class Sitting(models.Model):
 
 
 def figure_directory(instance, filename):
-    return '/qna/media/{0}/{1}/{2}'.format(instance.sub_category.sub_category_name, instance.que_type, filename)
+    return '/qna/media/{0}/{1}/{2}'.format(instance.que_type, instance.sub_category.sub_category_name, filename)
 
 @python_2_unicode_compatible
 class Question(models.Model):
