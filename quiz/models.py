@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import json
+import string, random
 
 from django.db import models
 from django.core.exceptions import ValidationError, ImproperlyConfigured
@@ -18,6 +19,9 @@ from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTI
 class Quiz(models.Model):
 
 	user = models.ForeignKey(User, default = '1')
+	quiz_key = models.CharField(
+		verbose_name=_("Quiz Key"),
+		max_length = 15, blank = True)
 
 	title = models.CharField(
 		verbose_name=_("Title"),
@@ -89,6 +93,7 @@ class Quiz(models.Model):
 	updated_date = models.DateTimeField(auto_now = True)
 
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
+		self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
 		self.url = re.sub('\s+', '-', self.url).lower()
 
 		self.url = ''.join(letter for letter in self.url if
