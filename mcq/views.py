@@ -136,7 +136,6 @@ def create_mcq(request, xls_read_data = None):
 
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def save_mcq_question(request, serializer, options_data, correct_option):
 	options = []
 	if serializer.is_valid():
