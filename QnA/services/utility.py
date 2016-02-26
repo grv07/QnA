@@ -24,7 +24,7 @@ MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_ord
 
 OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'content']
 
-BLANK_HTML = '<<Answer>>'
+BLANK_HTML = "<<Answer>>"
 
 # UPLOAD_LOCATION = '/qna/media/'
 

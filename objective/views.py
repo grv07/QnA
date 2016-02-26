@@ -12,7 +12,7 @@ def save_XLS_to_OBJECTIVE(request):
 	from quiz.models import SubCategory
 
 	# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
-	f = request.data['file']
+	f = request.data['figure']
 
 	with open('mcq_read_now.xls', 'wb+') as destination:
 		for chunk in f.chunks():
@@ -44,8 +44,7 @@ def save_XLS_to_OBJECTIVE(request):
 				return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
 		if len(correct_serializers_list) == total_entries - 1:
 			for serializer in correct_serializers_list:
-				print serializer.data
-				# serializer.save()
+				serializer.save()
 		return Response({}, status = status.HTTP_200_OK)
 	return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
 
@@ -53,8 +52,6 @@ def save_XLS_to_OBJECTIVE(request):
 @api_view(['POST'])
 def create_objective(request):
 	try:
-
-		# print request.data
 		if BLANK_HTML in request.data['data[content]']:
 			data = {}
 			data['content'] = request.data['data[content]'].replace(BLANK_HTML,'<>')

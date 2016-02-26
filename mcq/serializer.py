@@ -14,4 +14,4 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Answer
-		fields = '__all__'		
+		fields = '__all__'

@@ -24,7 +24,7 @@ def save_XLS_to_MCQ(request):
 	from quiz.models import Category, SubCategory
 
 	# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
-	f = request.data['file']
+	f = request.data['figure']
 
 	with open('mcq_read_now.xls', 'wb+') as destination:
 		for chunk in f.chunks():
@@ -136,7 +136,6 @@ def create_mcq(request, xls_read_data = None):
 
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def save_mcq_question(request, serializer, options_data, correct_option):
 	options = []
 	if serializer.is_valid():
