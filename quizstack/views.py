@@ -7,6 +7,8 @@ from rest_framework import status
 from .models import QuizStack
 from .serializer import QuizStackSerializer
 from mcq.models import Answer
+from objective.models import ObjectiveQuestion
+from QnA.services.utility import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS, shuffleList
 
 @api_view(['POST'])
 def create_quizstack(request):
@@ -111,4 +113,34 @@ def get_quizstack_questions(request, quiz_id):
 			} for answer in Answer.objects.filter(question=question)]
 			}
 			question_stack.append(_data)
-	return Response({'data':_added_sections}, status = status.HTTP_200_OK)			 
+	return Response({'data':_added_sections}, status = status.HTTP_200_OK)	
+
+
+
+
+@api_view(['GET'])
+def get_quizstack_questions_basedon_section(request, quiz_id):
+	section_name = request.query_params.get('sectionName')
+	try:
+		# data = { 'questions' : [{ 1: {'content' : '', 'options' : [] } }] } --> This format is used
+		data = { 'questions' : [] }
+		count = 0
+		quiz_stack_list = QuizStack.objects.filter(quiz = quiz_id, section_name = section_name).order_by('id')
+		for quizstack in quiz_stack_list:
+			questions = list(Question.objects.filter(sub_category = quizstack.subcategory).order_by('id')[:quizstack.no_questions])
+			if quizstack.question_order == ANSWER_ORDER_OPTIONS[1][0]:
+				questions = shuffleList(questions)
+			for question in questions:
+				if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+					options = [{ 'id' : answer.id, 'content' : answer.content, 'isSelected': False } for answer in Answer.objects.filter(question=question)]
+				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
+					options = []
+				count += 1
+				d = { count : { 'id': question.id, 'content': question.content, 'options': options, 'que_type': question.que_type } }
+				data['questions'].append(d)
+		data['total_questions'] = range(1,count+1)
+		print data
+		return Response(data, status = status.HTTP_200_OK)
+	except Exception as e:
+		print e.args
+		return Response({}, status = status.HTTP_400_BAD_REQUEST)	 
