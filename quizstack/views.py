@@ -125,9 +125,12 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 		# data = { 'questions' : [{ 1: {'content' : '', 'options' : [] } }] } --> This format is used
 		data = { 'questions' : [] }
 		count = 0
+		added_subcategories = [] # To avoid repeat addition of questions
 		quiz_stack_list = QuizStack.objects.filter(quiz = quiz_id, section_name = section_name).order_by('id')
 		for quizstack in quiz_stack_list:
-			questions = list(Question.objects.filter(sub_category = quizstack.subcategory).order_by('id')[:quizstack.no_questions])
+			print quizstack.no_questions,quizstack.subcategory.sub_category_name,quizstack.level
+			# if quizstack.subcategory.id not in added_subcategories:
+			questions = list(Question.objects.filter(sub_category = quizstack.subcategory, level = quizstack.level ).order_by('id')[:quizstack.no_questions])
 			if quizstack.question_order == ANSWER_ORDER_OPTIONS[1][0]:
 				questions = shuffleList(questions)
 			for question in questions:
@@ -138,8 +141,9 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 				count += 1
 				d = { count : { 'id': question.id, 'content': question.content, 'options': options, 'que_type': question.que_type } }
 				data['questions'].append(d)
+			added_subcategories.append(quizstack.subcategory.id)
 		data['total_questions'] = range(1,count+1)
-		print data
+		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
