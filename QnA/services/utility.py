@@ -83,3 +83,9 @@ def validate_stack():
 	'''
 	pass
 
+
+
+def shuffleList(l):
+	from random import shuffle
+	shuffle(l)
+	return l

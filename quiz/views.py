@@ -31,7 +31,6 @@ def get_quiz(request, userid, quizid ,format = None):
 	elif quizid.isnumeric():
 		try:
 			quiz = Quiz.objects.get(id = quizid, user = userid)
-			print quiz
 		except Quiz.DoesNotExist as e:
 			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 		serializer = QuizSerializer(quiz)
