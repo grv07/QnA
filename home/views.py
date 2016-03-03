@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.contrib.auth.models import User
-from serializer import UserSerializer
+from serializer import UserSerializer, TestUserSerializer
 from token_key import generate_token
 
 @api_view(['POST'])
@@ -21,6 +21,7 @@ def register_user(request):
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def login_user(request):
+	print request.data
 	try:
 		user_name = request.data.get('username')
 		user_pass = request.data.get('password')
@@ -41,3 +42,16 @@ def logout_user(request, format=None):
 	from django.contrib.auth import logout
 	logout(request)
 	return Response({'status': 'success'}, status=204)
+
+
+@api_view(['POST'])
+def test_user_data(request):
+	serializer = TestUserSerializer(data = {'name':request.data.get('name'),'email':request.data.get('email'),'quiz':request.data.get('quiz')})
+	if serializer.is_valid():
+		old_obj, new_obj = serializer.get_or_create()
+		if new_obj:
+			return Response({'status': 'success', 'new':True,'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
+		else:
+			return Response({'status': 'success', 'new':False, 'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
+	else:
+		return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
