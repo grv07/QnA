@@ -21,7 +21,6 @@ class TestUser(models.Model):
     def __str__(self):
         return self.name,self.email
 
-        
     class Meta:
     	# unique_together = ('email', 'quiz')
         verbose_name = _("TestUserData")

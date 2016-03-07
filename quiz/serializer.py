@@ -9,7 +9,6 @@ class QuizSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
 
-
 	def validate_category(self, value):
 		import re
 		category_name = re.sub('\s+', '-', value).lower()

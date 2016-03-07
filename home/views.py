@@ -13,7 +13,7 @@ def register_user(request):
 	if serializer.is_valid():
 		user = User.objects.create_user(**request.data)
 		if user:
-			return Response({'username':request.data.get('username'),'email':request.data.get('email')}, status = status.HTTP_200_OK)
+			return Response({'username':request.data.get('username'), 'email':request.data.get('email')}, status = status.HTTP_200_OK)
 	else:
 		return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
@@ -34,6 +34,7 @@ def login_user(request):
 			else:
 				return Response({'errors':'Incorrect credentials. Password is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 	except User.DoesNotExist as e:
+		print e.args
 		return Response({'errors':'Incorrect credentials. Username is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 
  
@@ -54,4 +55,4 @@ def test_user_data(request):
 		else:
 			return Response({'status': 'success', 'new':False, 'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
 	else:
-		return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+		return Response({'msg': serializer.errors}, status = status.HTTP_400_BAD_REQUEST)

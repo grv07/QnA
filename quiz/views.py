@@ -95,10 +95,12 @@ def create_category(request):
 	"""
 	try:
 		serializer = CategorySerializer(data = request.data)
+		print serializer
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
+			print serializer.errors
 			Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		print e.args
@@ -181,8 +183,10 @@ def get_subcategory(request, userid, categoryid, format = None):
 	"""
 	subcategories = []
 	if categoryid == 'all':
-		for subcategory in SubCategory.objects.filter(user=userid):
-			subcategories.append(subcategory)
+		subcategories = SubCategory.objects.filter(user=userid)
+		if subcategories:
+			for subcategory in subcategories:
+				subcategories.append(subcategory)
 		serializer = SubCategorySerializer(subcategories, many = True)
 	elif categoryid.isnumeric():
 		try:
@@ -240,7 +244,11 @@ def all_questions_under_quiz(request, userid, quizid):
 	try:
 		quiz = Quiz.objects.get(id=quizid, user=userid)
 		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
+		print quizzes
+		# if quizzes:
 		return Response(quizzes, status = status.HTTP_200_OK)
+		# else:
+			# return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
 	except SubCategory.DoesNotExist as e:
 		print e.args
 		return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
