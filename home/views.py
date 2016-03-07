@@ -21,7 +21,6 @@ def register_user(request):
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def login_user(request):
-	print request.data
 	try:
 		user_name = request.data.get('username')
 		user_pass = request.data.get('password')
@@ -46,12 +45,32 @@ def logout_user(request, format=None):
 
 @api_view(['POST'])
 def test_user_data(request):
-	serializer = TestUserSerializer(data = {'name':request.data.get('name'),'email':request.data.get('email'),'quiz':request.data.get('quiz')})
-	if serializer.is_valid():
-		old_obj, new_obj = serializer.get_or_create()
-		if new_obj:
-			return Response({'status': 'success', 'new':True,'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
+	if request.data.get('email') == 'anshul.bisht06@gmail.com':
+		data = {}
+		serializer = TestUserSerializer(data = {'name':request.data.get('name'),'email':request.data.get('email'),'quiz':request.data.get('quiz'), 'test_key': request.data.get('test_key')})
+		if serializer.is_valid():
+			data['status'] = 'success'
+			data['name'] = request.data.get('name')
+			data['test_key'] = request.data.get('test_key')
+			is_new_user = True
+			old_obj, new_obj = serializer.get_or_create()
+			if old_obj:
+				is_new_user = False
+				data['attempt_no'] = old_obj.attempt_no
+				data['test_user'] = old_obj.id
+			else:
+				data['attempt_no'] = new_obj.attempt_no
+				data['test_user'] = new_obj.id
+			data['is_new_user'] = is_new_user
+			return Response(data, status = status.HTTP_200_OK)
 		else:
-			return Response({'status': 'success', 'new':False, 'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
+			return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 	else:
-		return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+		return Response({'status': 'success', 'new':True,'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def save_test_data(request):
+	print request.data
+	print request.query_params
+	return Response({}, status = status.HTTP_200_OK)
