@@ -139,7 +139,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 					options = []
 				count += 1
-				d = { count : { 'id': question.id, 'content': question.content, 'options': options, 'que_type': question.que_type } }
+				d = { count : { 'id': question.id, 'content': question.content, 'options': options, 'que_type': question.que_type, 'status': 'NV' } }
 				data['questions'].append(d)
 			added_subcategories.append(quizstack.subcategory.id)
 		data['total_questions'] = range(1,count+1)
