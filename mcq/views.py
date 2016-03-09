@@ -34,7 +34,7 @@ def save_XLS_to_MCQ(request):
 	total_entries = len(data)
 
 	temp_data = data[0]
-	_dict_mcq_keys = ['category', 'sub_category', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content']
+	_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content']
 	# This dict contains raw-way data with specified keys from temp_data or xls keys
 	data_dict = collections.OrderedDict({})
 	# _quiz_id = None
@@ -54,11 +54,7 @@ def save_XLS_to_MCQ(request):
 		for j, mcq_data in enumerate(list_data):
 			if temp_data[j] == 'correctoption':
 				data_list[i][temp_data[j]] = str(mcq_data)
-			# elif temp_data[j] == 'quiz':
-			# 	# print str(mcq_data)
-			# 	_quiz_id = [Quiz.objects.get(title = str(mcq_data)).id]
-			# 	data_list[i][temp_data[j]] = _quiz_id
-
+	
 			# Check if row is for option then create a dict_ of options and add it on optioncontent ....
 			elif temp_data[j] in option_check:
 				if mcq_data:
@@ -71,7 +67,11 @@ def save_XLS_to_MCQ(request):
 				if category_dict.has_key(mcq_data):
 					category_id = category_dict.get(mcq_data)
 				else:
-					category_id = Category.objects.get(category_name = mcq_data).id
+					try:
+						category_id = Category.objects.get(category_name = mcq_data).id
+					except Exception as e:
+						print e.args
+						category_id = None
 					category_dict[mcq_data] = category_id
 				data_list[i][temp_data[j]] = str(category_id)
 
@@ -102,6 +102,7 @@ def create_mcq(request, xls_read_data = None):
 	if xls_read_data:
 		last_resp = []
 		for data in xls_read_data:
+			data['que_type'] = 'mcq'
 			serializer = MCQuestionSerializer(data = data)
 			options_data = data.get('optioncontent', None)
 			correct_option = data.get('correctoption', None)

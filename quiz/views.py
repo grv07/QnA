@@ -405,7 +405,7 @@ def download_xls_file(request):
 		return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 	data = OrderedDict()
 	if que_type == 'mcq':
-		data.update({"Sheet 1": [MCQ_FILE_COLS,["abcd", sub_category_name]]})
+		data.update({"Sheet 1": [MCQ_FILE_COLS,["", sub_category_name]]})
 	elif que_type == 'objective':
 		data.update({"Sheet 1": [OBJECTIVE_FILE_COLS,[sub_category_name]]})
 	save_data(sub_category_name+"_"+que_type+"_file.xls", data)
