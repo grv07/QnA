@@ -44,46 +44,43 @@ def update_quiz(request, userid, quizid ,format = None):
 	Update a quiz.
 	"""
 	try:
+		print request.data
 		quiz = Quiz.objects.get(id = quizid, user = userid)
 	except Quiz.DoesNotExist as e:
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 	serializer = QuizSerializer(quiz, data = request.data)
 	if serializer.is_valid():
 		serializer.save()
-		return Response(serializer.data, status = status.HTTP_200_OK)
+		return Response({}, status = status.HTTP_200_OK)
+	else:
+		print serializer.errors
 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 def create_quiz(request, format = None):
 	"""
-	List all code Quiz, or create a new quiz.
+	Create a new quiz.
 	"""
 	serializer = QuizSerializer(data = request.data)
-
 	if serializer.is_valid():
 		serializer.save()
 		return Response(serializer.data, status = status.HTTP_200_OK)
+	print serializer.errors
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'DELETE'])
-def delete_quiz(request, pk, format = None):
+@api_view(['DELETE'])
+def delete_quiz(request, user_id, quiz_id, format = None):
 	"""
 	Delete a quiz or GET a quiz details.
 	"""
 	try:
-		quiz = Quiz.objects.get(pk = pk)
+		quiz = Quiz.objects.get(id = quiz_id, user = user_id)
 	except Quiz.DoesNotExist as e:
-		return Response({'msg': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
-
-	if request.method == 'GET':
-		serializer = QuizSerializer(quiz)
-		return Response(serializer.data)
-
-	elif request.method == 'DELETE':
-		quiz.delete()
-		return Response(status = status.HTTP_204_NO_CONTENT)
+		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+	quiz.delete()
+	return Response(status = status.HTTP_204_NO_CONTENT)
 
 
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
@@ -266,7 +263,6 @@ def all_questions_under_subcategory(request, user_id, subcategory_id):
 	Either get all questions under specifc subcategory.
 	"""
 	try:
-		print request.query_params.get('questionFormat')
 		if request.query_params.get('questionFormat'):
 			quizzes = get_questions_format(user_id, subcategory_id, True)
 		else:

@@ -27,13 +27,12 @@ class Quiz(models.Model):
 		verbose_name=_("Title"),
 		max_length=60, blank=False)
 
-	description = models.TextField(
-		verbose_name=_("Description"),
-		blank=True, help_text=_("a description of the quiz"))
+	# description = models.TextField(
+	# 	verbose_name=_("Description"),
+	# 	blank=True, help_text=_("a description of the quiz"))
 
-	url = models.SlugField(
-		max_length=60, blank=False,
-		help_text=_("a user friendly url"),
+	url = models.URLField(
+		blank=False, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
 	random_order = models.BooleanField(
@@ -43,24 +42,24 @@ class Quiz(models.Model):
 					"a random order or as they "
 					"are set?"))
 
-	max_questions = models.PositiveIntegerField(
-		blank=True, null=True, verbose_name=_("Max Questions"),
-		help_text=_("Number of questions to be answered on each attempt."))
+	# max_questions = models.PositiveIntegerField(
+	# 	blank=True, null=True, verbose_name=_("Max Questions"),
+	# 	help_text=_("Number of questions to be answered on each attempt."))
 
-	answers_at_end = models.BooleanField(
-		blank=False, default=False,
-		help_text=_("Correct answer is NOT shown after question."
-					" Answers displayed at the end."),
-		verbose_name=_("Answers at end"))
+	# answers_at_end = models.BooleanField(
+	# 	blank=False, default=False,
+	# 	help_text=_("Correct answer is NOT shown after question."
+	# 				" Answers displayed at the end."),
+	# 	verbose_name=_("Answers at end"))
 
-	exam_paper = models.BooleanField(
-		blank=False, default=False,
-		help_text=_("If yes, the result of each"
-					" attempt by a user will be"
-					" stored. Necessary for marking."),
-		verbose_name=_("Exam Paper"))
+	# exam_paper = models.BooleanField(
+	# 	blank=False, default=False,
+	# 	help_text=_("If yes, the result of each"
+	# 				" attempt by a user will be"
+	# 				" stored. Necessary for marking."),
+	# 	verbose_name=_("Exam Paper"))
 
-	single_attempt = models.BooleanField(
+	no_of_attempt = models.IntegerField(
 		blank=False, default=False,
 		help_text=_("If yes, only one attempt by"
 					" a user will be permitted."
@@ -81,26 +80,23 @@ class Quiz(models.Model):
 		verbose_name=_("Fail Text"),
 		blank=True, help_text=_("Displayed if user fails."))
 
-	draft = models.BooleanField(
-		blank=True, default=False,
-		verbose_name=_("Draft"),
-		help_text=_("If yes, the quiz is not displayed"
-					" in the quiz list and can only be"
-					" taken by users who can edit"
-					" quizzes."))
+	# draft = models.BooleanField(
+	# 	blank=True, default=False,
+	# 	verbose_name=_("Draft"),
+	# 	help_text=_("If yes, the quiz is not displayed"
+	# 				" in the quiz list and can only be"
+	# 				" taken by users who can edit"
+	# 				" quizzes."))
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
 
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
-		self.url = re.sub('\s+', '-', self.url).lower()
+		self.url = str(self.url)+str(self.quiz_key)
 
-		self.url = ''.join(letter for letter in self.url if
-						   letter.isalnum() or letter == '-')
-
-		if self.single_attempt is True:
-			self.exam_paper = True
+		# if self.single_attempt is True:
+		# 	self.exam_paper = True
 
 		if self.pass_mark > 100:
 			raise ValidationError('%s is above 100' % self.pass_mark)
