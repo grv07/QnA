@@ -27,38 +27,38 @@ class Quiz(models.Model):
 		verbose_name=_("Title"),
 		max_length=60, blank=False)
 
-	description = models.TextField(
-		verbose_name=_("Description"),
-		blank=True, help_text=_("a description of the quiz"))
+	# description = models.TextField(
+	# 	verbose_name=_("Description"),
+	# 	blank=True, help_text=_("a description of the quiz"))
 
 	url = models.SlugField(
-		max_length=60, blank=False,
+		max_length=60, null=True,blank=True,
 		help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
-	random_order = models.BooleanField(
-		blank=False, default=False,
-		verbose_name=_("Random Order"),
-		help_text=_("Display the questions in "
-					"a random order or as they "
-					"are set?"))
+	# random_order = models.BooleanField(
+	# 	blank=False, default=False,
+	# 	verbose_name=_("Random Order"),
+	# 	help_text=_("Display the questions in "
+	# 				"a random order or as they "
+	# 				"are set?"))
 
 	max_questions = models.PositiveIntegerField(
 		blank=True, null=True, verbose_name=_("Max Questions"),
 		help_text=_("Number of questions to be answered on each attempt."))
 
-	answers_at_end = models.BooleanField(
-		blank=False, default=False,
-		help_text=_("Correct answer is NOT shown after question."
-					" Answers displayed at the end."),
-		verbose_name=_("Answers at end"))
+	# answers_at_end = models.BooleanField(
+	# 	blank=False, default=False,
+	# 	help_text=_("Correct answer is NOT shown after question."
+	# 				" Answers displayed at the end."),
+	# 	verbose_name=_("Answers at end"))
 
-	exam_paper = models.BooleanField(
-		blank=False, default=False,
-		help_text=_("If yes, the result of each"
-					" attempt by a user will be"
-					" stored. Necessary for marking."),
-		verbose_name=_("Exam Paper"))
+	# exam_paper = models.BooleanField(
+	# 	blank=False, default=False,
+	# 	help_text=_("If yes, the result of each"
+	# 				" attempt by a user will be"
+	# 				" stored. Necessary for marking."),
+	# 	verbose_name=_("Exam Paper"))
 
 	single_attempt = models.BooleanField(
 		blank=False, default=False,
@@ -81,13 +81,13 @@ class Quiz(models.Model):
 		verbose_name=_("Fail Text"),
 		blank=True, help_text=_("Displayed if user fails."))
 
-	draft = models.BooleanField(
-		blank=True, default=False,
-		verbose_name=_("Draft"),
-		help_text=_("If yes, the quiz is not displayed"
-					" in the quiz list and can only be"
-					" taken by users who can edit"
-					" quizzes."))
+	# draft = models.BooleanField(
+	# 	blank=True, default=False,
+	# 	verbose_name=_("Draft"),
+	# 	help_text=_("If yes, the quiz is not displayed"
+	# 				" in the quiz list and can only be"
+	# 				" taken by users who can edit"
+	# 				" quizzes."))
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
@@ -136,8 +136,7 @@ class Quiz(models.Model):
 class CategoryManager(models.Manager):
 
 	def new_category(self, category):
-		new_category = self.create(category=re.sub('\s+', '-', category)
-								   .lower())
+		new_category = self.create(category=re.sub('\s+', '-', category).lower())
 		new_category.save()
 		return new_category
 
@@ -150,7 +149,7 @@ class Category(models.Model):
 		max_length=250,
 		unique = True)
 
-	user = models.ForeignKey(User, default = '1')
+	user = models.ForeignKey(User)
 
 	objects = CategoryManager()
 

@@ -28,13 +28,14 @@ def save_XLS_to_OBJECTIVE(request):
 		correct_serializers_list = []	
 		d = {}
 		for i in data[1:]:
+			print i[4]
 			if BLANK_HTML in i[4]:
 				if not d.has_key(i[0]):
 					try:
 						d[i[0]] = SubCategory.objects.get(sub_category_name=i[0])
 					except Exception as e:
 						return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
-				temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':i[2], 'correct':i[3], 'content':i[4].replace(BLANK_HTML,'<>') }
+				temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':i[2], 'correct':i[3], 'content':i[4].replace(BLANK_HTML,'<>'), 'que_type': 'objective' }
 				serializer = ObjectiveQuestionSerializer(data = temp_dict)
 				if serializer.is_valid():
 					correct_serializers_list.append(serializer)
