@@ -180,10 +180,11 @@ def get_subcategory(request, userid, categoryid, format = None):
 	"""
 	subcategories = []
 	if categoryid == 'all':
-		subcategories = SubCategory.objects.filter(user = userid, category = None)
+		if str(request.query_params.get('all_subcategories')) == 'true':
+			subcategories = SubCategory.objects.filter(user = userid)
+		elif str(request.query_params.get('all_subcategories')) == 'false':
+			subcategories = SubCategory.objects.filter(user = userid, category = None)
 		if subcategories:
-			# for subcategory in subcategories:
-				# subcategories.append(subcategory)
 			serializer = SubCategorySerializer(subcategories, many = True)
 	elif categoryid.isnumeric():
 		try:
