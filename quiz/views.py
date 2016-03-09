@@ -180,18 +180,18 @@ def get_subcategory(request, userid, categoryid, format = None):
 	"""
 	subcategories = []
 	if categoryid == 'all':
-		subcategories = SubCategory.objects.filter(user = userid)
+		subcategories = SubCategory.objects.filter(user = userid, category = None)
 		if subcategories:
 			# for subcategory in subcategories:
 				# subcategories.append(subcategory)
 			serializer = SubCategorySerializer(subcategories, many = True)
 	elif categoryid.isnumeric():
 		try:
-			subcategory = SubCategory.objects.get(category = categoryid, user = userid)
+			subcategory = SubCategory.objects.filter(category = categoryid, user = userid)
 		except SubCategory.DoesNotExist as e:
 			print e.args
-			return Response({'errors': 'Sub-category not found'}, status = statusatus.HTTP_404_NOT_FOUND)
-		serializer = SubCategorySerializer(subcategory, many = False)
+			return Response({'errors': 'Sub-categories not found'}, status = status.HTTP_404_NOT_FOUND)
+		serializer = SubCategorySerializer(subcategory, many = True)
 	else:
 		return Response({'errors': 'Wrong URL passed.'}, status = status.HTTP_404_NOT_FOUND)
 	return Response(serializer.data, status = status.HTTP_200_OK) 
