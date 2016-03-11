@@ -113,3 +113,10 @@ def shuffleList(l):
 	from random import shuffle
 	shuffle(l)
 	return l
+
+
+def checkIfTrue(str_value):
+	if str_value == 'true':
+		return True
+	elif str_value == 'false':
+		return False

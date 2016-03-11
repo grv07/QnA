@@ -225,7 +225,7 @@ def all_questions(request, user_id):
 			result['correct_grade'] = 1
 			result['incorrect_grade'] = 0
 			result['que_type'] = 'mcq'
-			result['section_name'] = 'Section#1'
+			result['section_name'] = '1'
 			result['subcategory_id'] = subcategory_id
 			result = [result]		# Must be a list
 		else:

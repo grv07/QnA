@@ -2,9 +2,13 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
+from rest_framework.decorators import authentication_classes
 from django.contrib.auth.models import User
 from serializer import UserSerializer, TestUserSerializer
 from token_key import generate_token
+from django.core.cache import cache
+from QnA.services.utility import checkIfTrue
+from QnA.services.test_authentication import TestAuthentication
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
@@ -45,6 +49,8 @@ def logout_user(request, format=None):
 
 
 @api_view(['POST'])
+# @permission_classes((AllowAny,))
+@authentication_classes([TestAuthentication])
 def test_user_data(request):
 	if request.data.get('email') == 'anshul.bisht06@gmail.com':
 		data = {}
@@ -72,6 +78,20 @@ def test_user_data(request):
 
 @api_view(['POST'])
 def save_test_data(request):
+	cacheKey = request.query_params.get('test_user')+request.query_params.get('quiz_id')+request.query_params.get('section_name')
 	print request.data
-	print request.query_params
+	if checkIfTrue(request.query_params.get('is_save_to_db')):
+		print 'db saved'+ cacheKey
+		# print cache.get(cacheKey), '------------------'
+		# cache.delete(cacheKey)
+		# print cache.get(cacheKey),'=============='
+	else:
+		# print 'cache saved'+cacheKey
+		cache.set(cacheKey, request.data)
 	return Response({}, status = status.HTTP_200_OK)
+
+
+# @api_view(['POST'])
+# def save_test_data_to_db(request):
+# 	print request.data
+# 	return Response({}, status = status.HTTP_200_OK)
