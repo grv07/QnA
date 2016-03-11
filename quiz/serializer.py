@@ -4,7 +4,6 @@ from quiz.models import Quiz, Category, SubCategory, Question
 class QuizSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Quiz
-		exclude = ('quiz_key',)
 
 
 class CategorySerializer(serializers.ModelSerializer):

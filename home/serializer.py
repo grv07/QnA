@@ -21,9 +21,8 @@ class TestUserSerializer(serializers.ModelSerializer):
 
 	def get_or_create(self):
 		defaults = self.validated_data.copy()
+		name = defaults.pop('name')
 		email = defaults.pop('email')
 		quiz = defaults.pop('quiz')
-		print email, quiz
-		
-		return TestUser.objects.get_or_create(email=email,quiz=quiz, defaults=defaults)	
+		return TestUser.objects.get_or_create(name = name, email=email, quiz=quiz, defaults=defaults)	
 	

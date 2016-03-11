@@ -6,20 +6,21 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
 
-
 @python_2_unicode_compatible
 class TestUser(models.Model):
+    user_key = models.CharField(max_length = 10, unique = True)
     name = models.CharField(max_length = 100, verbose_name=_("Name"))
-
     email = models.CharField(max_length = 100,
                                blank=False,
                                help_text=_("User email"),
                                verbose_name=_("Email"))
-
+    
     quiz = models.ForeignKey(Quiz, help_text=_("Use for quiz ?"), verbose_name=_("Quiz"))
     test_key = models.CharField(max_length = 20)
+
     attempt_no = models.IntegerField(default = 1)
     is_complete = models.BooleanField(default = False)
+    
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
 
@@ -28,8 +29,11 @@ class TestUser(models.Model):
         return self.name,self.email,self.quiz.title,self.test_key
 
     class Meta:
-    	# unique_together = ('email', 'quiz')
         verbose_name = _("TestUser")
+
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        self.user_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
+        super(TestUser, self).save(force_insert, force_update, *args, **kwargs)    
 
 # Create your models here.
 @python_2_unicode_compatible

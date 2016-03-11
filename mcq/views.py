@@ -166,6 +166,7 @@ def get_mcq_detail(request, pk):
 		serializer = MCQuestionSerializer(mcq_question)
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except MCQuestion.DoesNotExist as e:
+		print e.args
 		return Response({'msg': 'Question does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		return Response({'msg': 'Something went terrible wrong'}, status = status.HTTP_400_BAD_REQUEST)
@@ -202,6 +203,10 @@ def all_mcq(request):
 		return Response({'msg': 'Question does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		return Response({'msg': 'Something went terrible wrong'}, status = status.HTTP_400_BAD_REQUEST)
+
+def generate_result(request):
+	print 'generate result here ... ...'
+
 
 #>>>>>>>>>>>>>> MCQ Answer<<<<<<<<<<<<<<<<<<<#
 

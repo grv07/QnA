@@ -58,10 +58,10 @@ def test_user_data(request):
 			if old_obj:
 				is_new_user = False
 				data['attempt_no'] = old_obj.attempt_no
-				data['test_user'] = old_obj.id
+				data['test_user'] = old_obj.user_key
 			else:
 				data['attempt_no'] = new_obj.attempt_no
-				data['test_user'] = new_obj.id
+				data['test_user'] = new_obj.user_key
 			data['is_new_user'] = is_new_user
 			return Response(data, status = status.HTTP_200_OK)
 		else:
