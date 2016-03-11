@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from home.models import TestUser
+from home.models import TestUser,MerchantUser
 
 
-class UserSerializer(serializers.ModelSerializer):
+class MerchantSerializer(serializers.ModelSerializer):
 	class Meta:
-		model = User
+		model = MerchantUser
 		fields = '__all__'
 
 	def validate_email(self, value):
