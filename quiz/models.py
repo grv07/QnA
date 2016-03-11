@@ -25,12 +25,15 @@ class Quiz(models.Model):
 
 	title = models.CharField(
 		verbose_name=_("Title"),
-		max_length=60, blank=False)
+		max_length=60, blank = False)
 
 	# description = models.TextField(
 	# 	verbose_name=_("Description"),
 	# 	blank=True, help_text=_("a description of the quiz"))
 
+	user_picturing = models.BooleanField(default = False,
+	 	verbose_name=_("User pict."),
+	 	help_text=_("Take a user picture when start test?"))
 
 	url = models.URLField(
 		blank=False, help_text=_("a user friendly url"),
@@ -95,13 +98,8 @@ class Quiz(models.Model):
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
 		self.url = str(self.url)+str(self.quiz_key)
-
-		# if self.single_attempt is True:
-		# 	self.exam_paper = True
-
 		if self.pass_mark > 100:
 			raise ValidationError('%s is above 100' % self.pass_mark)
-
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
 	class Meta:
@@ -148,6 +146,9 @@ class Category(models.Model):
 
 	user = models.ForeignKey(User)
 
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
+
 	objects = CategoryManager()
 
 	class Meta:
@@ -177,6 +178,8 @@ class SubCategory(models.Model):
 	category = models.ForeignKey(
 		Category,verbose_name=_("Category"), null=True)
 
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
 
 	objects = CategoryManager()
 
@@ -387,16 +390,13 @@ class Sitting(models.Model):
 
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
-	# question_order = models.CommaSeparatedIntegerField(
-		# max_length=1024, verbose_name=_("Question Order"))
-
 	unanswered_question_list = models.CommaSeparatedIntegerField(
 		max_length=1024, verbose_name=_("Question List"))
 
 	incorrect_questions_list = models.CommaSeparatedIntegerField(
 		max_length=1024, blank=True, verbose_name=_("Incorrect questions"))
 
-	current_score = models.IntegerField(verbose_name=_("Current Score"))
+	current_score = models.IntegerField(verbose_name=_("Current Score"), default = 0)
 
 	complete = models.BooleanField(default=False, blank=False,
 								   verbose_name=_("Complete"))
@@ -405,37 +405,15 @@ class Sitting(models.Model):
 									verbose_name=_("User Answers"))
 
 	time_spent = models.IntegerField()
-
-	start = models.DateTimeField(auto_now_add=True,
+	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
 
-	end = models.DateTimeField(null=True, blank=True, verbose_name=_("End"))
+	end_date = models.DateTimeField(null=True, blank=True, verbose_name=_("End"))
 
 	objects = SittingManager()
 
 	class Meta:
 		permissions = (("view_sittings", _("Can see completed exams.")),)
-
-	def get_first_question(self):
-		"""
-		Returns the next question.
-		If no question is found, returns False
-		Does NOT remove the question from the front of the list.
-		"""
-		if not self.question_list:
-			return False
-
-		first, _ = self.question_list.split(',', 1)
-		question_id = int(first)
-		return Question.objects.get_subclass(id=question_id)
-
-	def remove_first_question(self):
-		if not self.question_list:
-			return
-
-		_, others = self.question_list.split(',', 1)
-		self.question_list = others
-		self.save()
 
 	def add_to_score(self, points):
 		self.current_score += int(points)
@@ -470,14 +448,25 @@ class Sitting(models.Model):
 		self.end = now()
 		self.save()
 
-	def add_incorrect_question(self, question):
+	def add_unanswerd_question(self, question_id):
 		"""
 		Adds uid of incorrect question to the list.
 		The question object must be passed in.
 		"""
-		if len(self.incorrect_questions) > 0:
-			self.incorrect_questions += ','
-		self.incorrect_questions += str(question.id) + ","
+		if len(self.unanswerd_question_list) > 0:
+			self.unanswerd_question_list += ','
+		self.unanswerd_question_list += str(question_id) + ","
+		self.save()
+	
+		
+	def add_incorrect_question(self, question_id):
+		"""
+		Adds uid of incorrect question to the list.
+		The question object must be passed in.
+		"""
+		if len(self.incorrect_questions_list) > 0:
+			self.incorrect_questions_list += ','
+		self.incorrect_questions_list += str(question_id) + ","
 		if self.complete:
 			self.add_to_score(-1)
 		self.save()
@@ -508,9 +497,9 @@ class Sitting(models.Model):
 		else:
 			return self.quiz.fail_text
 
-	def add_user_answer(self, question, guess):
+	def add_user_answer(self, question_id, guess):
 		current = json.loads(self.user_answers)
-		current[question.id] = guess
+		current[question_id] = guess
 		self.user_answers = json.dumps(current)
 		self.save()
 
@@ -584,6 +573,8 @@ class Question(models.Model):
 											   "been answered."),
 								   verbose_name=_('Explanation'))
 
+	points = models.IntegerField(verbose_name=_("Marks"), default=1, blank=True)
+	
 	que_type = models.CharField(max_length = 10,null= True,
 								choices=QUESTION_TYPE_OPTIONS,
 								help_text=_("Type of Question"),
@@ -593,6 +584,9 @@ class Question(models.Model):
 								choices=QUESTION_DIFFICULTY_OPTIONS,
 								help_text=_("The difficulty level of a MCQQuestion"),
 								verbose_name=_("Difficulty Level"))
+
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
 
 	# objects = InheritanceManager()
 

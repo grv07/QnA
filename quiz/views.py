@@ -34,6 +34,7 @@ def get_quiz(request, userid, quizid ,format = None):
 		except Quiz.DoesNotExist as e:
 			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 		serializer = QuizSerializer(quiz)
+		serializer.data['quiz_key'] = quiz.quiz_key
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	else:
 		return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)

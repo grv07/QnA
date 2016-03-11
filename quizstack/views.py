@@ -119,8 +119,10 @@ def get_quizstack_questions(request, quiz_id):
 
 
 @api_view(['GET'])
+@permission_classes((AllowAny,))
 def get_quizstack_questions_basedon_section(request, quiz_id):
 	section_name = request.query_params.get('sectionName')
+	print '123'
 	try:
 		# data = { 'questions' : [{ 1: {'content' : '', 'options' : [] } }] } --> This format is used
 		data = { 'questions' : [] }
@@ -144,8 +146,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 					data['questions'].append(d)
 				added_questions.append(question.id)
 		data['total_questions'] = range(1,count+1)
-		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
-		return Response({}, status = status.HTTP_400_BAD_REQUEST)	 
+		return Response({}, status = status.HTTP_400_BAD_REQUEST) 

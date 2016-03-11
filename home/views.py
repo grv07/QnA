@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.decorators import authentication_classes
 from django.contrib.auth.models import User
-from serializer import UserSerializer, TestUserSerializer
+from serializer import MerchantSerializer, TestUserSerializer
 from token_key import generate_token
 from django.core.cache import cache
 from QnA.services.utility import checkIfTrue
@@ -13,12 +13,18 @@ from QnA.services.test_authentication import TestAuthentication
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def register_user(request):
-	serializer = UserSerializer(data = request.data)
+	data = request.data
+	user = User.objects.create_user(**request.data)
+	if user:
+		data['user'] = user.id 
+	serializer = MerchantSerializer(data = data)
 	if serializer.is_valid():
-		user = User.objects.create_user(**request.data)
-		if user:
-			return Response({'username':request.data.get('username'), 'email':request.data.get('email')}, status = status.HTTP_200_OK)
+		m_user = serializer.save()
+		if m_user:
+			return Response({'username':data.get('username'), 'email':data.get('email')}, status = status.HTTP_200_OK)
 	else:
+		user.delete()
+		print serializer.errors
 		return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -64,10 +70,10 @@ def test_user_data(request):
 			if old_obj:
 				is_new_user = False
 				data['attempt_no'] = old_obj.attempt_no
-				data['test_user'] = old_obj.id
+				data['test_user'] = old_obj.user_key
 			else:
 				data['attempt_no'] = new_obj.attempt_no
-				data['test_user'] = new_obj.id
+				data['test_user'] = new_obj.user_key
 			data['is_new_user'] = is_new_user
 			return Response(data, status = status.HTTP_200_OK)
 		else:
@@ -77,8 +83,9 @@ def test_user_data(request):
 
 
 @api_view(['POST'])
+@authentication_classes([TestAuthentication])
 def save_test_data(request):
-	cacheKey = request.query_params.get('test_user')+request.query_params.get('quiz_id')+request.query_params.get('section_name')
+	cacheKey = request.query_params.get('test_key')+request.query_params.get('quiz_id')+request.query_params.get('section_name')
 	print request.data
 	if checkIfTrue(request.query_params.get('is_save_to_db')):
 		print 'db saved'+ cacheKey
@@ -86,8 +93,8 @@ def save_test_data(request):
 		# cache.delete(cacheKey)
 		# print cache.get(cacheKey),'=============='
 	else:
-		# print 'cache saved'+cacheKey
-		cache.set(cacheKey, request.data)
+		print 'cache saved'+cacheKey
+		# cache.set(cacheKey, request.data)
 	return Response({}, status = status.HTTP_200_OK)
 
 

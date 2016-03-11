@@ -4,7 +4,6 @@ from rest_framework import exceptions
 
 class TestAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
-    	print request.META
         key = request.META.get('HTTP_AUTHORIZATION') # get the username request header
         print key,'==========='
 
