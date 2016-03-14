@@ -18,7 +18,8 @@ from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTI
 @python_2_unicode_compatible
 class Quiz(models.Model):
 
-	user = models.ForeignKey(User, default = '1')
+	user = models.ForeignKey(User)
+
 	quiz_key = models.CharField(
 		verbose_name=_("Quiz Key"),
 		max_length = 15, blank = True)
@@ -38,30 +39,6 @@ class Quiz(models.Model):
 	url = models.URLField(
 		blank=False, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
-
-	# random_order = models.BooleanField(
-	# 	blank=False, default=False,
-	# 	verbose_name=_("Random Order"),
-	# 	help_text=_("Display the questions in "
-	# 				"a random order or as they "
-	# 				"are set?"))
-
-	# max_questions = models.PositiveIntegerField(
-	# 	blank=True, null=True, verbose_name=_("Max Questions"),
-	# 	help_text=_("Number of questions to be answered on each attempt."))
-
-	# answers_at_end = models.BooleanField(
-	# 	blank=False, default=False,
-	# 	help_text=_("Correct answer is NOT shown after question."
-	# 				" Answers displayed at the end."),
-	# 	verbose_name=_("Answers at end"))
-
-	# exam_paper = models.BooleanField(
-	# 	blank=False, default=False,
-	# 	help_text=_("If yes, the result of each"
-	# 				" attempt by a user will be"
-	# 				" stored. Necessary for marking."),
-	# 	verbose_name=_("Exam Paper"))
 
 	no_of_attempt = models.IntegerField(
 		blank=False, default=False,
