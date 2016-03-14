@@ -66,7 +66,6 @@ def logout_user(request, format=None):
 @permission_classes((AllowAny,))
 # @authentication_classes([TestAuthentication])
 def test_user_data(request):
-	print request.data
 	data = {}
 
 	name = request.data.get('username')
@@ -100,26 +99,26 @@ def test_user_data(request):
 
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 # @authentication_classes([TestAuthentication])
 def save_test_data(request):
 	cache_key = request.data.get('test_key')+request.data.get('section_name')
 	question_id = request.data.get('answer').keys()[0]
-	if request.dat.get('is_save_to_db'):
-		print 'db saved = '+ cache_key
-		print cache.get(cache_key), '------------------'
-		cache.delete(cache_key)
-		print cache.get(cache_key),'=============='
-	else:
-		print 'cache saved = '+cache_key
-		cache_value = cache.get(cache_key)
-		if not cache_value:
-			cache.set(cache_key, request.data['answer'])
-		else:
-			if request.data.get('answer') in cache_value:
-				cache_value[question_id] = request.data['answer'][question_id]
-				cache.set(cache_key, cache_value)
-		print cache.get(cache_key),'************'
+	print request.data
+	# if request.data.get('is_save_to_db'):
+	# 	print 'db saved = '+ cache_key
+	# 	print cache.get(cache_key), '------------------'
+	# 	cache.delete(cache_key)
+	# 	print cache.get(cache_key),'=============='
+	# else:
+	# 	print 'cache saved = '+cache_key
+	# 	cache_value = cache.get(cache_key)
+	# 	if not cache_value:
+	# 		cache.set(cache_key, request.data['answer'])
+	# 	else:
+	# 		if request.data.get('answer') in cache_value:
+	# 			cache_value[question_id] = request.data['answer'][question_id]
+	# 			cache.set(cache_key, cache_value)
+	# 	print cache.get(cache_key),'************'
 	return Response({}, status = status.HTTP_200_OK)
 
 
