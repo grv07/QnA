@@ -67,12 +67,13 @@ def logout_user(request, format=None):
 # @authentication_classes([TestAuthentication])
 def test_user_data(request):
 	data = {}
-
 	name = request.data.get('username')
 	email = request.data.get('email')
 
+	# user = User.objects.create_user(username = name, email = email)
+	
 	serializer = TestUserSerializer(data = {'username':name,'email':email,'quiz':request.data.get('quiz_id'), 
-		'test_key': request.data.get('test_key')})
+		'test_key': request.data.get('test_key'),'password':'1234gy'})
 	if serializer.is_valid():
 		data['status'] = 'success'
 		data['username'] = name
@@ -84,11 +85,9 @@ def test_user_data(request):
 			is_new_user = False
 			data['attempt_no'] = old_obj.attempt_no
 			token = generate_token(old_obj)
-			# data['test_user'] = old_obj.user_key
 			data['token'] = generate_token(old_obj)
 		else:
 			data['attempt_no'] = new_obj.attempt_no
-			# data['test_user'] = new_obj.user_key
 			data['is_new_user'] = is_new_user
 			data['token'] = generate_token(new_obj)
 
