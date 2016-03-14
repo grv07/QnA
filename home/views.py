@@ -60,24 +60,25 @@ def logout_user(request, format=None):
 def test_user_data(request):
 	if request.data.get('email') == 'anshul.bisht06@gmail.com':
 		data = {}
-		serializer = TestUserSerializer(data = {'name':request.data.get('name'),'email':request.data.get('email'),'quiz':request.data.get('quiz'), 'test_key': request.data.get('test_key')})
-		if serializer.is_valid():
-			data['status'] = 'success'
-			data['name'] = request.data.get('name')
-			data['test_key'] = request.data.get('test_key')
-			is_new_user = True
-			old_obj, new_obj = serializer.get_or_create()
-			if old_obj:
-				is_new_user = False
-				data['attempt_no'] = old_obj.attempt_no
-				data['test_user'] = old_obj.user_key
-			else:
-				data['attempt_no'] = new_obj.attempt_no
-				data['test_user'] = new_obj.user_key
-			data['is_new_user'] = is_new_user
-			return Response(data, status = status.HTTP_200_OK)
-		else:
-			return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+		return Response(data, status = status.HTTP_200_OK)
+		# serializer = TestUserSerializer(data = {'name':request.data.get('name'),'email':request.data.get('email'),'quiz':request.data.get('quiz'), 'test_key': request.data.get('test_key')})
+		# if serializer.is_valid():
+		# 	data['status'] = 'success'
+		# 	data['name'] = request.data.get('name')
+		# 	data['test_key'] = request.data.get('test_key')
+		# 	is_new_user = True
+		# 	old_obj, new_obj = serializer.get_or_create()
+		# 	if old_obj:
+		# 		is_new_user = False
+		# 		data['attempt_no'] = old_obj.attempt_no
+		# 		data['test_user'] = old_obj.user_key
+		# 	else:
+		# 		data['attempt_no'] = new_obj.attempt_no
+		# 		data['test_user'] = new_obj.user_key
+		# 	data['is_new_user'] = is_new_user
+		# 	return Response(data, status = status.HTTP_200_OK)
+		# else:
+		# 	return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 	else:
 		return Response({'status': 'success', 'new':True,'user_name':request.data.get('name')}, status = status.HTTP_200_OK)
 
@@ -85,16 +86,22 @@ def test_user_data(request):
 @api_view(['POST'])
 @authentication_classes([TestAuthentication])
 def save_test_data(request):
-	cacheKey = request.query_params.get('test_key')+request.query_params.get('quiz_id')+request.query_params.get('section_name')
-	print request.data
+	cache_key = request.query_params.get('test_key')+request.query_params.get('quiz_id')+request.query_params.get('section_name')
+	question_id = request.data['answer'].keys()[0]
 	if checkIfTrue(request.query_params.get('is_save_to_db')):
-		print 'db saved'+ cacheKey
-		# print cache.get(cacheKey), '------------------'
-		# cache.delete(cacheKey)
-		# print cache.get(cacheKey),'=============='
+		print 'db saved'+ cache_key
+		print cache.get(cacheKey), '------------------'
+		cache.delete(cacheKey)
+		print cache.get(cacheKey),'=============='
 	else:
-		print 'cache saved'+cacheKey
-		# cache.set(cacheKey, request.data)
+		print 'cache saved'+cache_key
+		cache_value = cache.get(cache_key)
+		if not cache_value:
+			cache.set(cache_key, request.data['answer'])
+		else:
+			if request.data['answer'] in cache_value:
+				cache_value[question_id] = request.data['answer'][question_id]
+				cache.set(cache_key, cache_value)
 	return Response({}, status = status.HTTP_200_OK)
 
 

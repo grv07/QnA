@@ -13,12 +13,19 @@ from QnA.services.utility import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS, sh
 @api_view(['POST'])
 def create_quizstack(request):
 	try:
-		serializer = QuizStackSerializer(data = request.data)
-		if serializer.is_valid():
-			serializer.save()
+		if not QuizStack.objects.filter(subcategory = request.data.get('subcategory'), level = request.data.get('level')):
+			serializer = QuizStackSerializer(data = request.data)
+			if serializer.is_valid():
+				serializer.save()
+				quiz = Quiz.objects.get(id = request.data.get('quiz'))
+				quiz.total_questions += int(request.data.get('no_questions'))
+				quiz.save()
+			else:
+				return Response({ 'errors' : serializer.errors }, status = status.HTTP_400_BAD_REQUEST)
+			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
-			return Response({ 'errors' : serializer.errors }, status = status.HTTP_400_BAD_REQUEST)
-		return Response(serializer.data, status = status.HTTP_200_OK)
+			return Response({ 'errors' :'Duplicate questions not allowed.' }, status = status.HTTP_400_BAD_REQUEST)
+
 	except Exception as e:
 		print e.args
 		return Response({'errors' : 'Cannot add to the stack.'}, status = status.HTTP_400_BAD_REQUEST)
@@ -30,6 +37,7 @@ def get_quizstack(request, quiz_id, quizstack_id):
 		try:
 			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('-id')
 			serializer = QuizStackSerializer(quizstack_list, many = True)
+			print serializer.data
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			print e.args
@@ -56,7 +64,10 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 			return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)
 	elif quizstack_id.isnumeric():
 		try:
+			quiz = Quiz.objects.get(id = quiz_id)
 			quizstack = QuizStack.objects.get(id = quizstack_id, quiz=quiz_id)
+			quiz.total_questions -= quizstack.no_questions
+			quiz.save()
 			quizstack.delete()
 			return Response(status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:

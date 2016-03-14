@@ -84,6 +84,8 @@ class Quiz(models.Model):
 		verbose_name=_("Fail Text"),
 		blank=True, help_text=_("Displayed if user fails."))
 
+	total_questions = models.IntegerField(blank=True, default=0)
+
 	# draft = models.BooleanField(
 	# 	blank=True, default=False,
 	# 	verbose_name=_("Draft"),
