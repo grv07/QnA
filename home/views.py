@@ -90,9 +90,9 @@ def save_test_data(request):
 	question_id = request.data['answer'].keys()[0]
 	if checkIfTrue(request.query_params.get('is_save_to_db')):
 		print 'db saved'+ cache_key
-		print cache.get(cacheKey), '------------------'
-		cache.delete(cacheKey)
-		print cache.get(cacheKey),'=============='
+		print cache.get(cache_key), '------------------'
+		cache.delete(cache_key)
+		print cache.get(cache_key),'=============='
 	else:
 		print 'cache saved'+cache_key
 		cache_value = cache.get(cache_key)
