@@ -33,8 +33,8 @@ class MerchantUser(models.Model):
 
 @python_2_unicode_compatible
 class TestUser(models.Model):
-    user_key = models.CharField(max_length = 10, unique = True)
-    name = models.CharField(max_length = 100, verbose_name=_("Name"))
+    # user_key = models.CharField(max_length = 10, unique = True)
+    username = models.CharField(max_length = 100, verbose_name=_("Name"))
     email = models.CharField(max_length = 100,
                                blank=False,
                                help_text=_("User email"),
@@ -43,7 +43,7 @@ class TestUser(models.Model):
     quiz = models.ForeignKey(Quiz, help_text=_("Use for quiz ?"), verbose_name=_("Quiz"))
     test_key = models.CharField(max_length = 20)
 
-    attempt_no = models.IntegerField(default = 1)
+    attempt_no = models.IntegerField(default = 0)
     is_complete = models.BooleanField(default = False)
     
     created_date = models.DateTimeField(auto_now_add = True)
@@ -51,14 +51,14 @@ class TestUser(models.Model):
 
 
     def __str__(self):
-        return self.name,self.email,self.quiz.title,self.test_key
+        return self.username,self.email,self.quiz.title,self.test_key
 
     class Meta:
         verbose_name = _("TestUser")
 
-    def save(self, force_insert=False, force_update=False, *args, **kwargs):
-        self.user_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
-        super(TestUser, self).save(force_insert, force_update, *args, **kwargs)    
+    # def save(self, force_insert=False, force_update=False, *args, **kwargs):
+    #     self.user_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
+    #     super(TestUser, self).save(force_insert, force_update, *args, **kwargs)    
 
 # Create your models here.
 @python_2_unicode_compatible

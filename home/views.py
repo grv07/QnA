@@ -63,35 +63,45 @@ def logout_user(request, format=None):
 
 
 @api_view(['POST'])
-# @permission_classes((AllowAny,))
-@authentication_classes([TestAuthentication])
+@permission_classes((AllowAny,))
+# @authentication_classes([TestAuthentication])
 def test_user_data(request):
+	print request.data
 	data = {}
-	# token = generate_token(user)
-	return Response(data, status = status.HTTP_200_OK)
-	# serializer = TestUserSerializer(data = {'name':request.data.get('name'),'email':request.data.get('email'),'quiz':request.data.get('quiz'), 'test_key': request.data.get('test_key')})
-	# if serializer.is_valid():
-	# 	data['status'] = 'success'
-	# 	data['name'] = request.data.get('name')
-	# 	data['test_key'] = request.data.get('test_key')
-	# 	is_new_user = True
-	# 	old_obj, new_obj = serializer.get_or_create()
-	# 	if old_obj:
-	# 		is_new_user = False
-	# 		data['attempt_no'] = old_obj.attempt_no
-	# 		data['test_user'] = old_obj.user_key
-	# 	else:
-	# 		data['attempt_no'] = new_obj.attempt_no
-	# 		data['test_user'] = new_obj.user_key
-	# 	data['is_new_user'] = is_new_user
-	# 	return Response(data, status = status.HTTP_200_OK)
-	# else:
-	# 	return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+	name = request.data.get('username')
+	email = request.data.get('email')
+
+	serializer = TestUserSerializer(data = {'username':name,'email':email,'quiz':request.data.get('quiz_id'), 
+		'test_key': request.data.get('test_key')})
+	if serializer.is_valid():
+		data['status'] = 'success'
+		data['username'] = name
+		data['test_key'] = request.data.get('test_key')
+		is_new_user = True
+		old_obj, new_obj = serializer.get_or_create()
+		
+		if old_obj:
+			is_new_user = False
+			data['attempt_no'] = old_obj.attempt_no
+			token = generate_token(old_obj)
+			# data['test_user'] = old_obj.user_key
+			data['token'] = generate_token(old_obj)
+		else:
+			data['attempt_no'] = new_obj.attempt_no
+			# data['test_user'] = new_obj.user_key
+			data['is_new_user'] = is_new_user
+			data['token'] = generate_token(new_obj)
+
+		return Response(data, status = status.HTTP_200_OK)
+	else:
+		return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
 @api_view(['POST'])
-@authentication_classes([TestAuthentication])
+@permission_classes((AllowAny,))
+# @authentication_classes([TestAuthentication])
 def save_test_data(request):
 	cache_key = request.data.get('test_key')+request.data.get('section_name')
 	question_id = request.data.get('answer').keys()[0]
