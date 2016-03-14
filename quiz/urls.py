@@ -7,6 +7,7 @@ urlpatterns = [
 	url(r'^create/$', views.create_quiz),
 	url(r'^update/(?P<userid>\d+)/(?P<quizid>\d+)/$', views.update_quiz),
 	url(r'^delete/(?P<user_id>\d+)/(?P<quiz_id>[0-9]+)/$', views.delete_quiz),
+    url(r'^get/key/$', views.get_quiz_acc_key),
 	
 	#Category Related Urls 
 	url(r'^category/create/$', views.create_category),

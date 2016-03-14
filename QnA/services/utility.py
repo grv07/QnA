@@ -1,6 +1,5 @@
 from django.utils.translation import ugettext as _
 
-
 QUESTION_DIFFICULTY_OPTIONS = (
 	('easy', _('EASY')),
 	('medium', _('MEDIUM')),
@@ -25,6 +24,8 @@ MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_ord
 OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'content']
 
 BLANK_HTML = "<<Answer>>"
+
+REGISTRATION_HTML = "<p><p>Hello <b>{name}</b>,</p><br><p>Thanks for registering on <b>QnA</b>.</p><p>You username is <b>{username}</b>.</p></p>"
 
 # UPLOAD_LOCATION = '/qna/media/'
 

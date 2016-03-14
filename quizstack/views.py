@@ -37,7 +37,6 @@ def get_quizstack(request, quiz_id, quizstack_id):
 		try:
 			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('-id')
 			serializer = QuizStackSerializer(quizstack_list, many = True)
-			print serializer.data
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			print e.args
@@ -133,7 +132,6 @@ def get_quizstack_questions(request, quiz_id):
 @permission_classes((AllowAny,))
 def get_quizstack_questions_basedon_section(request, quiz_id):
 	section_name = request.query_params.get('sectionName')
-	print '123'
 	try:
 		# data = { 'questions' : [{ 1: {'content' : '', 'options' : [] } }] } --> This format is used
 		data = { 'questions' : [] }

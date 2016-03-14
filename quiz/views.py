@@ -39,6 +39,21 @@ def get_quiz(request, userid, quizid ,format = None):
 	else:
 		return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
 
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def get_quiz_acc_key(request):
+	quiz_key = request.query_params.get('quiz_key')
+	if quiz_key:
+		try:
+			quiz = Quiz.objects.get(quiz_key = quiz_key)
+			serializer = QuizSerializer(quiz)
+			return Response(serializer.data, status = status.HTTP_200_OK)
+		except Quiz.DoesNotExist as e:
+			return Response({'errors': 'Quiz not found.'}, status = status.HTTP_404_NOT_FOUND)
+	else:
+		return Response({'errors': 'Quiz Key not given.'}, status = status.HTTP_404_NOT_FOUND)
+
+
 @api_view(['PUT'])
 def update_quiz(request, userid, quizid ,format = None):
 	"""
