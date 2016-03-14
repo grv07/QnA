@@ -93,9 +93,9 @@ def test_user_data(request):
 @api_view(['POST'])
 @authentication_classes([TestAuthentication])
 def save_test_data(request):
-	cache_key = request.query_params.get('test_key')+request.query_params.get('quiz_id')+request.query_params.get('section_name')
-	question_id = request.data['answer'].keys()[0]
-	if checkIfTrue(request.query_params.get('is_save_to_db')):
+	cache_key = request.data.get('test_key')+request.data.get('section_name')
+	question_id = request.data.get('answer').keys()[0]
+	if request.dat.get('is_save_to_db'):
 		print 'db saved = '+ cache_key
 		print cache.get(cache_key), '------------------'
 		cache.delete(cache_key)
@@ -106,7 +106,7 @@ def save_test_data(request):
 		if not cache_value:
 			cache.set(cache_key, request.data['answer'])
 		else:
-			if request.data['answer'] in cache_value:
+			if request.data.get('answer') in cache_value:
 				cache_value[question_id] = request.data['answer'][question_id]
 				cache.set(cache_key, cache_value)
 		print cache.get(cache_key),'************'
