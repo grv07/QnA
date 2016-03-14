@@ -197,7 +197,7 @@ def get_subcategory(request, userid, categoryid, format = None):
 	else:
 		return Response({'errors': 'Wrong URL passed.'}, status = status.HTTP_404_NOT_FOUND)
 	return Response(serializer.data, status = status.HTTP_200_OK) 
-		
+
 
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
 
