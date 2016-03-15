@@ -76,7 +76,7 @@ class TestUser(User):
 # Create your models here.
 @python_2_unicode_compatible
 class TestUserDetails(models.Model):
-    test_user = models.ForeignKey(TestUser, related_name = 'test_user_details')
+    test_user = models.ForeignKey(TestUser, related_name = 'test_user_details', default = 24)
     result = models.CharField(max_length=3000)
     time_spent = models.IntegerField()
     created_date = models.DateTimeField(auto_now_add = True)

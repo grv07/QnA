@@ -10,6 +10,9 @@ from django.core.cache import cache
 from QnA.services.utility import checkIfTrue, REGISTRATION_HTML
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
+from QnA.services.generate_result_engine import generate_result
+from quiz.models import Sitting, Quiz
+
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
@@ -86,11 +89,12 @@ def test_user_data(request):
 			data['attempt_no'] = old_obj.attempt_no
 			token = generate_token(old_obj)
 			data['token'] = generate_token(old_obj)
+			data['testUser'] = old_obj.id 
 		else:
 			data['attempt_no'] = new_obj.attempt_no
 			data['is_new_user'] = is_new_user
 			data['token'] = generate_token(new_obj)
-
+			data['testUser'] = new_obj.id
 		return Response(data, status = status.HTTP_200_OK)
 	else:
 		return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -100,24 +104,31 @@ def test_user_data(request):
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data(request):
-	cache_key = request.data.get('test_key')+request.data.get('section_name')
+	cache_key = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|"+request.data.get('section_name').replace('Section#','')
 	question_id = request.data.get('answer').keys()[0]
-	print request.data
-	# if request.data.get('is_save_to_db'):
-	# 	print 'db saved = '+ cache_key
-	# 	print cache.get(cache_key), '------------------'
-	# 	cache.delete(cache_key)
-	# 	print cache.get(cache_key),'=============='
-	# else:
-	# 	print 'cache saved = '+cache_key
-	# 	cache_value = cache.get(cache_key)
-	# 	if not cache_value:
-	# 		cache.set(cache_key, request.data['answer'])
-	# 	else:
-	# 		if request.data.get('answer') in cache_value:
-	# 			cache_value[question_id] = request.data['answer'][question_id]
-	# 			cache.set(cache_key, cache_value)
-	# 	print cache.get(cache_key),'************'
+	sitting_id = cache.get('sitting_id')
+	if not sitting_id:
+		sitting_obj = Sitting.objects.create(user = User.objects.get(id = request.data.get('test_user')), quiz = Quiz.objects.get(id = request.data.get('quiz_id')))
+		cache.set('sitting_id', sitting_obj.id, timeout = None)
+	if request.data.get('is_save_to_db'):
+		print 'db saved = '+ cache_key, sitting_id
+		generate_result(cache.get(cache_key), sitting_id, cache_key)
+		print cache.get(cache_key), '------------------'
+		# cache.delete(cache_key)
+		# print cache.get(cache_key),'=============='
+	else:
+		cache_value = cache.get(cache_key)
+		if not cache_value:
+			cache.set(cache_key,{ 'answers': request.data['answer'] }, timeout = None)
+		else:
+			if question_id in cache_value['answers'].keys():
+				cache_value['answers'][question_id] = request.data['answer'][question_id]
+			else:
+				cache_value['answers'].update(request.data['answer'])
+			cache.set(cache_key, cache_value, timeout = None)
+		# print cache.get(cache_key),'************'
+	# cache.delete('sitting_id')
+	# cache.delete(cache_key)
 	return Response({}, status = status.HTTP_200_OK)
 
 
