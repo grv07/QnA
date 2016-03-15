@@ -113,17 +113,23 @@ def test_user_data(request):
 # @authentication_classes([TestAuthentication])
 def save_test_data(request):
 	cache_key = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|"+request.data.get('section_name').replace('Section#','')
+	print cache_key
 	question_id = request.data.get('answer').keys()[0]
-	sitting_id = cache.get('sitting_id')
+	sitting_id = cache.get('sitting_id'+str(request.data.get('test_user')))
 	if not sitting_id:
-		sitting_obj = Sitting.objects.create(user = User.objects.get(id = request.data.get('test_user')), quiz = Quiz.objects.get(id = request.data.get('quiz_id')))
-		cache.set('sitting_id', sitting_obj.id, timeout = None)
+		sitting_obj = Sitting.objects.create(user = TestUser.objects.get(id = request.data.get('test_user')).user, quiz = Quiz.objects.get(id = request.data.get('quiz_id')))
+		cache.set('sitting_id'+str(request.data.get('test_user')), sitting_obj.id, timeout = None)
 	if request.data.get('is_save_to_db'):
 		print 'db saved = '+ cache_key, sitting_id
-		generate_result(cache.get(cache_key), sitting_id, cache_key)
-		print cache.get(cache_key), '------------------'
-		# cache.delete(cache_key)
-		# print cache.get(cache_key),'=============='
+		cache_keys_pattern = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|**"
+		print list(cache.iter_keys(cache_keys_pattern))
+		for key in list(cache.iter_keys(cache_keys_pattern)):			
+			generate_result(cache.get(key), sitting_id, key)
+			print cache.get(key), '------------------'
+			cache.delete(key)
+			print cache.get(key),'=============='
+		cache.delete('sitting_id'+str(request.data.get('test_user')))
+		print cache.get('sitting_id'+str(request.data.get('test_user'))),'************'
 	else:
 		cache_value = cache.get(cache_key)
 		if not cache_value:
@@ -135,6 +141,7 @@ def save_test_data(request):
 				cache_value['answers'].update(request.data['answer'])
 			cache.set(cache_key, cache_value, timeout = None)
 		# print cache.get(cache_key),'************'
+		print cache_key
 	# cache.delete('sitting_id')
 	# cache.delete(cache_key)
 	return Response({}, status = status.HTTP_200_OK)

@@ -17,6 +17,7 @@ def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'
 	
 	quiz = Quiz.objects.get(quiz_key = quiz_key)
 	sitting_obj = Sitting.objects.get(pk = sitting_id, quiz = quiz)
+	print sitting_obj
 	if section_result:
 		_progress_list = section_result['answers']
 
@@ -31,17 +32,17 @@ def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'
 					print e.args
 					return None
 				'''Check if given answers are correct or not'''
-				# sitting_obj.add_user_answer(question_id, _dict_data.get('value'))
+				sitting_obj.add_user_answer(question_id, _dict_data.get('value'))
 				if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
 					is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
 				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 					is_correct = ObjectiveQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
-			# 	if is_correct:
-			# 		sitting_obj.add_to_score(mc_que.points)
-			# 	else:
-			# 		sitting_obj.add_incorrect_question(question_id)	
-			# else:
-			# 	sitting_obj.add_unanswerd_question(question_id)
+				if is_correct:
+					sitting_obj.add_to_score(question.points)
+				else:
+					sitting_obj.add_incorrect_question(question_id)	
+			else:
+				sitting_obj.add_unanswerd_question(question_id)
 				
 
 						

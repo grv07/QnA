@@ -370,10 +370,10 @@ class Sitting(models.Model):
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
 	unanswered_question_list = models.CommaSeparatedIntegerField(
-		max_length=1024, verbose_name=_("Question List"), null=True, blank=True)
+		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default='')
 
 	incorrect_questions_list = models.CommaSeparatedIntegerField(
-		max_length=1024, blank=True, verbose_name=_("Incorrect questions"), null=True)
+		max_length=1024, blank=True, verbose_name=_("Incorrect questions"), default='')
 
 	current_score = models.IntegerField(verbose_name=_("Current Score"), default = 0)
 
