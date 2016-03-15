@@ -45,7 +45,7 @@ class TestUser(models.Model):
 
 
     def __str__(self):
-        return self.username,self.email,self.test_key
+        return self.user.username, self.user.email,self.test_key
             
     class Meta:
         verbose_name = _("TestUser")
@@ -53,14 +53,14 @@ class TestUser(models.Model):
 # Create your models here.
 @python_2_unicode_compatible
 class TestUserDetails(models.Model):
-    test_user = models.ForeignKey(TestUser, related_name = 'test_user_details', default = 24)
+    test_user = models.ForeignKey(TestUser, related_name = 'test_user_details')
     result = models.CharField(max_length=3000)
     time_spent = models.IntegerField()
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
 
     def __str__(self):
-        return self.test_user.email,self.test_user.quiz.title,self.test_user.test_key
+        return self.test_user.user.email, self.test_user.test_key
         
     class Meta:
       # unique_together = ('email', 'quiz')
