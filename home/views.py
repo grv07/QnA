@@ -113,7 +113,6 @@ def test_user_data(request):
 # @authentication_classes([TestAuthentication])
 def save_test_data(request):
 	cache_key = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|"+request.data.get('section_name').replace('Section#','')
-	print cache_key
 	question_id = request.data.get('answer').keys()[0]
 	sitting_id = cache.get('sitting_id'+str(request.data.get('test_user')))
 	if not sitting_id:
@@ -131,6 +130,7 @@ def save_test_data(request):
 		cache.delete('sitting_id'+str(request.data.get('test_user')))
 		print cache.get('sitting_id'+str(request.data.get('test_user'))),'************'
 	else:
+		print 'cached saved = '+ cache_key
 		cache_value = cache.get(cache_key)
 		if not cache_value:
 			cache.set(cache_key,{ 'answers': request.data['answer'] }, timeout = None)
