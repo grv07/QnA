@@ -12,7 +12,7 @@ from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
 from QnA.services.generate_result_engine import generate_result
 from quiz.models import Sitting, Quiz
-
+from home.models import TestUser
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
@@ -72,31 +72,39 @@ def test_user_data(request):
 	data = {}
 	name = request.data.get('username')
 	email = request.data.get('email')
-
-	# user = User.objects.create_user(username = name, email = email)
+	test_key = request.data.get('test_key')
 	
-	serializer = TestUserSerializer(data = {'username':name,'email':email,'quiz':request.data.get('quiz_id'), 
-		'test_key': request.data.get('test_key'),'password':'1234gy'})
+	try:
+		user  = User.objects.get(username = name)
+		create = False
+	except User.DoesNotExist as e:
+		user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
+		create = True
+
+	serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
 	if serializer.is_valid():
 		data['status'] = 'success'
 		data['username'] = name
-		data['test_key'] = request.data.get('test_key')
-		is_new_user = True
-		old_obj, new_obj = serializer.get_or_create()
-		
-		if old_obj:
-			is_new_user = False
-			data['attempt_no'] = old_obj.attempt_no
-			token = generate_token(old_obj)
-			data['token'] = generate_token(old_obj)
-			data['testUser'] = old_obj.id 
+		data['test_key'] = test_key		
+		is_new = True
+		if create:
+			test_user = serializer.save()
 		else:
-			data['attempt_no'] = new_obj.attempt_no
-			data['is_new_user'] = is_new_user
-			data['token'] = generate_token(new_obj)
-			data['testUser'] = new_obj.id
+			try:
+				test_user = TestUser.objects.get(user = user, test_key = test_key)
+				test_user.no_attempt += 1
+				is_new = False
+				test_user.save()
+			except 	TestUser.DoesNotExist as e:
+				test_user = serializer.save()
+
+		token = generate_token(user)
+		data['token'] = token
+		data['is_new'] = is_new
+		data['testUser'] = test_user.id
 		return Response(data, status = status.HTTP_200_OK)
 	else:
+		print serializer.errors
 		return Response({'msg': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 

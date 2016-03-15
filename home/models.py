@@ -31,47 +31,24 @@ class MerchantUser(models.Model):
         self.merchant_private_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
         super(MerchantUser, self).save(force_insert, force_update, *args, **kwargs)
 
+
 @python_2_unicode_compatible
-class TestUser(User):
-    # user = models.OneToOneField(User, blank=True)
-    # username = models.CharField(max_length = 100, verbose_name=_("Name"))
-    # email = models.CharField(max_length = 100,unique = True,
-                               # blank=False,
-                               # help_text=_("User email"),
-                               # verbose_name=_("Email"))
-    # quiz = models.CommaSeparatedIntegerField(Quiz, help_text=_("Use for quiz ?"), verbose_name=_("Quiz"))
-    test_key = models.CharField(max_length = 200, default='')
-    attempt_no = models.IntegerField(default = 0)
-    is_complete = models.BooleanField(default = False)
+class TestUser(models.Model):
+    user = models.ForeignKey(User)
+    test_key = models.CharField(max_length = 20)
     
+    is_complete = models.BooleanField(default = False)
+    no_attempt = models.IntegerField(default = 0)
+
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
 
 
     def __str__(self):
-        return self.username,self.email,self.quiz.title,self.test_key
-
-    def set_test_key(self, key):
-        if len(self.test_key) > 0:
-            test_ky_set = set(self.test_key.split(','))
-            test_ky_set.add(key)
-            temp_ky = ''
-            for k in test_ky_set:
-                temp_ky += str(k)
-            self.test_key = temp_ky
-        else:
-            self.test_key = str(key)
-            self.save()
-
-    def get_test_key(self, x):
-        return self.test_key
+        return self.username,self.email,self.test_key
             
     class Meta:
         verbose_name = _("TestUser")
-
-    # def save(self, force_insert=False, force_update=False, *args, **kwargs):
-    #     self.test_key = self.set_test_key(test_key)
-    #     super(TestUser, self).save(force_insert, force_update, *args, **kwargs)    
 
 # Create your models here.
 @python_2_unicode_compatible
