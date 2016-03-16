@@ -50,6 +50,19 @@ def get_quizstack(request, quiz_id, quizstack_id):
 			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)
 
 
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def get_quizstack_for_uncomplete_test(request, quiz_id):
+	try:
+		sectionNoWhereLeft = "Section#"+request.query_params.get('sectionNoWhereLeft')
+		quizstack_list = QuizStack.objects.filter(quiz=quiz_id, section_name__gte=sectionNoWhereLeft).order_by('-id')
+		serializer = QuizStackSerializer(quizstack_list, many = True)
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	except QuizStack.DoesNotExist as e:
+		print e.args
+		return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
 @api_view(['DELETE'])
 def delete_quizstack(request, quiz_id, quizstack_id):
 	if quizstack_id == 'all':

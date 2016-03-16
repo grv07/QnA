@@ -100,7 +100,7 @@ def test_user_data(request):
 	name = request.data.get('username')
 	email = request.data.get('email')
 	test_key = request.data.get('test_key')
-	
+	data['isTestNotCompleted'] = False
 	try:
 		user  = User.objects.get(username = name)
 		create = False
@@ -124,11 +124,16 @@ def test_user_data(request):
 				test_user.save()
 			except 	TestUser.DoesNotExist as e:
 				test_user = serializer.save()
-
 		token = generate_token(user)
 		data['token'] = token
 		data['is_new'] = is_new
 		data['testUser'] = test_user.id
+		preExistingKeys = list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**"))
+		if preExistingKeys:
+			data['sectionWhereLeft'] = preExistingKeys[len(preExistingKeys)-1]
+			data['isTestNotCompleted'] = True
+			data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionWhereLeft'].split('|')[2]: cache.get(data['sectionWhereLeft'])['answers'] } }
+		print data
 		return Response(data, status = status.HTTP_200_OK)
 	else:
 		print serializer.errors
@@ -139,45 +144,46 @@ def test_user_data(request):
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data_to_cache(request):
-	# test_user = request.data.get('test_user')
-	# test_key = request.data.get('test_key')
-	# section_name = request.data.get('section_name')
-	# answer = request.data.get('answer')
-	# quiz_id = request.data.get('quiz_id')
-	# cache_key = test_key+"|"+str(test_user)+"|"+section_name.replace('Section#','')
-	# question_id = answer.keys()[0]
-	# sitting_id = cache.get('sitting_id'+str(test_user))
-	# if not sitting_id:
-	# 	sitting_obj, is_created = Sitting.objects.get_or_create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id), defaults={})
-	# 	cache.set('sitting_id'+str(test_user), sitting_obj.id, timeout = CACHE_TIMEOUT)
-	# cache_value = cache.get(cache_key)
-	# if not cache_value:
-	# 	cache.set(cache_key,{ 'answers': request.data['answer'] }, timeout = CACHE_TIMEOUT)
-	# else:
-	# 	if question_id in cache_value['answers'].keys():
-	# 		cache_value['answers'][question_id] = request.data['answer'][question_id]
-	# 	else:
-	# 		cache_value['answers'].update(request.data['answer'])
-	# 	cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
-	# print cache.get(cache_key)
+
+	test_user = request.data.get('test_user')
+	test_key = request.data.get('test_key')
+	section_name = request.data.get('section_name')
+	answer = request.data.get('answer')
+	quiz_id = request.data.get('quiz_id')
+	cache_key = test_key+"|"+str(test_user)+"|"+section_name.replace('Section#','')
+	question_id = answer.keys()[0]
+	sitting_id = cache.get('sitting_id'+str(test_user))
+	if not sitting_id:
+		sitting_obj, is_created = Sitting.objects.get_or_create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id), defaults={})
+		cache.set('sitting_id'+str(test_user), sitting_obj.id, timeout = CACHE_TIMEOUT)
+	cache_value = cache.get(cache_key)
+	if not cache_value:
+		cache.set(cache_key,{ 'answers': request.data['answer'] }, timeout = CACHE_TIMEOUT)
+	else:
+		if question_id in cache_value['answers'].keys():
+			cache_value['answers'][question_id] = request.data['answer'][question_id]
+		else:
+			cache_value['answers'].update(request.data['answer'])
+		cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
+	print cache.get(cache_key)
 	return Response({}, status = status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 def save_test_data_to_db(request):
 	print request.data
-	# test_user = request.data.get('test_user')
-	# test_key = request.data.get('test_key')
-	# section_name = request.data.get('section_name')
-	# answer = request.data.get('answer')
-	# quiz_id = request.data.get('quiz_id')
-	# question_id = answer.keys()[0]
-	# sitting_id = cache.get('sitting_id'+str(test_user))
-	# cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
-	# for key in list(cache.iter_keys(cache_keys_pattern)):			
-	# 	# generate_result(cache.get(key), sitting_id, key)
-	# 	print cache.get(key), '------------------'
-	# 	cache.delete(key)
-	# 	print cache.get(key), '================'
-	# cache.delete('sitting_id'+str(test_user))
+	test_user = request.data.get('test_user')
+	test_key = request.data.get('test_key')
+	section_name = request.data.get('section_name')
+	answer = request.data.get('answer')
+	quiz_id = request.data.get('quiz_id')
+	question_id = answer.keys()[0]
+	sitting_id = cache.get('sitting_id'+str(test_user))
+	cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
+	for key in list(cache.iter_keys(cache_keys_pattern)):			
+		# generate_result(cache.get(key), sitting_id, key)
+		print cache.get(key), '------------------'
+		cache.delete(key)
+		print cache.get(key), '================'
+	cache.delete('sitting_id'+str(test_user))
 	return Response({}, status = status.HTTP_200_OK)
