@@ -61,11 +61,17 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 		except QuizStack.DoesNotExist as e:
 			print e.args
 			return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)
+	
 	elif quizstack_id.isnumeric():
 		try:
 			quiz = Quiz.objects.get(id = quiz_id)
 			quizstack = QuizStack.objects.get(id = quizstack_id, quiz=quiz_id)
-			quiz.total_questions -= quizstack.no_questions
+			
+			if quiz.total_questions > quizstack.no_questions:  
+				quiz.total_questions -= quizstack.no_questions
+			else:
+				quiz.total_questions = 0
+
 			quiz.save()
 			quizstack.delete()
 			return Response(status = status.HTTP_200_OK)
