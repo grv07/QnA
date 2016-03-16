@@ -7,11 +7,12 @@ from django.contrib.auth.models import User
 from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
 from token_key import generate_token
 from django.core.cache import cache
-from QnA.services.utility import checkIfTrue, REGISTRATION_HTML
+from QnA.services.utility import checkIfTrue, REGISTRATION_HTML, CACHE_TIMEOUT
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
 from QnA.services.generate_result_engine import generate_result
 from quiz.models import Sitting, Quiz
+from quiz.serializer import SittingSerializer
 from home.models import TestUser
 
 @api_view(['POST'])
@@ -64,6 +65,32 @@ def logout_user(request, format=None):
 	logout(request)
 	return Response({'status': 'success'}, status=204)
 
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def get_user_result(request, user_id = 7, quiz_id = 1):
+	from django.template import Template, Context
+	from django.http import HttpResponse
+	import json
+
+	user  = User.objects.get(pk = user_id)
+	quiz  = Quiz.objects.get(pk = quiz_id)
+
+	sitting = Sitting.objects.get(user_id = user.id, quiz_id = quiz.id)
+
+	print sitting.unanswerd_question_list
+	print sitting.incorrect_questions_list
+	_all_ans = json.loads(sitting.user_answers)
+	if sitting.unanswerd_question_list:	
+		_un_ans_que_list = sitting.unanswerd_question_list.split(',,')
+		print len(_un_ans_que_list)	
+		_all_questions = len(_all_ans)+len(_un_ans_que_list)
+	print _all_questions
+	fp = open('QnA/services/result.html')
+	t = Template(fp.read())
+	fp.close()
+
+	html = t.render(Context({'data': {'score':sitting.current_score, 'quiz_name':quiz.title, 'username':user.username}}))
+	return HttpResponse(html)
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
@@ -111,43 +138,46 @@ def test_user_data(request):
 
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
-def save_test_data(request):
-	cache_key = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|"+request.data.get('section_name').replace('Section#','')
-	question_id = request.data.get('answer').keys()[0]
-	sitting_id = cache.get('sitting_id'+str(request.data.get('test_user')))
-	if not sitting_id:
-		sitting_obj = Sitting.objects.create(user = TestUser.objects.get(id = request.data.get('test_user')).user, quiz = Quiz.objects.get(id = request.data.get('quiz_id')))
-		cache.set('sitting_id'+str(request.data.get('test_user')), sitting_obj.id, timeout = None)
-	if request.data.get('is_save_to_db'):
-		print 'db saved = '+ cache_key, sitting_id
-		cache_keys_pattern = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|**"
-		print list(cache.iter_keys(cache_keys_pattern))
-		for key in list(cache.iter_keys(cache_keys_pattern)):			
-			# generate_result(cache.get(key), sitting_id, key)
-			print cache.get(key), '------------------'
-			cache.delete(key)
-			print cache.get(key),'=============='
-		cache.delete('sitting_id'+str(request.data.get('test_user')))
-		print cache.get('sitting_id'+str(request.data.get('test_user'))),'************'
-	else:
-		print 'cached saved = '+ cache_key
-		cache_value = cache.get(cache_key)
-		if not cache_value:
-			cache.set(cache_key,{ 'answers': request.data['answer'] }, timeout = None)
-		else:
-			if question_id in cache_value['answers'].keys():
-				cache_value['answers'][question_id] = request.data['answer'][question_id]
-			else:
-				cache_value['answers'].update(request.data['answer'])
-			cache.set(cache_key, cache_value, timeout = None)
-		# print cache.get(cache_key),'************'
-		print cache_key
-	# cache.delete('sitting_id')
-	# cache.delete(cache_key)
+def save_test_data_to_cache(request):
+	# test_user = request.data.get('test_user')
+	# test_key = request.data.get('test_key')
+	# section_name = request.data.get('section_name')
+	# answer = request.data.get('answer')
+	# quiz_id = request.data.get('quiz_id')
+	# cache_key = test_key+"|"+str(test_user)+"|"+section_name.replace('Section#','')
+	# question_id = answer.keys()[0]
+	# sitting_id = cache.get('sitting_id'+str(test_user))
+	# if not sitting_id:
+	# 	sitting_obj, is_created = Sitting.objects.get_or_create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id), defaults={})
+	# 	cache.set('sitting_id'+str(test_user), sitting_obj.id, timeout = CACHE_TIMEOUT)
+	# cache_value = cache.get(cache_key)
+	# if not cache_value:
+	# 	cache.set(cache_key,{ 'answers': request.data['answer'] }, timeout = CACHE_TIMEOUT)
+	# else:
+	# 	if question_id in cache_value['answers'].keys():
+	# 		cache_value['answers'][question_id] = request.data['answer'][question_id]
+	# 	else:
+	# 		cache_value['answers'].update(request.data['answer'])
+	# 	cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
+	# print cache.get(cache_key)
 	return Response({}, status = status.HTTP_200_OK)
 
 
-# @api_view(['POST'])
-# def save_test_data_to_db(request):
-# 	print request.data
-# 	return Response({}, status = status.HTTP_200_OK)
+@api_view(['POST'])
+def save_test_data_to_db(request):
+	print request.data
+	# test_user = request.data.get('test_user')
+	# test_key = request.data.get('test_key')
+	# section_name = request.data.get('section_name')
+	# answer = request.data.get('answer')
+	# quiz_id = request.data.get('quiz_id')
+	# question_id = answer.keys()[0]
+	# sitting_id = cache.get('sitting_id'+str(test_user))
+	# cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
+	# for key in list(cache.iter_keys(cache_keys_pattern)):			
+	# 	# generate_result(cache.get(key), sitting_id, key)
+	# 	print cache.get(key), '------------------'
+	# 	cache.delete(key)
+	# 	print cache.get(key), '================'
+	# cache.delete('sitting_id'+str(test_user))
+	return Response({}, status = status.HTTP_200_OK)

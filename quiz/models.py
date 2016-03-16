@@ -370,7 +370,7 @@ class Sitting(models.Model):
 
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
-	unanswered_question_list = models.CommaSeparatedIntegerField(
+	unanswerd_question_list = models.CommaSeparatedIntegerField(
 		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default='')
 
 	incorrect_questions_list = models.CommaSeparatedIntegerField(
@@ -435,7 +435,7 @@ class Sitting(models.Model):
 		"""
 		if len(self.unanswerd_question_list) > 0:
 			self.unanswerd_question_list += ','
-		self.unanswerd_question_list += str(question_id) + ","
+		self.unanswerd_question_list += str(question_id)
 		self.save()
 	
 		
@@ -446,7 +446,7 @@ class Sitting(models.Model):
 		"""
 		if len(self.incorrect_questions_list) > 0:
 			self.incorrect_questions_list += ','
-		self.incorrect_questions_list += str(question_id) + ","
+		self.incorrect_questions_list += str(question_id)
 		if self.complete:
 			self.add_to_score(-1)
 		self.save()

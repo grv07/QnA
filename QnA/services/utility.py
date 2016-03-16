@@ -25,6 +25,8 @@ OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'conte
 
 BLANK_HTML = "<<Answer>>"
 
+CACHE_TIMEOUT = 1800
+
 REGISTRATION_HTML = "<p><p>Hello <b>{name}</b>,</p><br><p>Thanks for registering on <b>QnA</b>.</p><p>You username is <b>{username}</b>.</p></p>"
 
 # UPLOAD_LOCATION = '/qna/media/'
