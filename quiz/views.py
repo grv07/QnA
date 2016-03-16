@@ -194,6 +194,7 @@ def get_subcategory(request, userid, categoryid, format = None):
 	"""
 	Either get all subcategories under each quiz and category or get subcategories under specifc quiz and category.
 	"""
+	serializer = None
 	subcategories = []
 	if categoryid == 'all':
 		if str(request.query_params.get('all_subcategories')) == 'true':
