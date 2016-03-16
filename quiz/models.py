@@ -77,7 +77,7 @@ class Quiz(models.Model):
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		if not self.quiz_key:
 			self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
-		self.url = str(self.url)+str(self.quiz_key)
+			self.url = str(self.url)+str(self.quiz_key)
 		if self.pass_mark > 100:
 			raise ValidationError('%s is above 100' % self.pass_mark)
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
