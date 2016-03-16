@@ -123,7 +123,7 @@ def save_test_data(request):
 		cache_keys_pattern = request.data.get('test_key')+"|"+str(request.data.get('test_user'))+"|**"
 		print list(cache.iter_keys(cache_keys_pattern))
 		for key in list(cache.iter_keys(cache_keys_pattern)):			
-			generate_result(cache.get(key), sitting_id, key)
+			# generate_result(cache.get(key), sitting_id, key)
 			print cache.get(key), '------------------'
 			cache.delete(key)
 			print cache.get(key),'=============='
