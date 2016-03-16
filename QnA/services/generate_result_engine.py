@@ -12,12 +12,13 @@ def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'
 		u'48': {u'status': u'A',u'value': u'6'}
 		}
 	 }'''
-
+	print section_result
 	quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
 	
 	quiz = Quiz.objects.get(quiz_key = quiz_key)
+	print '>>>>>>>>>>>',sitting_id
 	sitting_obj = Sitting.objects.get(pk = sitting_id, quiz = quiz)
-	print sitting_obj
+	# print sitting_obj
 	if section_result:
 		_progress_list = section_result['answers']
 

@@ -75,7 +75,8 @@ class Quiz(models.Model):
 	updated_date = models.DateTimeField(auto_now = True)
 
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
-		self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
+		if not self.quiz_key:
+			self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
 		self.url = str(self.url)+str(self.quiz_key)
 		if self.pass_mark > 100:
 			raise ValidationError('%s is above 100' % self.pass_mark)
@@ -369,7 +370,7 @@ class Sitting(models.Model):
 
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
-	unanswered_question_list = models.CommaSeparatedIntegerField(
+	unanswerd_question_list = models.CommaSeparatedIntegerField(
 		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default='')
 
 	incorrect_questions_list = models.CommaSeparatedIntegerField(
@@ -434,7 +435,7 @@ class Sitting(models.Model):
 		"""
 		if len(self.unanswerd_question_list) > 0:
 			self.unanswerd_question_list += ','
-		self.unanswerd_question_list += str(question_id) + ","
+		self.unanswerd_question_list += str(question_id)
 		self.save()
 	
 		
@@ -445,7 +446,7 @@ class Sitting(models.Model):
 		"""
 		if len(self.incorrect_questions_list) > 0:
 			self.incorrect_questions_list += ','
-		self.incorrect_questions_list += str(question_id) + ","
+		self.incorrect_questions_list += str(question_id)
 		if self.complete:
 			self.add_to_score(-1)
 		self.save()
