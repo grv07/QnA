@@ -38,7 +38,7 @@ class TestUser(models.Model):
     test_key = models.CharField(max_length = 20)
     
     is_complete = models.BooleanField(default = False)
-    no_attempt = models.IntegerField(default = 0)
+    no_attempt = models.IntegerField(default = 1)
 
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
