@@ -54,24 +54,52 @@ def generate_result(section_result, sitting_id, cache_key , na_nv_dict):
 				
 
 def filter_by_category(sitting):
+	'''Return {'sub_cat_name':(incorrect, correct, unattemped, total), total_correct}'''
 	import json
+	# Cat wise filter on question, Total correct questions
 	_cat_base_result = {}
+	total_correct_que = 0
 	_correct_ans = json.loads(sitting.user_answers)
-	
-	# Lambda to get name_key
+
 	get_name_key = lambda que_id: Question.objects.get(pk = int(que)).sub_category.sub_category_name
 
 	for que in set(sitting.incorrect_questions_list.split(',')):
 		name_key = get_name_key(int(que))
-		_correct_ans.pop(que)
+		if _correct_ans.has_key(que):
+			_correct_ans.pop(que)
 		if not _cat_base_result.has_key(name_key):
-			_cat_base_result[name_key] = {}
-			_cat_base_result[name_key]['incorrect'] = [que]
-			_cat_base_result[name_key]['correct'] = []
+			_cat_base_result[name_key] = [0,0,0,0]
+			_cat_base_result[name_key][0] = 1
+			_cat_base_result[name_key][3] = 1
 		else:
-			_cat_base_result[name_key]['incorrect'].append(que)
+			_cat_base_result[name_key][0] += 1
+			_cat_base_result[name_key][3] += 1
 
-	for que in _correct_ans:		
-		_cat_base_result[get_name_key(int(que))]['correct'].append(que)
+	for que in set(sitting.unanswerd_question_list.split(',')):
+		name_key = get_name_key(int(que))
+		if _correct_ans.has_key(que):
+			_correct_ans.pop(que)
+		if not _cat_base_result.has_key(name_key):
+			_cat_base_result[name_key] = [0,0,0,0]
+			_cat_base_result[name_key][2] = 1
+			_cat_base_result[name_key][3] = 1
+		else:
+			_cat_base_result[name_key][2] += 1
+			_cat_base_result[name_key][3] += 1
 
-	return _cat_base_result	
+	for que in _correct_ans:
+		name_key = get_name_key(int(que))
+		if not _cat_base_result.has_key(name_key):
+			_cat_base_result[name_key] = [0,0,0,0]
+			_cat_base_result[name_key][1] = 1
+			_cat_base_result[name_key][3] = 1
+			total_correct_que += 1 
+		else:
+			_cat_base_result[name_key][1] += 1
+			_cat_base_result[name_key][3] += 1 
+			total_correct_que += 1
+
+	for to_tuple in _cat_base_result:
+		_cat_base_result[to_tuple] = tuple(_cat_base_result[to_tuple])
+			
+	return [_cat_base_result,total_correct_que]	

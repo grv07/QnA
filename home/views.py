@@ -70,26 +70,24 @@ def logout_user(request, format=None):
 def get_user_result(request, user_id = 29, quiz_id = 1):
 	from django.template import Template, Context
 	from django.http import HttpResponse
-	import json
 
-	user  = User.objects.get(pk = user_id)
 	quiz  = Quiz.objects.get(pk = quiz_id)
 
-	# sitting = Sitting.objects.filter(user_id = user.id, quiz_id = quiz.id)[0]
-	sitting = Sitting.objects.get(pk = 27)
-	print 'Total Question: ',quiz.total_questions
-	print 'Quiz Total Marks: ',quiz.total_marks
+	sitting = Sitting.objects.filter(user_id = user_id, quiz_id = quiz_id)
 
-	in_orrect_pt = float((len(set(sitting.incorrect_questions_list.split(',')))*100)/quiz.total_questions)
-	correct_que_pt = int(quiz.total_questions - len(set(sitting.incorrect_questions_list.split(','))))*100/quiz.total_questions
 	_filter_by_category = filter_by_category(sitting)
-	print _filter_by_category
+	
+	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.split(',')))*100)/quiz.total_questions)
+	correct_que_pt = int(_filter_by_category[1]*100)/quiz.total_questions
+	
 	fp = open('QnA/services/result.html')
 	t = Template(fp.read())
 	fp.close()
 
-	html = t.render(Context({'data': {'score':sitting.current_score,'pass_percentage':quiz.passing_percent, 'pass_percentage':quiz.passing_percent,
-	 'total_que':quiz.total_questions,'quiz_marks': quiz.total_marks,'correct_que_pt':correct_que_pt,'in_orrect_pt':in_orrect_pt, 'quiz_name':quiz.title, 'username':user.username}}))
+	html = t.render(Context({'data': {'score':sitting.current_score, 'attempt_no':sitting.attempt_no,'pass_percentage':quiz.passing_percent, 
+			'pass_percentage':quiz.passing_percent,'total_que':quiz.total_questions, 'filter_by_category':_filter_by_category[0],
+			'quiz_marks': quiz.total_marks,'correct_que_pt':correct_que_pt,'in_orrect_pt':in_correct_pt, 
+	 		'quiz_name':quiz.title, 'username':sitting.user.username}}))
 	
 	return HttpResponse(html)
 
@@ -97,6 +95,7 @@ def get_user_result(request, user_id = 29, quiz_id = 1):
 @permission_classes((AllowAny,))
 # @authentication_classes([TestAuthentication])
 def test_user_data(request):
+	'''Save data of test user if new >> then create new obj. , If found in DB then reuse it'''
 	data = {}
 	print request.data
 	name = request.data.get('username')
@@ -116,6 +115,7 @@ def test_user_data(request):
 		data['username'] = name
 		data['test_key'] = test_key		
 		is_new = True
+		
 		if create:
 			test_user = serializer.save()
 		else:
@@ -124,8 +124,7 @@ def test_user_data(request):
 				
 				if test_user.no_attempt < Quiz.objects.get(quiz_key = test_key).no_of_attempt: 
 					test_user.no_attempt += 1
-				# elif test_user.no_attempt == Quiz.objects.get(test_key = test_key).no_of_attempt:
-					# pass
+
 				else:
 					return Response({'attempt_over': 'There is no remaining attempts'}, status=status.HTTP_400_BAD_REQUEST)						
 				
@@ -195,7 +194,7 @@ def save_test_data_to_db(request):
 	
 	for key in list(cache.iter_keys(cache_keys_pattern)):
 		# print key
-		print cache.get(key), '================'
+		# print cache.get(key), '================'
 		na_nv_dict =  request.data['progressValues']['Section#'+key.split('|')[-1]]	
 		if generate_result(cache.get(key), sitting_obj.id,key, na_nv_dict):
 			cache.delete(key)
