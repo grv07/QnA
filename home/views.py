@@ -67,13 +67,17 @@ def logout_user(request, format=None):
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
-def get_user_result(request, user_id = 29, quiz_id = 1):
+def get_user_result(request, user_id, quiz_key, status = 'higher'):
 	from django.template import Template, Context
 	from django.http import HttpResponse
+	
+	_get_order_by = '-current_score'
 
-	quiz  = Quiz.objects.get(pk = quiz_id)
+	quiz  = Quiz.objects.get(quiz_key = quiz_key)
+	if not status == 'higher':
+		_get_order_by = 'current_score'	
 
-	sitting = Sitting.objects.filter(user_id = user_id, quiz_id = quiz_id)
+	sitting = Sitting.objects.order_by(_get_order_by).filter(user_id = user_id, quiz_id = quiz.id)[0]
 
 	_filter_by_category = filter_by_category(sitting)
 	
