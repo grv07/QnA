@@ -44,6 +44,9 @@ def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'
 					sitting_obj.add_incorrect_question(question_id)	
 			else:
 				sitting_obj.add_unanswerd_question(question_id)
+
+		sitting_obj.complete = True
+		sitting_obj.save()
 				
 
 						
