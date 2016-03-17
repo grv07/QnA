@@ -3,8 +3,8 @@ from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
 from .utility import QUESTION_TYPE_OPTIONS
 
-def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'):
-	'''{u'progressValues': {
+def generate_result(section_result, sitting_id, cache_key , na_nv_dict):
+	'''{u'answers': {
 		u'47': {u'status': u'NA', u'value': None},
 		u'20': {u'status': u'NA', u'value': None}, 
 		u'21': {u'status': u'NA', u'value': None},
@@ -12,13 +12,19 @@ def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'
 		u'48': {u'status': u'A',u'value': u'6'}
 		}
 	 }'''
-	print section_result
+
+	# NA = na_nv_dict['NA'] 
+	# NA = na_nv_dict['NV']
 	quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
 	
 	quiz = Quiz.objects.get(quiz_key = quiz_key)
-	print '>>>>>>>>>>>',sitting_id
 	sitting_obj = Sitting.objects.get(pk = sitting_id, quiz = quiz)
 	# print sitting_obj
+	for q_list in na_nv_dict:
+		if na_nv_dict[q_list]:
+			for q_id in na_nv_dict[q_list]:
+				sitting_obj.add_unanswerd_question(q_id)
+
 	if section_result:
 		_progress_list = section_result['answers']
 
@@ -47,7 +53,30 @@ def generate_result(section_result, sitting_id, cache_key = '78guuuFk|ykbf787|2'
 
 		sitting_obj.complete = True
 		sitting_obj.save()
+			# else:
+				# sitting_obj.add_unanswerd_question(question_id)
+		return True		
 				
 
-						
+def filter_by_category(sitting):
+	import json
+	_cat_base_result = {}
+	_correct_ans = json.loads(sitting.user_answers)
+	
+	# Lambda to get name_key
+	get_name_key = lambda que_id: Question.objects.get(pk = int(que)).sub_category.sub_category_name
 
+	for que in set(sitting.incorrect_questions_list.split(',')):
+		name_key = get_name_key(int(que))
+		_correct_ans.pop(que)
+		if not _cat_base_result.has_key(name_key):
+			_cat_base_result[name_key] = {}
+			_cat_base_result[name_key]['incorrect'] = [que]
+			_cat_base_result[name_key]['correct'] = []
+		else:
+			_cat_base_result[name_key]['incorrect'].append(que)
+
+	for que in _correct_ans:		
+		_cat_base_result[get_name_key(int(que))]['correct'].append(que)
+
+	return _cat_base_result	

@@ -60,12 +60,13 @@ def update_quiz(request, userid, quizid ,format = None):
 	Update a quiz.
 	"""
 	try:
-		print request.data
 		quiz = Quiz.objects.get(id = quizid, user = userid)
 	except Quiz.DoesNotExist as e:
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+	print quiz,request.data
 	serializer = QuizSerializer(quiz, data = request.data)
 	if serializer.is_valid():
+		# print serializer
 		serializer.save()
 		return Response({}, status = status.HTTP_200_OK)
 	else:
@@ -194,6 +195,7 @@ def get_subcategory(request, userid, categoryid, format = None):
 	"""
 	Either get all subcategories under each quiz and category or get subcategories under specifc quiz and category.
 	"""
+	serializer = None
 	subcategories = []
 	if categoryid == 'all':
 		if str(request.query_params.get('all_subcategories')) == 'true':

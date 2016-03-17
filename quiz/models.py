@@ -47,9 +47,9 @@ class Quiz(models.Model):
 					" Non users cannot sit this exam."),
 		verbose_name=_("Single Attempt"))
 
-	pass_mark = models.SmallIntegerField(
+	passing_percent = models.IntegerField(
 		blank=True, default=0,
-		verbose_name=_("Pass Mark"),
+		verbose_name=_("Pass Percent"),
 		help_text=_("Percentage required to pass exam."),
 		validators=[MaxValueValidator(100)])
 
@@ -60,6 +60,10 @@ class Quiz(models.Model):
 	fail_text = models.TextField(
 		verbose_name=_("Fail Text"),
 		blank=True, help_text=_("Displayed if user fails."))
+
+	total_marks = models.IntegerField(
+		blank=True, default=20,
+		verbose_name=_("total_marks"))
 
 	total_questions = models.IntegerField(blank=True, default=0)
 
@@ -78,8 +82,6 @@ class Quiz(models.Model):
 		if not self.quiz_key:
 			self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
 			self.url = str(self.url)+str(self.quiz_key)
-		if self.pass_mark > 100:
-			raise ValidationError('%s is above 100' % self.pass_mark)
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
 	class Meta:
@@ -385,6 +387,9 @@ class Sitting(models.Model):
 									verbose_name=_("User Answers"))
 
 	time_spent = models.IntegerField(default=0)
+
+	attempt_no = models.IntegerField(default = 1)
+	
 	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
 
