@@ -388,7 +388,7 @@ class Sitting(models.Model):
 
 	time_spent = models.IntegerField(default=0)
 
-	attempt_no = models.IntegerField(default = 1)
+	attempt_no = models.IntegerField(default = -1)
 	
 	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
@@ -443,7 +443,7 @@ class Sitting(models.Model):
 		self.unanswerd_question_list += str(question_id)
 		self.save()
 	
-		
+	
 	def add_incorrect_question(self, question_id):
 		"""
 		Adds uid of incorrect question to the list.
@@ -454,6 +454,10 @@ class Sitting(models.Model):
 		self.incorrect_questions_list += str(question_id)
 		if self.complete:
 			self.add_to_score(-1)
+		self.save()
+
+	def clear_all_unanswered_questions(self):
+		self.unanswerd_question_list = ''
 		self.save()
 
 	@property
@@ -512,6 +516,10 @@ class Sitting(models.Model):
 	def get_max_score(self):
 		return len(self._question_ids())
 
+	def save_time_spent(self, time_in_seconds):
+		self.time_spent = time_in_seconds
+		self.save()
+		
 	def progress(self):
 		"""
 		Returns the number of questions answered so far and the total number of

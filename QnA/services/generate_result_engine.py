@@ -3,7 +3,7 @@ from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
 from .utility import QUESTION_TYPE_OPTIONS
 
-def generate_result(section_result, sitting_id, cache_key , na_nv_dict):
+def generate_result(section_result, sitting_obj, cache_key):
 	'''{u'answers': {
 		u'47': {u'status': u'NA', u'value': None},
 		u'20': {u'status': u'NA', u'value': None}, 
@@ -12,19 +12,9 @@ def generate_result(section_result, sitting_id, cache_key , na_nv_dict):
 		u'48': {u'status': u'A',u'value': u'6'}
 		}
 	 }'''
-
-	# NA = na_nv_dict['NA'] 
-	# NA = na_nv_dict['NV']
+	 
+	answered_questions_list = []
 	quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
-	
-	quiz = Quiz.objects.get(quiz_key = quiz_key)
-	sitting_obj = Sitting.objects.get(pk = sitting_id, quiz = quiz)
-	# print sitting_obj
-	for q_list in na_nv_dict:
-		if na_nv_dict[q_list]:
-			for q_id in na_nv_dict[q_list]:
-				sitting_obj.add_unanswerd_question(q_id)
-
 	if section_result:
 		_progress_list = section_result['answers']
 
@@ -34,7 +24,6 @@ def generate_result(section_result, sitting_id, cache_key , na_nv_dict):
 			if not _dict_data.get('status') == 'NA' and not _dict_data.get('value') == None:
 				try:
 					question = Question.objects.get(pk = question_id)
-					print question.que_type, question.id
 				except Question.DoesNotExist as e:
 					print e.args
 					return None
@@ -47,15 +36,9 @@ def generate_result(section_result, sitting_id, cache_key , na_nv_dict):
 				if is_correct:
 					sitting_obj.add_to_score(question.points)
 				else:
-					sitting_obj.add_incorrect_question(question_id)	
-			else:
-				sitting_obj.add_unanswerd_question(question_id)
-
-		sitting_obj.complete = True
-		sitting_obj.save()
-			# else:
-				# sitting_obj.add_unanswerd_question(question_id)
-		return True		
+					sitting_obj.add_incorrect_question(question_id)
+				answered_questions_list.append(question.id)
+		return answered_questions_list		
 				
 
 def filter_by_category(sitting):
