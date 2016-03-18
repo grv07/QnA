@@ -10,68 +10,87 @@
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 </head>
 </html>
-<body class="container panel panel-default">
-<div class="header text-center col-md-12" style="background-color: green;margin-top: 20px;">
+<body class="container panel panel-default" style="margin-top: 1%;">
+<div class="header col-md-12" style="background-color: #ffcc99;margin-top: 20px;">
     <div class='col-md-6'>
-        <h2>{{merchant_image}}.</h2>
+        <h2><b>QnA</b>{{merchant_image}}</h2>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6 text-center">
         <h3>Quiz Name: {{data.quiz_name}}</h3>
     </div>
 </div>
 <div class="row col-md-12">
-        <div class='col-md-6' style="font-size: 15px; margin: 10px;">     
-            <h3>Status : Pass</h3> 
-            <h3>Total Questions in Quiz: {{data.total_que}}</h3>
-            <h3>Passing % in Quiz: {{data.pass_percentage}}%</h3>
-        </div>
-        <div class="col-md-2"></div>
-
-        <div class='col-md-3' style="font-size: 15px; margin: 10px;">     
-            <h3>User Name : {{data.username}}</h3> 
-            <h3>User Marks : {{data.score}}/{{data.quiz_marks}}</h3> 
-            <!-- <h3>Total Questions in Quiz:</h3> -->
-        </div>
+    <div class='col-md-6' style="font-size: 15px; margin: 10px;">     
+        <h3>Status : Pass</h3> 
+        <h3>Total Questions in Quiz: {{data.total_que}}</h3>
+        <h3>Passing % in Quiz: {{data.pass_percentage}}%</h3>
     </div>
+    <div class='col-md-5' style="font-size: 15px; margin: 10px;"> 
+        <h3>User Name : <span style="color: black;">{{data.username|title}}</span></h3> 
+        <h3>User Marks : <span style="color: black;">{{data.score}}/{{data.quiz_marks}} 
+            <span style="color: green;">({% widthratio data.score  data.quiz_marks 100 %}%)</span></span></h3> 
+        <h3>Attempt No. : <span style="color: black;">{{data.attempt_no}}</span></h3> 
+    </div>
+</div>
 <div class="col-md-12">
     <h4>Total Correct Answers:</h4>
-    <div class="progress ">
+    <div class="progress">
         <div class="progress-bar" role="progressbar" aria-valuenow={{data.correct_que_pt}}
         aria-valuemin="0" aria-valuemax="100" style="width:{{data.correct_que_pt}}%">
-        <span class="sr-only">70% Complete</span>
+        <span>{{data.correct_que_pt}}%</span>
         </div>
     </div>
     <h4>Total Wrong Answers:</h4>
     <div class="progress ">
         <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow={{data.in_orrect_pt}}
         aria-valuemin="0" aria-valuemax="100" style="width:{{data.in_orrect_pt}}%">
-        <span class="sr-only">70% Complete</span>
+        <span >{{data.in_orrect_pt}}%</span>
         </div>
     </div>
     <hr>
     <h3>User(s) Answer/Category Base analysys:</h3>
     <hr>
-    <div class="row col-md-12">
-        <div class="col-md-5">
-            <h4>Correct</h4>
-            <div class="progress">
-                <div class="progress-bar" role="progressbar" aria-valuenow="70"
-                aria-valuemin="0" aria-valuemax="100" style="width:70%">
-                <span class="sr-only">70% Complete</span>
+    <!-- {{data.filter_by_category}} -->
+    {%for key,val in data.filter_by_category.items%}
+        <!-- incorrect, correct, notattempted, total -->
+        <h4 class="text-center">Category: {{key}}</h4>
+        <hr>
+        
+        <div class="row col-md-12">
+            <div class="col-md-3">
+                <h4>Correct</h4>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" aria-valuenow="70"
+                    aria-valuemin="0" aria-valuemax="100" style="width:{% widthratio val.1  val.3 100 %}%">
+                    <span >{% widthratio val.1  val.3 100 %}%</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-2"></div>
-        <div class="col-md-5">
-            <h4>Wrong</h4>
-            <div class="progress">
-                <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="70"
-                aria-valuemin="0" aria-valuemax="100" style="width:70%">
-                <span class="sr-only">70% Complete</span>
+            <div class="col-md-2"></div>
+            <div class="col-md-3">
+                <h4>Wrong</h4>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="70"
+                    aria-valuemin="0" aria-valuemax="100" style="width:{% widthratio val.0  val.3 100 %}%">
+                    <span >{% widthratio val.0  val.3 100 %}%</span>
+                    </div>
                 </div>
             </div>
+
+            <div class="col-md-3">
+                <h4>Not-Attempted</h4>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="70"
+                    aria-valuemin="0" aria-valuemax="100" style="width:{% widthratio val.2  val.3 100 %}%">
+                    <span >{% widthratio val.2  val.3 100 %}%</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
-    </div>
+        
+    {%endfor%}    
+    
 </div>   
  
 </body>
