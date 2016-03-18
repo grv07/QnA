@@ -67,6 +67,8 @@ class Quiz(models.Model):
 
 	total_questions = models.IntegerField(blank=True, default=0)
 
+	total_duration = models.IntegerField(blank=True, default=0)
+
 	# draft = models.BooleanField(
 	# 	blank=True, default=False,
 	# 	verbose_name=_("Draft"),
@@ -517,7 +519,7 @@ class Sitting(models.Model):
 		return len(self._question_ids())
 
 	def save_time_spent(self, time_in_seconds):
-		self.time_spent = time_in_seconds
+		self.time_spent = self.quiz.total_duration - time_in_seconds
 		self.save()
 		
 	def progress(self):

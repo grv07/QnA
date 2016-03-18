@@ -10,6 +10,5 @@ urlpatterns = [
 	url(r'^save/test/cache/$', views.save_test_data_to_cache),
 	url(r'^user/result/$', views.get_user_result),
 	url(r'^save/test/db/$', views.save_test_data_to_db),
-
-
+	url(r'^save/time/remaining/$', views.save_time_remaining_to_cache),
 ]

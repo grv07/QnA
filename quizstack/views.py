@@ -18,12 +18,11 @@ def create_quizstack(request):
 		if not QuizStack.objects.filter(subcategory = request.data.get('subcategory'), level = request.data.get('level')):
 			serializer = QuizStackSerializer(data = request.data)
 			if serializer.is_valid():
-				serializer.save()
-				
+				serializer.save()				
 				quiz = Quiz.objects.get(id = request.data.get('quiz'))
 				quiz.total_questions += int(request.data.get('no_questions'))
 				quiz.total_marks += int(request.data.get('correct_grade'))*int(request.data.get('no_questions'))
-
+				quiz.total_duration += int(request.data.get('duration'))*60
 				quiz.save()
 			else:
 				return Response({ 'errors' : serializer.errors }, status = status.HTTP_400_BAD_REQUEST)
@@ -89,9 +88,11 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 			if quiz.total_questions > quizstack.no_questions:  
 				quiz.total_questions -= quizstack.no_questions
 				quiz.total_marks -= _remove_marks
+				quiz.total_duration -= int(quizstack.duration)*60
 			else:
 				quiz.total_questions = 0
 				quiz.total_marks = 0
+				quiz.total_duration = 0
 
 			quiz.save()
 			quizstack.delete()

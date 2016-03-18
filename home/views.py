@@ -135,11 +135,10 @@ def test_user_data(request):
 		data['testUser'] = test_user.id
 		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")))
 		if preExistingKeys:
-			cache_value = cache.get(preExistingKeys[len(preExistingKeys)-1])
 			data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
 			data['isTestNotCompleted'] = True
-			data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache_value['answers'] } }
-			data['timeRemaining'] = cache_value['remaining_duration']
+			data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+			data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
 		print data
 		return Response(data, status = status.HTTP_200_OK)
 	else:
@@ -148,12 +147,28 @@ def test_user_data(request):
 
 
 
+@api_view(['PUT'])
+def save_time_remaining_to_cache(request):
+	try:
+		test_user = request.data.get('test_user')
+		test_key = request.data.get('test_key')
+		cache_key = test_key + "|" + str(test_user) + "time"
+		cache_value = cache.get(cache_key)
+		if not cache_value:
+			cache.set(cache_key, { 'remaining_duration': request.data.get('remaining_duration') }, timeout = CACHE_TIMEOUT)
+		else:
+			cache_value['remaining_duration'] = request.data.get('remaining_duration')
+			cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
+		return Response({}, status = status.HTTP_200_OK)
+	except Exception as e:
+		print e.args
+		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data_to_cache(request):
 	test_user = request.data.get('test_user')	
 	sitting_id = cache.get('sitting_id'+str(test_user))
-	cache.delete('sitting_id'+str(test_user))
 	if not sitting_id and request.data.get('questions_list'):
 		quiz_id = request.data.get('quiz_id')
 		sitting_obj, is_created = Sitting.objects.get_or_create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
@@ -170,15 +185,14 @@ def save_test_data_to_cache(request):
 		cache_key = test_key+"|"+str(test_user)+"|"+section_name.replace('Section#','')
 		cache_value = cache.get(cache_key)
 		if not cache_value:
-			cache.set(cache_key,{ 'answers': request.data['answer'], 'remaining_duration': request.data['remaining_duration'] }, timeout = CACHE_TIMEOUT)
+			cache.set(cache_key,{ 'answers': answer }, timeout = CACHE_TIMEOUT)
 		else:
 			if question_id in cache_value['answers'].keys():
-				cache_value['answers'][question_id] = request.data['answer'][question_id]
+				cache_value['answers'][question_id] = answer[question_id]
 			else:
-				cache_value['answers'].update(request.data['answer'])
-			cache_value['remaining_duration'] = request.data['remaining_duration']
+				cache_value['answers'].update(answer)
 			cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
-		print cache.get(cache_key)
+		print cache.get(cache_key),'**************'
 		return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
@@ -217,6 +231,7 @@ def save_test_data_to_db(request):
 		# test is set to complete must come after sitting_obj.add_unanswerd_question()
 		sitting_obj.mark_quiz_complete()
 		cache.delete('sitting_id'+str(test_user))
+		cache.delete(test_key + "|" + str(test_user) + "time")
 		return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
