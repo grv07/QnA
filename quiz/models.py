@@ -69,6 +69,8 @@ class Quiz(models.Model):
 
 	total_duration = models.IntegerField(blank=True, default=0)
 
+	show_result_on_completion = models.BooleanField(default=True)
+
 	# draft = models.BooleanField(
 	# 	blank=True, default=False,
 	# 	verbose_name=_("Draft"),
@@ -170,6 +172,8 @@ class SubCategory(models.Model):
 	class Meta:
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
+		unique_together = (("sub_category_name", "category"),)
+
 
 	def __str__(self):
 		return self.sub_category_name
