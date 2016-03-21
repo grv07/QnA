@@ -69,6 +69,8 @@ class Quiz(models.Model):
 
 	total_duration = models.IntegerField(blank=True, default=0)
 
+	total_sections = models.IntegerField(default=0)
+
 	show_result_on_completion = models.BooleanField(default=True)
 
 	# draft = models.BooleanField(
