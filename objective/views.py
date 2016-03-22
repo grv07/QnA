@@ -19,7 +19,6 @@ def save_XLS_to_OBJECTIVE(request):
 			destination.write(chunk)
 
 	data = get_data("mcq_read_now.xls")
-	print data
 	total_entries = len(data)
 	temp_data = data[0]
 	# Check if columns of xls file provided are not tampered/changed.
