@@ -238,3 +238,9 @@ def save_test_data_to_db(request):
 		return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def ping(request):
+	return Response({}, status = status.HTTP_200_OK)

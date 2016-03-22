@@ -407,7 +407,6 @@ def download_xls_file(request):
 	from collections import OrderedDict
 
 	que_type = request.data.get('que_type')	
-	print request.data
 	if request.data.get('sub_cat_info'):
 		sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
 		sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]

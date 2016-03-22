@@ -19,34 +19,46 @@ def save_XLS_to_OBJECTIVE(request):
 			destination.write(chunk)
 
 	data = get_data("mcq_read_now.xls")
+	print data
 	total_entries = len(data)
 	temp_data = data[0]
 	# Check if columns of xls file provided are not tampered/changed.
 	if temp_data == OBJECTIVE_FILE_COLS:
-		# This dict contains raw-way data with specified keys from temp_data or xls keys
-		# data_dict = collections.OrderedDict({})
-		correct_serializers_list = []	
-		d = {}
-		for i in data[1:]:
-			print i[4]
-			if BLANK_HTML in i[4]:
-				if not d.has_key(i[0]):
-					try:
-						d[i[0]] = SubCategory.objects.get(sub_category_name=i[0])
-					except Exception as e:
+		try:
+			# This dict contains raw-way data with specified keys from temp_data or xls keys
+			# data_dict = collections.OrderedDict({})
+			correct_serializers_list = []	
+			d = {}
+			for i in data[1:]:
+				if BLANK_HTML in i[4]:
+					if not d.has_key(i[0]):
+						try:
+							d[i[0]] = SubCategory.objects.get(sub_category_name=i[0])
+						except Exception as e:
+							return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
+
+					temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':'', 'correct':'', 'content':i[4].replace(BLANK_HTML,'<>'), 'que_type': 'objective' }
+					if type(i[2]) == float:
+						temp_dict['explanation'] = str(i[2]).replace('.0','')
+					else:
+						temp_dict['explanation']  = i[2]
+					if type(i[3]) == float:
+						temp_dict['correct'] = str(i[3]).replace('.0','')
+					else:
+						temp_dict['correct'] = i[3]
+					serializer = ObjectiveQuestionSerializer(data = temp_dict)
+					if serializer.is_valid():
+						correct_serializers_list.append(serializer)
+					else:
 						return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
-				temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':i[2], 'correct':i[3], 'content':i[4].replace(BLANK_HTML,'<>'), 'que_type': 'objective' }
-				serializer = ObjectiveQuestionSerializer(data = temp_dict)
-				if serializer.is_valid():
-					correct_serializers_list.append(serializer)
 				else:
 					return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
-			else:
-				return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
-		if len(correct_serializers_list) == total_entries - 1:
-			for serializer in correct_serializers_list:
-				serializer.save()
-		return Response({}, status = status.HTTP_200_OK)
+			if len(correct_serializers_list) == total_entries - 1:
+				for serializer in correct_serializers_list:
+					serializer.save()
+			return Response({}, status = status.HTTP_200_OK)
+		except Exception as e:
+			print e.args
 	return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
 
 
