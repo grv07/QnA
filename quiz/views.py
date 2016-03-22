@@ -223,6 +223,7 @@ def all_questions(request, user_id):
 	"""
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
+
 	if request.query_params.get('subCategoryId'):
 		try:
 			subcategory_id = request.query_params.get('subCategoryId')
