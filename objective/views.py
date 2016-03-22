@@ -34,7 +34,7 @@ def save_XLS_to_OBJECTIVE(request):
 						try:
 							d[i[0]] = SubCategory.objects.get(sub_category_name=i[0])
 						except Exception as e:
-							return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
+							return Response({ "errors" : "There is some error while saving your questions. Correct the format." } , status = status.HTTP_400_BAD_REQUEST)
 
 					temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':'', 'correct':'', 'content':i[4].replace(BLANK_HTML,'<>'), 'que_type': 'objective' }
 					if type(i[2]) == float:
@@ -49,16 +49,16 @@ def save_XLS_to_OBJECTIVE(request):
 					if serializer.is_valid():
 						correct_serializers_list.append(serializer)
 					else:
-						return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
+						return Response({ "errors" : "There is some error while saving your questions. Correct the format." } , status = status.HTTP_400_BAD_REQUEST)
 				else:
-					return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
+					return Response({ "errors" : "There is some error while saving your questions. Correct the format." } , status = status.HTTP_400_BAD_REQUEST)
 			if len(correct_serializers_list) == total_entries - 1:
 				for serializer in correct_serializers_list:
 					serializer.save()
 			return Response({}, status = status.HTTP_200_OK)
 		except Exception as e:
 			print e.args
-	return Response({ "errors" : "There is some error while saving your questions." } , status = status.HTTP_400_BAD_REQUEST)
+	return Response({ "errors" : "There is some error while saving your questions. Correct the format." } , status = status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
