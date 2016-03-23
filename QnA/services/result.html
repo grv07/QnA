@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="Test" ng-cloak>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>QnA Test Window</title>
+    {%if not data.view_format == 'pdf'%}
     <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    {%endif%}
 </head>
 </html>
-<body class="container panel panel-default" style="margin-top: 1%;">
+<body class="container panel panel-info" style="margin-top: 2%;">
 <div class="header col-md-12" style="background-color: #ffcc99;margin-top: 20px;">
     <div class='col-md-6'>
         <h2><b>QnA</b>{{merchant_image}}</h2>
@@ -21,7 +23,7 @@
 </div>
 <div class="row col-md-12">
     <div class='col-md-6' style="font-size: 15px; margin: 10px;">     
-        <h3>Status : Pass</h3> 
+        <h3>Status : {{data.result_status}}</h3> 
         <h3>Total Questions in Quiz: {{data.total_que}}</h3>
         <h3>Passing % in Quiz: {{data.pass_percentage}}%</h3>
     </div>

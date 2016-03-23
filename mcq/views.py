@@ -86,7 +86,6 @@ def save_XLS_to_MCQ(request):
 			
 			else:
 				data_list[i][temp_data[j]] = str(mcq_data)	
-	print data_list		
 	# DONE ........
 	 
 	return create_mcq(request, data_list)

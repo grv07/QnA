@@ -1,4 +1,5 @@
 from rest_framework.response import Response
+from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
@@ -16,6 +17,17 @@ from quiz.serializer import SittingSerializer
 from home.models import TestUser
 from django.utils import timezone
 
+
+
+# Generate pdf from html 
+def generate_PDF(request, html):
+	import xhtml2pdf.pisa as pisa
+	file = open('test.pdf', "w+b")
+	pisaStatus = pisa.CreatePDF(html.encode('utf-8'), dest=file,encoding='utf-8')
+	file.seek(0)
+	pdf = file.read()
+	file.close()
+	return HttpResponse(pdf, 'application/pdf')
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
@@ -69,17 +81,26 @@ def logout_user(request, format=None):
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
-def get_user_result(request, user_id, quiz_key, status = 'higher'):
+def get_user_result(request, user_id, quiz_key):
 	from django.template import Template, Context
 	from django.http import HttpResponse
 	
 	_get_order_by = '-current_score'
-
+	get_order = request.GET.get('order',None)
 	quiz  = Quiz.objects.get(quiz_key = quiz_key)
-	if not status == 'higher':
-		_get_order_by = 'current_score'	
+	return_format = request.GET.get('view_format',None)
 
-	sitting = Sitting.objects.order_by(_get_order_by).filter(user_id = user_id, quiz_id = quiz.id)[0]
+	if not get_order == 'acending':
+		_get_order_by = 'current_score'
+
+	if quiz.no_of_attempt > 1:
+		try:
+			sitting = Sitting.objects.order_by(_get_order_by).get(user_id = user_id, quiz_id = quiz.id)
+		except Exception as e:
+			print e.args
+			sitting = Sitting.objects.order_by(_get_order_by).filter(user_id = user_id, quiz_id = quiz.id)[0]
+	else:
+		sitting = Sitting.objects.order_by(_get_order_by).get(user_id = user_id, quiz_id = quiz.id)
 
 	_filter_by_category = filter_by_category(sitting)
 	
@@ -89,13 +110,17 @@ def get_user_result(request, user_id, quiz_key, status = 'higher'):
 	fp = open('QnA/services/result.html')
 	t = Template(fp.read())
 	fp.close()
+	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
 
 	html = t.render(Context({'data': {'score':sitting.current_score, 'attempt_no':sitting.attempt_no,'pass_percentage':quiz.passing_percent, 
 			'pass_percentage':quiz.passing_percent,'total_que':quiz.total_questions, 'filter_by_category':_filter_by_category[0],
 			'quiz_marks': quiz.total_marks,'correct_que_pt':correct_que_pt,'in_orrect_pt':in_correct_pt, 
-	 		'quiz_name':quiz.title, 'username':sitting.user.username}}))
+			'quiz_name':quiz.title, 'username':sitting.user.username,'view_format':return_format,'result_status':_result_status}}))
 	
-	return HttpResponse(html)
+	if return_format == 'pdf':
+		return generate_PDF(request, html)
+	else:	
+		return HttpResponse(html)
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
@@ -179,7 +204,7 @@ def save_time_remaining_to_cache(request):
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data_to_cache(request):
-	test_user = request.data.get('test_user')	
+	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if not sitting_id and request.data.get('questions_list'):
 		quiz_id = request.data.get('quiz_id')
@@ -213,7 +238,7 @@ def save_test_data_to_cache(request):
 @api_view(['POST'])
 def save_test_data_to_db(request):
 	print request.data
-	test_user = request.data.get('test_user')	
+	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
 		test_key = request.data.get('test_key')		
@@ -247,7 +272,6 @@ def save_test_data_to_db(request):
 		return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))

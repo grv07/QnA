@@ -142,6 +142,7 @@ class Category(models.Model):
 	class Meta:
 		verbose_name = _("Category")
 		verbose_name_plural = _("Categories")
+		unique_together = ("category_name", "user",)
 
 	def __str__(self):
 		return self.category_name
@@ -174,7 +175,7 @@ class SubCategory(models.Model):
 	class Meta:
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
-		unique_together = (("sub_category_name", "category"),)
+		unique_together = ("sub_category_name", "category",)
 
 
 	def __str__(self):
@@ -547,11 +548,6 @@ class Question(models.Model):
 	Base class for all question types.
 	Shared properties placed here.
 	"""
-
-	# quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"), null = True)
-
-	# category = models.ForeignKey(Category, verbose_name=_("Category"), null = False)
-
 	sub_category = models.ForeignKey(SubCategory,blank=False,
 									null=False,
 									verbose_name=_("Sub-Category"))
