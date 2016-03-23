@@ -3,5 +3,6 @@
 *.egg-info*
 .tox
 *.egg
+*.pdf
 mcq_read_now.xls
 npm-debug.log
