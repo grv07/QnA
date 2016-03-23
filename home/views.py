@@ -151,7 +151,7 @@ def test_user_data(request):
 			data['isTestNotCompleted'] = True
 			data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
 			data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
-		print data
+		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	else:
 		print serializer.errors
@@ -184,7 +184,6 @@ def save_test_data_to_cache(request):
 	if not sitting_id and request.data.get('questions_list'):
 		quiz_id = request.data.get('quiz_id')
 		sitting_obj, is_created = Sitting.objects.get_or_create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
-		print sitting_obj, '--------------------'
 		if not sitting_obj.unanswerd_question_list:
 			for question_id in request.data.get('questions_list'):
 				sitting_obj.add_unanswerd_question(question_id)
