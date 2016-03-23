@@ -11,4 +11,5 @@ urlpatterns = [
 	url(r'^user/result/(?P<user_id>\d+)/(?P<quiz_key>\w+)/$', views.get_user_result),
 	url(r'^save/test/db/$', views.save_test_data_to_db),
 	url(r'^save/time/remaining/$', views.save_time_remaining_to_cache),
+	url(r'^ping/$', views.ping),
 ]

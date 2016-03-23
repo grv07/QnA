@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from QnA.services.utility import get_questions_format, QUESTION_TYPE_OPTIONS, BLANK_HTML
+from QnA.services.utility import get_questions_format, QUESTION_TYPE_OPTIONS, BLANK_HTML, checkIfTrue
 
 from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
@@ -198,22 +198,22 @@ def get_subcategory(request, userid, categoryid, format = None):
 	serializer = None
 	subcategories = []
 	if categoryid == 'all':
-		if str(request.query_params.get('all_subcategories')) == 'true':
+		if checkIfTrue(request.query_params.get('all_subcategories')):
 			subcategories = SubCategory.objects.filter(user = userid)
-		elif str(request.query_params.get('all_subcategories')) == 'false':
+		else:
 			subcategories = SubCategory.objects.filter(user = userid, category = None)
-		if subcategories:
-			serializer = SubCategorySerializer(subcategories, many = True)
+		serializer = SubCategorySerializer(subcategories, many = True)
+		return Response(serializer.data, status = status.HTTP_200_OK) 
 	elif categoryid.isnumeric():
 		try:
-			subcategory = SubCategory.objects.filter(category = categoryid, user = userid)
+			subcategories = SubCategory.objects.filter(category = categoryid, user = userid)
+			serializer = SubCategorySerializer(subcategories, many = True)
+			return Response(serializer.data, status = status.HTTP_200_OK) 
 		except SubCategory.DoesNotExist as e:
 			print e.args
 			return Response({'errors': 'Sub-categories not found'}, status = status.HTTP_404_NOT_FOUND)
-		serializer = SubCategorySerializer(subcategory, many = True)
 	else:
 		return Response({'errors': 'Wrong URL passed.'}, status = status.HTTP_404_NOT_FOUND)
-	return Response(serializer.data, status = status.HTTP_200_OK) 
 
 
 #>>>>>>>>>>>>>>>>>>>>> Question Base Functions Start <<<<<<<<<<<<<<<<<<<#
@@ -223,6 +223,7 @@ def all_questions(request, user_id):
 	"""
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
+
 	if request.query_params.get('subCategoryId'):
 		try:
 			subcategory_id = request.query_params.get('subCategoryId')
@@ -407,7 +408,6 @@ def download_xls_file(request):
 	from collections import OrderedDict
 
 	que_type = request.data.get('que_type')	
-	print request.data
 	if request.data.get('sub_cat_info'):
 		sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
 		sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]

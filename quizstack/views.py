@@ -15,21 +15,22 @@ from django.core.cache import cache
 def create_quizstack(request):
 	try:
 		print request.data
-		if not QuizStack.objects.filter(subcategory = request.data.get('subcategory'), level = request.data.get('level')):
+		quiz = Quiz.objects.get(id = request.data.get('quiz'))
+		quizstack_list = QuizStack.objects.filter(quiz = quiz)
+		if not quizstack_list.filter(subcategory = request.data.get('subcategory'), level = request.data.get('level')):
 			serializer = QuizStackSerializer(data = request.data)
 			if serializer.is_valid():
 				serializer.save()				
-				quiz = Quiz.objects.get(id = request.data.get('quiz'))
 				quiz.total_questions += int(request.data.get('no_questions'))
 				quiz.total_marks += int(request.data.get('correct_grade'))*int(request.data.get('no_questions'))
 				quiz.total_duration += int(request.data.get('duration'))*60
+				quiz.total_sections = len(set([qs.section_name for qs in quizstack_list]))
 				quiz.save()
 			else:
 				return Response({ 'errors' : serializer.errors }, status = status.HTTP_400_BAD_REQUEST)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
 			return Response({ 'errors' :'Duplicate questions not allowed.' }, status = status.HTTP_400_BAD_REQUEST)
-
 	except Exception as e:
 		print e.args
 		return Response({'errors' : 'Cannot add to the stack.'}, status = status.HTTP_400_BAD_REQUEST)
@@ -89,11 +90,12 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 				quiz.total_questions -= quizstack.no_questions
 				quiz.total_marks -= _remove_marks
 				quiz.total_duration -= int(quizstack.duration)*60
+				quiz.total_sections = len(set([qs.section_name for qs in QuizStack.objects.filter(quiz = quiz) if qs.section_name!=quizstack.section_name]))
 			else:
 				quiz.total_questions = 0
 				quiz.total_marks = 0
 				quiz.total_duration = 0
-
+				quiz.total_sections = 0
 			quiz.save()
 			quizstack.delete()
 			return Response(status = status.HTTP_200_OK)

@@ -152,8 +152,7 @@ def test_user_data(request):
 				test_user = TestUser.objects.get(user = user, test_key = test_key)
 				print test_user.no_attempt
 				if not test_user.no_attempt < Quiz.objects.get(quiz_key = test_key).no_of_attempt: 
-					return Response({'errors': 'There are no remaining attempts left for this test.'}, status=status.HTTP_400_BAD_REQUEST)
-				
+					return Response({'errors': 'There are no remaining attempts left for this test.'}, status=status.HTTP_400_BAD_REQUEST)				
 				is_new = False
 				test_user.save()
 			except 	TestUser.DoesNotExist as e:
@@ -265,3 +264,7 @@ def save_test_data_to_db(request):
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def ping(request):
+	return Response({}, status = status.HTTP_200_OK)
