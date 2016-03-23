@@ -81,7 +81,7 @@ def logout_user(request, format=None):
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
-def get_user_result(request, user_id, quiz_key):
+def get_user_result(request, test_user_id, quiz_key):
 	from django.template import Template, Context
 	from django.http import HttpResponse
 	
@@ -89,18 +89,18 @@ def get_user_result(request, user_id, quiz_key):
 	get_order = request.GET.get('order',None)
 	quiz  = Quiz.objects.get(quiz_key = quiz_key)
 	return_format = request.GET.get('view_format',None)
-
+	user = TestUser.objects.filter(id = test_user_id)[0].user
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 
 	if quiz.no_of_attempt > 1:
 		try:
-			sitting = Sitting.objects.order_by(_get_order_by).get(user_id = user_id, quiz_id = quiz.id)
+			sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
 		except Exception as e:
 			print e.args
-			sitting = Sitting.objects.order_by(_get_order_by).filter(user_id = user_id, quiz_id = quiz.id)[0]
+			sitting = Sitting.objects.order_by(_get_order_by).filter(user = user, quiz_id = quiz.id)[0]
 	else:
-		sitting = Sitting.objects.order_by(_get_order_by).get(user_id = user_id, quiz_id = quiz.id)
+		sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
 
 	_filter_by_category = filter_by_category(sitting)
 	
