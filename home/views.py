@@ -15,6 +15,7 @@ from QnA.services.generate_result_engine import generate_result, filter_by_categ
 from quiz.models import Sitting, Quiz, Question
 from quiz.serializer import SittingSerializer
 from home.models import TestUser
+from django.utils import timezone
 
 
 
@@ -80,7 +81,7 @@ def logout_user(request, format=None):
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
-def get_user_result(request, user_id, quiz_key):
+def get_user_result(request, test_user_id, quiz_key):
 	from django.template import Template, Context
 	from django.http import HttpResponse
 	
@@ -88,18 +89,18 @@ def get_user_result(request, user_id, quiz_key):
 	get_order = request.GET.get('order',None)
 	quiz  = Quiz.objects.get(quiz_key = quiz_key)
 	return_format = request.GET.get('view_format',None)
-
+	user = TestUser.objects.filter(id = test_user_id)[0].user
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 
 	if quiz.no_of_attempt > 1:
 		try:
-			sitting = Sitting.objects.order_by(_get_order_by).get(user_id = user_id, quiz_id = quiz.id)
+			sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
 		except Exception as e:
 			print e.args
-			sitting = Sitting.objects.order_by(_get_order_by).filter(user_id = user_id, quiz_id = quiz.id)[0]
+			sitting = Sitting.objects.order_by(_get_order_by).filter(user = user, quiz_id = quiz.id)[0]
 	else:
-		sitting = Sitting.objects.order_by(_get_order_by).get(user_id = user_id, quiz_id = quiz.id)
+		sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
 
 	_filter_by_category = filter_by_category(sitting)
 	
@@ -161,13 +162,21 @@ def test_user_data(request):
 		data['token'] = token
 		data['is_new'] = is_new
 		data['testUser'] = test_user.id
-		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")))
+		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
 		if preExistingKeys:
 			data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+			remaining_sections = []
+			total_sections_list = range(1, Quiz.objects.get(id = request.data.get('quiz_id')).total_sections + 1)
+			for section_no in total_sections_list:
+				if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
+					remaining_sections += [section_no]
+			remaining_sections += [ int(data['sectionNoWhereLeft']) ]
+			data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+			data['sectionsRemaining'] = sorted(remaining_sections)
 			data['isTestNotCompleted'] = True
 			data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
 			data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
-		print data
+		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	else:
 		print serializer.errors
@@ -212,8 +221,8 @@ def save_test_data_to_cache(request):
 		section_name = request.data.get('section_name')
 		cache_key = test_key+"|"+str(test_user)+"|"+section_name.replace('Section#','')
 		cache_value = cache.get(cache_key)
-		if not cache_value:
-			cache.set(cache_key,{ 'answers': answer }, timeout = CACHE_TIMEOUT)
+		if not cache_value:			
+			cache.set(cache_key,{ 'answers': answer , 'time': timezone.now() }, timeout = CACHE_TIMEOUT)
 		else:
 			if question_id in cache_value['answers'].keys():
 				cache_value['answers'][question_id] = answer[question_id]

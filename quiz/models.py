@@ -382,10 +382,10 @@ class Sitting(models.Model):
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
 	unanswerd_question_list = models.CommaSeparatedIntegerField(
-		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default='')
+		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default = '')
 
 	incorrect_questions_list = models.CommaSeparatedIntegerField(
-		max_length=1024, blank=True, verbose_name=_("Incorrect questions"), default='')
+		max_length=1024, blank=True, verbose_name=_("Incorrect questions"), default = '')
 
 	current_score = models.IntegerField(verbose_name=_("Current Score"), default = 0)
 
@@ -395,9 +395,9 @@ class Sitting(models.Model):
 	user_answers = models.TextField(blank=True, default='{}',
 									verbose_name=_("User Answers"))
 
-	time_spent = models.IntegerField(default=0)
+	time_spent = models.IntegerField(default = 0)
 
-	attempt_no = models.IntegerField(default = -1)
+	attempt_no = models.IntegerField(default = 0)
 	
 	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
