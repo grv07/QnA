@@ -6,21 +6,20 @@ from quiz.models import Question
 
 
 class ObjectiveQuestion(Question):
-    correct = models.BooleanField(blank=False,default=False,
+    correct = models.CharField(blank=False,default="", max_length = 100,
                                   help_text=_("Tick this if the question "
                                               "is true. Leave it blank for"
                                               " false."),
                                   verbose_name=_("Correct"))
-
     def check_if_correct(self, guess):
-        if guess == "True":
-            guess_bool = True
-        elif guess == "False":
-            guess_bool = False
-        else:
-            return False
+        # if guess == "True":
+        #     guess_bool = True
+        # elif guess == "False":
+        #     guess_bool = False
+        # else:
+        #     return False
 
-        if guess_bool == self.correct:
+        if guess.lower() == self.correct.lower():
             return True
         else:
             return False
@@ -30,7 +29,8 @@ class ObjectiveQuestion(Question):
                  'content': 'True'},
                 {'correct': self.check_if_correct("False"),
                  'content': 'False'}]
-
+    def get_answer(self):
+        return self.correct
     def get_answers_list(self):
         return [(True, True), (False, False)]
 
@@ -40,4 +40,4 @@ class ObjectiveQuestion(Question):
     class Meta:
         verbose_name = _("Objective Question")
         verbose_name_plural = _("Objective Questions")
-        ordering = ['category']
+        # ordering = ['category']

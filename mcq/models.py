@@ -3,13 +3,9 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 from django.db import models
 from quiz.models import Question
+from QnA.services.utility import ANSWER_ORDER_OPTIONS
 
 
-ANSWER_ORDER_OPTIONS = (
-    ('content', _('Content')),
-    ('random', _('Random')),
-    ('none', _('None'))
-)
 
 class MCQuestion(Question):
     answer_order = models.CharField(
@@ -54,7 +50,6 @@ class MCQuestion(Question):
 @python_2_unicode_compatible
 class Answer(models.Model):
     question = models.ForeignKey(MCQuestion, verbose_name=_("Question"))
-
 
     content = models.CharField(max_length=1000,
                                blank=False,

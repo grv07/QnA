@@ -13,5 +13,6 @@ def create_answer(question, options):
 		if serializer.is_valid():
 			serializer.save()
 		else:
+			print 'AnswerSerializer fails >>>>>>>>>>>>>'
 			return (False, serializer.errors,)
 	return (True, None,)

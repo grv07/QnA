@@ -25,6 +25,7 @@ SECRET_KEY = 'd*fdv&4b@m2wh+)erw5@(7ouc9%71p$ktf6wi_^3zhn6$p_$50'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 ALLOWED_HOSTS = []
 
 
@@ -37,12 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'corsheaders',
     'rest_framework',
     'quiz',
     'mcq',
     'objective',
     'home',
+    'quizstack',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -112,7 +115,7 @@ DATABASES = {
 # Hosts that are allowed to do cross-site requests 
 #CORS_ORIGIN_WHITELIST = ('localhost:5000/',)
 CORS_ORIGIN_ALLOW_ALL = True
-APPEND_SLASH = True
+APPEND_SLASH = False
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -160,7 +163,7 @@ JWT_AUTH = {
     'JWT_VERIFY': True,
     'JWT_VERIFY_EXPIRATION': False,
     'JWT_LEEWAY': 0,
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=300000),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=300000000),
     'JWT_AUDIENCE': None,
     'JWT_ISSUER': None,
 
@@ -171,6 +174,16 @@ JWT_AUTH = {
 }
 
 
+# Redis Settings
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
@@ -190,3 +203,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+MEDIA_ROOT = '/qna/media/'
+MEDIA_URL = '/media/'

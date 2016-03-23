@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import json
+import string, random
 
 from django.db import models
 from django.core.exceptions import ValidationError, ImproperlyConfigured
@@ -12,64 +13,43 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 from django.contrib.auth.models import User
 
-QUESTION_DIFFICULTY_OPTIONS = (
-	('E', _('E')),
-	('M', _('M')),
-	('H', _('H'))
-)
+from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
 
 @python_2_unicode_compatible
 class Quiz(models.Model):
 
-	user = models.ForeignKey(User, default = '1')
+	user = models.ForeignKey(User)
+
+	quiz_key = models.CharField(
+		verbose_name=_("Quiz Key"),
+		max_length = 15, blank = True)
 
 	title = models.CharField(
-		verbose_name=_("Title"),unique = True,
-		max_length=60, blank=False)
+		verbose_name=_("Title"),
+		max_length=60, blank = False)
 
-	description = models.TextField(
-		verbose_name=_("Description"),
-		blank=True, help_text=_("a description of the quiz"))
+	# description = models.TextField(
+	# 	verbose_name=_("Description"),
+	# 	blank=True, help_text=_("a description of the quiz"))
 
-	url = models.SlugField(
-		max_length=60, blank=False,
-		help_text=_("a user friendly url"),
+	user_picturing = models.BooleanField(default = False,
+	 	verbose_name=_("User pict."),
+	 	help_text=_("Take a user picture when start test?"))
+
+	url = models.URLField(
+		blank=False, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
-	random_order = models.BooleanField(
-		blank=False, default=False,
-		verbose_name=_("Random Order"),
-		help_text=_("Display the questions in "
-					"a random order or as they "
-					"are set?"))
-
-	max_questions = models.PositiveIntegerField(
-		blank=True, null=True, verbose_name=_("Max Questions"),
-		help_text=_("Number of questions to be answered on each attempt."))
-
-	answers_at_end = models.BooleanField(
-		blank=False, default=False,
-		help_text=_("Correct answer is NOT shown after question."
-					" Answers displayed at the end."),
-		verbose_name=_("Answers at end"))
-
-	exam_paper = models.BooleanField(
-		blank=False, default=False,
-		help_text=_("If yes, the result of each"
-					" attempt by a user will be"
-					" stored. Necessary for marking."),
-		verbose_name=_("Exam Paper"))
-
-	single_attempt = models.BooleanField(
+	no_of_attempt = models.IntegerField(
 		blank=False, default=False,
 		help_text=_("If yes, only one attempt by"
 					" a user will be permitted."
 					" Non users cannot sit this exam."),
 		verbose_name=_("Single Attempt"))
 
-	pass_mark = models.SmallIntegerField(
+	passing_percent = models.IntegerField(
 		blank=True, default=0,
-		verbose_name=_("Pass Mark"),
+		verbose_name=_("Pass Percent"),
 		help_text=_("Percentage required to pass exam."),
 		validators=[MaxValueValidator(100)])
 
@@ -81,31 +61,40 @@ class Quiz(models.Model):
 		verbose_name=_("Fail Text"),
 		blank=True, help_text=_("Displayed if user fails."))
 
-	draft = models.BooleanField(
-		blank=True, default=False,
-		verbose_name=_("Draft"),
-		help_text=_("If yes, the quiz is not displayed"
-					" in the quiz list and can only be"
-					" taken by users who can edit"
-					" quizzes."))
+	total_marks = models.IntegerField(
+		blank=True, default=20,
+		verbose_name=_("total_marks"))
+
+	total_questions = models.IntegerField(blank=True, default=0)
+
+	total_duration = models.IntegerField(blank=True, default=0)
+
+	total_sections = models.IntegerField(default=0)
+
+	show_result_on_completion = models.BooleanField(default=True)
+
+	# draft = models.BooleanField(
+	# 	blank=True, default=False,
+	# 	verbose_name=_("Draft"),
+	# 	help_text=_("If yes, the quiz is not displayed"
+	# 				" in the quiz list and can only be"
+	# 				" taken by users who can edit"
+	# 				" quizzes."))
+
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
 
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
-		self.url = re.sub('\s+', '-', self.url).lower()
-
-		self.url = ''.join(letter for letter in self.url if
-						   letter.isalnum() or letter == '-')
-
-		if self.single_attempt is True:
-			self.exam_paper = True
-
-		if self.pass_mark > 100:
-			raise ValidationError('%s is above 100' % self.pass_mark)
-
+		if not self.quiz_key:
+			self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
+			self.url = str(self.url)+str(self.quiz_key)
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
 	class Meta:
+		unique_together = ('user', 'title',)
 		verbose_name = _("Quiz")
 		verbose_name_plural = _("Quizzes")
+		# ordering = ['updated_date']
 
 	def __str__(self):
 		return self.title
@@ -130,8 +119,7 @@ class Quiz(models.Model):
 class CategoryManager(models.Manager):
 
 	def new_category(self, category):
-		new_category = self.create(category=re.sub('\s+', '-', category)
-								   .lower())
+		new_category = self.create(category=re.sub('\s+', '-', category).lower())
 		new_category.save()
 		return new_category
 
@@ -139,27 +127,30 @@ class CategoryManager(models.Manager):
 @python_2_unicode_compatible
 class Category(models.Model):
 
-	category = models.CharField(
+	category_name = models.CharField(
 		verbose_name=_("Category"),
 		max_length=250,
-		unique=True)
+		unique = True)
 
-	quiz = models.ForeignKey(
-		Quiz, verbose_name=_("Quiz"))
+	user = models.ForeignKey(User)
+
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
 
 	objects = CategoryManager()
 
 	class Meta:
 		verbose_name = _("Category")
 		verbose_name_plural = _("Categories")
+		unique_together = ("category_name", "user",)
 
 	def __str__(self):
-		return self.category
+		return self.category_name
 
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
-		self.category = re.sub('\s+', '-', self.category).lower()
+		self.category_name = re.sub('\s+', '-', self.category_name).lower()
 
-		self.url = ''.join(letter for letter in self.category if
+		self.url = ''.join(letter for letter in self.category_name if
 						   letter.isalnum() or letter == '-')
 		
 		super(Category, self).save(force_insert, force_update, *args, **kwargs)
@@ -171,14 +162,21 @@ class SubCategory(models.Model):
 		verbose_name=_("Sub-Category"),
 		max_length=250)
 
+	user = models.ForeignKey(User, default = '1')
+
 	category = models.ForeignKey(
-		Category,verbose_name=_("Category"))
+		Category,verbose_name=_("Category"), null=True)
+
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
 
 	objects = CategoryManager()
 
 	class Meta:
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
+		unique_together = ("sub_category_name", "category",)
+
 
 	def __str__(self):
 		return self.sub_category_name
@@ -228,7 +226,7 @@ class Progress(models.Model):
 		output = {}
 
 		for cat in Category.objects.all():
-			to_find = re.escape(cat.category) + r",(\d+),(\d+),"
+			to_find = re.escape(cat.category_name) + r",(\d+),(\d+),"
 			#  group 1 is score, group 2 is highest possible
 
 			match = re.search(to_find, self.score, re.IGNORECASE)
@@ -243,11 +241,11 @@ class Progress(models.Model):
 				except:
 					percent = 0
 
-				output[cat.category] = [score, possible, percent]
+				output[cat.category_name] = [score, possible, percent]
 
 			else:  # if category has not been added yet, add it.
-				self.score += cat.category + ",0,0,"
-				output[cat.category] = [0, 0]
+				self.score += cat.category_name + ",0,0,"
+				output[cat.category_name] = [0, 0]
 
 		if len(self.score) > len(score_before):
 			# If a new category has been added, save changes.
@@ -383,16 +381,13 @@ class Sitting(models.Model):
 
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
-	question_order = models.CommaSeparatedIntegerField(
-		max_length=1024, verbose_name=_("Question Order"))
+	unanswerd_question_list = models.CommaSeparatedIntegerField(
+		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default='')
 
-	question_list = models.CommaSeparatedIntegerField(
-		max_length=1024, verbose_name=_("Question List"))
+	incorrect_questions_list = models.CommaSeparatedIntegerField(
+		max_length=1024, blank=True, verbose_name=_("Incorrect questions"), default='')
 
-	incorrect_questions = models.CommaSeparatedIntegerField(
-		max_length=1024, blank=True, verbose_name=_("Incorrect questions"))
-
-	current_score = models.IntegerField(verbose_name=_("Current Score"))
+	current_score = models.IntegerField(verbose_name=_("Current Score"), default = 0)
 
 	complete = models.BooleanField(default=False, blank=False,
 								   verbose_name=_("Complete"))
@@ -400,36 +395,19 @@ class Sitting(models.Model):
 	user_answers = models.TextField(blank=True, default='{}',
 									verbose_name=_("User Answers"))
 
-	start = models.DateTimeField(auto_now_add=True,
+	time_spent = models.IntegerField(default=0)
+
+	attempt_no = models.IntegerField(default = -1)
+	
+	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
 
-	end = models.DateTimeField(null=True, blank=True, verbose_name=_("End"))
+	end_date = models.DateTimeField(null=True, blank=True, verbose_name=_("End"))
 
 	objects = SittingManager()
 
 	class Meta:
 		permissions = (("view_sittings", _("Can see completed exams.")),)
-
-	def get_first_question(self):
-		"""
-		Returns the next question.
-		If no question is found, returns False
-		Does NOT remove the question from the front of the list.
-		"""
-		if not self.question_list:
-			return False
-
-		first, _ = self.question_list.split(',', 1)
-		question_id = int(first)
-		return Question.objects.get_subclass(id=question_id)
-
-	def remove_first_question(self):
-		if not self.question_list:
-			return
-
-		_, others = self.question_list.split(',', 1)
-		self.question_list = others
-		self.save()
 
 	def add_to_score(self, points):
 		self.current_score += int(points)
@@ -464,16 +442,31 @@ class Sitting(models.Model):
 		self.end = now()
 		self.save()
 
-	def add_incorrect_question(self, question):
+	def add_unanswerd_question(self, question_id):
 		"""
 		Adds uid of incorrect question to the list.
 		The question object must be passed in.
 		"""
-		if len(self.incorrect_questions) > 0:
-			self.incorrect_questions += ','
-		self.incorrect_questions += str(question.id) + ","
+		if len(self.unanswerd_question_list) > 0:
+			self.unanswerd_question_list += ','
+		self.unanswerd_question_list += str(question_id)
+		self.save()
+	
+	
+	def add_incorrect_question(self, question_id):
+		"""
+		Adds uid of incorrect question to the list.
+		The question object must be passed in.
+		"""
+		if len(self.incorrect_questions_list) > 0:
+			self.incorrect_questions_list += ','
+		self.incorrect_questions_list += str(question_id)
 		if self.complete:
 			self.add_to_score(-1)
+		self.save()
+
+	def clear_all_unanswered_questions(self):
+		self.unanswerd_question_list = ''
 		self.save()
 
 	@property
@@ -502,9 +495,9 @@ class Sitting(models.Model):
 		else:
 			return self.quiz.fail_text
 
-	def add_user_answer(self, question, guess):
+	def add_user_answer(self, question_id, guess):
 		current = json.loads(self.user_answers)
-		current[question.id] = guess
+		current[question_id] = guess
 		self.user_answers = json.dumps(current)
 		self.save()
 
@@ -532,6 +525,10 @@ class Sitting(models.Model):
 	def get_max_score(self):
 		return len(self._question_ids())
 
+	def save_time_spent(self, time_in_seconds):
+		self.time_spent = self.quiz.total_duration - time_in_seconds
+		self.save()
+		
 	def progress(self):
 		"""
 		Returns the number of questions answered so far and the total number of
@@ -542,24 +539,20 @@ class Sitting(models.Model):
 		return answered, total
 
 
+def figure_directory(instance, filename):
+    return '/qna/media/{0}/{1}/{2}'.format(instance.que_type, instance.sub_category.sub_category_name, filename)
+
 @python_2_unicode_compatible
 class Question(models.Model):
 	"""
 	Base class for all question types.
 	Shared properties placed here.
 	"""
-
-	quiz = models.ManyToManyField(Quiz,
-								  verbose_name=_("Quiz"),
-								  null = False)
-
-	category = models.ForeignKey(Category, verbose_name=_("Category"))
-
-	sub_category = models.ForeignKey(SubCategory,blank=True,
-							   		null=True,
+	sub_category = models.ForeignKey(SubCategory,blank=False,
+									null=False,
 									verbose_name=_("Sub-Category"))
 
-	figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
+	figure = models.ImageField(upload_to=figure_directory,
 							   blank=True,
 							   null=True,
 							   verbose_name=_("Figure"))
@@ -577,17 +570,26 @@ class Question(models.Model):
 											   "been answered."),
 								   verbose_name=_('Explanation'))
 
-	level = models.CharField(max_length=10,default = 'E',
+	points = models.IntegerField(verbose_name=_("Marks"), default=1, blank=True)
+	
+	que_type = models.CharField(max_length = 10,null= True,
+								choices=QUESTION_TYPE_OPTIONS,
+								help_text=_("Type of Question"),
+								verbose_name=_("Question Type"))
+
+	level = models.CharField(max_length=10,default = 'easy',
 								choices=QUESTION_DIFFICULTY_OPTIONS,
 								help_text=_("The difficulty level of a MCQQuestion"),
 								verbose_name=_("Difficulty Level"))
+
+	created_date = models.DateTimeField(auto_now_add = True)
+	updated_date = models.DateTimeField(auto_now = True)
 
 	# objects = InheritanceManager()
 
 	class Meta:
 		verbose_name = _("Question")
 		verbose_name_plural = _("Questions")
-		# ordering = ['category']
 
 	def __str__(self):
 		return self.content
