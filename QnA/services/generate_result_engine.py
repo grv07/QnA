@@ -48,10 +48,11 @@ def filter_by_category(sitting):
 	_cat_base_result = {}
 	total_correct_que = 0
 	_correct_ans = json.loads(sitting.user_answers)
+	# Enjoy Helper functions
+	get_name_key = lambda que_id: Question.objects.get(pk = int(que_id)).sub_category.sub_category_name
+	get_que_set = lambda list: set(list.split(',')) if len(sitting.incorrect_questions_list) > 0 else [] 
 
-	get_name_key = lambda que_id: Question.objects.get(pk = int(que)).sub_category.sub_category_name
-
-	for que in set(sitting.incorrect_questions_list.split(',')):
+	for que in get_que_set(sitting.incorrect_questions_list):
 		name_key = get_name_key(int(que))
 		if _correct_ans.has_key(que):
 			_correct_ans.pop(que)
@@ -63,8 +64,8 @@ def filter_by_category(sitting):
 			_cat_base_result[name_key][0] += 1
 			_cat_base_result[name_key][3] += 1
 
-	for que in set(sitting.unanswerd_question_list.split(',')):
-		name_key = get_name_key(int(que))
+	for que in get_que_set(sitting.unanswerd_question_list):
+		name_key = get_name_key(que)
 		if _correct_ans.has_key(que):
 			_correct_ans.pop(que)
 		if not _cat_base_result.has_key(name_key):
@@ -76,7 +77,7 @@ def filter_by_category(sitting):
 			_cat_base_result[name_key][3] += 1
 
 	for que in _correct_ans:
-		name_key = get_name_key(int(que))
+		name_key = get_name_key(que)
 		if not _cat_base_result.has_key(name_key):
 			_cat_base_result[name_key] = [0,0,0,0]
 			_cat_base_result[name_key][1] = 1
