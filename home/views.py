@@ -93,12 +93,11 @@ def get_user_result(request, test_user_id, quiz_key):
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 
-	if quiz.no_of_attempt > 1:
-		try:
-			sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
-		except Exception as e:
-			print e.args
-			sitting = Sitting.objects.order_by(_get_order_by).filter(user = user, quiz_id = quiz.id)[0]
+	try:
+		sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
+	except Exception as e:
+		print e.args
+		sitting = Sitting.objects.order_by(_get_order_by).filter(user = user, quiz_id = quiz.id)[0]
 	else:
 		sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
 
