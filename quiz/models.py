@@ -40,6 +40,8 @@ class Quiz(models.Model):
 		blank=False, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
+	redirect_url = models.URLField(blank=True, null=True)
+
 	no_of_attempt = models.IntegerField(
 		blank=False, default=False,
 		help_text=_("If yes, only one attempt by"
