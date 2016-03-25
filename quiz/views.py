@@ -119,10 +119,10 @@ def create_category(request):
 	"""
 	Create a category
 	"""
-	print request.data
+	# print request.data
 	try:
 		serializer = CategorySerializer(data = request.data)
-		print serializer
+		# print serializer
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status = status.HTTP_200_OK)
@@ -310,11 +310,6 @@ def all_questions_under_subcategory(request, user_id, subcategory_id):
 		print e.args
 		return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
 
-
-@api_view(['GET'])
-def filtered_questions(request, userid, categoryid, subcategoryid):
-	print userid, categoryid, subcategoryid
-
 @api_view(['GET', 'PUT', 'DELETE'])
 def question_operations(request, userid, questionid):
 	"""
@@ -322,7 +317,7 @@ def question_operations(request, userid, questionid):
 	"""
 	import os
 	try:
-		print request.data
+		# print request.data
 		question = Question.objects.get(id = questionid)
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
