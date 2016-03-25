@@ -28,16 +28,12 @@ class Quiz(models.Model):
 		verbose_name=_("Title"),
 		max_length=60, blank = False)
 
-	# description = models.TextField(
-	# 	verbose_name=_("Description"),
-	# 	blank=True, help_text=_("a description of the quiz"))
-
 	user_picturing = models.BooleanField(default = False,
 	 	verbose_name=_("User pict."),
 	 	help_text=_("Take a user picture when start test?"))
 
 	url = models.URLField(
-		blank=False, help_text=_("a user friendly url"),
+		blank=True, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
 	no_of_attempt = models.IntegerField(
@@ -48,7 +44,7 @@ class Quiz(models.Model):
 		verbose_name=_("Single Attempt"))
 
 	passing_percent = models.IntegerField(
-		blank=True, default=0,
+		blank=True, default=10,
 		verbose_name=_("Pass Percent"),
 		help_text=_("Percentage required to pass exam."),
 		validators=[MaxValueValidator(100)])
@@ -87,7 +83,7 @@ class Quiz(models.Model):
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		if not self.quiz_key:
 			self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
-			self.url = str(self.url)+str(self.quiz_key)
+			self.url = settings.TEST_URL+str(self.quiz_key)
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
 	class Meta:
