@@ -161,20 +161,25 @@ def test_user_data(request):
 		data['token'] = token
 		data['is_new'] = is_new
 		data['testUser'] = test_user.id
-		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
-		if preExistingKeys:
-			data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-			remaining_sections = []
-			total_sections_list = range(1, Quiz.objects.get(id = request.data.get('quiz_id')).total_sections + 1)
-			for section_no in total_sections_list:
-				if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
-					remaining_sections += [section_no]
-			remaining_sections += [ int(data['sectionNoWhereLeft']) ]
-			data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-			data['sectionsRemaining'] = sorted(remaining_sections)
+		data['existingAnswers'] = { 'answers': {} }
+		data['sectionNoWhereLeft'] = None
+		data['sectionsRemaining']  = []
+		if cache.get(test_key + "|" + str(test_user.id) + "time"):
 			data['isTestNotCompleted'] = True
-			data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
 			data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
+			preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
+			if preExistingKeys:
+				print preExistingKeys,'-------------'
+				data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+				remaining_sections = []
+				total_sections_list = range(1, Quiz.objects.get(id = request.data.get('quiz_id')).total_sections + 1)
+				for section_no in total_sections_list:
+					if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
+						remaining_sections += [section_no]
+				remaining_sections += [ int(data['sectionNoWhereLeft']) ]
+				data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+				data['sectionsRemaining'] = sorted(remaining_sections)
+				data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
 		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	else:
@@ -203,6 +208,7 @@ def save_time_remaining_to_cache(request):
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data_to_cache(request):
+	print request.data
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if not sitting_id and request.data.get('questions_list'):
