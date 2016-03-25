@@ -73,6 +73,21 @@ def update_quiz(request, userid, quizid ,format = None):
 		print serializer.errors
 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['PUT'])
+def mark_quiz_public(request, userid, quizid):
+	# print request.data
+	try:
+		quiz = Quiz.objects.get(id = quizid, user = userid)
+		
+		if quiz.allow_public_access:
+			quiz.allow_public_access = False
+		else:
+			quiz.allow_public_access = True
+		quiz.save()	
+		return Response({'title':quiz.title,"allow_public_access":quiz.allow_public_access}, status = status.HTTP_200_OK)
+	except Quiz.DoesNotExist as e:
+		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['POST'])
 def create_quiz(request, format = None):

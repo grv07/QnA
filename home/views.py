@@ -19,7 +19,7 @@ from django.utils import timezone
 
 
 
-# Generate pdf from html 
+# Generate pdf from html
 def generate_PDF(request, html):
 	import xhtml2pdf.pisa as pisa
 	file = open('test.pdf', "w+b")
