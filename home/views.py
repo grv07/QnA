@@ -213,7 +213,7 @@ def save_test_data_to_cache(request):
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if not sitting_id and request.data.get('questions_list'):
 		quiz_id = request.data.get('quiz_id')
-		sitting_obj, is_created = Sitting.objects.get_or_create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
+		sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
 		if not sitting_obj.unanswerd_question_list:
 			for question_id in request.data.get('questions_list'):
 				sitting_obj.add_unanswerd_question(question_id)

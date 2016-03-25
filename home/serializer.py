@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 class MerchantSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = MerchantUser
-		fields = '__all__'
+		exclude = ('created_date', 'updated_date',)
 
 	def validate_email(self, value):
 		if User.objects.filter(email = value):
@@ -26,7 +26,7 @@ class MerchantSerializer(serializers.ModelSerializer):
 class TestUserSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = TestUser
-		fields = '__all__'
+		exclude = ('created_date', 'updated_date',)
 
 	def get_or_create(self):
 		defaults = self.validated_data.copy()

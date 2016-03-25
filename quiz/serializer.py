@@ -4,6 +4,7 @@ from quiz.models import Quiz, Category, SubCategory, Question, Sitting
 class QuizSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Quiz
+		exclude = ('created_date', 'updated_date',)
 
 class SittingSerializer(serializers.ModelSerializer):
 	class Meta:
@@ -23,15 +24,15 @@ class CategorySerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Category
-		fields = '__all__'
+		exclude = ('created_date', 'updated_date',)
 
 
 class SubCategorySerializer(serializers.ModelSerializer):
 	class Meta:
 		model = SubCategory
-		fields = '__all__'
+		exclude = ('created_date', 'updated_date',)
 
 class QuestionSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Question
-		fields = '__all__'
+		exclude = ('created_date', 'updated_date',)

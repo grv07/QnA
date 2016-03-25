@@ -34,6 +34,7 @@ def get_quiz(request, userid, quizid ,format = None):
 		except Quiz.DoesNotExist as e:
 			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 		serializer = QuizSerializer(quiz)
+		print serializer.data
 		serializer.data['quiz_key'] = quiz.quiz_key
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	else:
@@ -63,7 +64,6 @@ def update_quiz(request, userid, quizid ,format = None):
 		quiz = Quiz.objects.get(id = quizid, user = userid)
 	except Quiz.DoesNotExist as e:
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
-	print quiz,request.data
 	serializer = QuizSerializer(quiz, data = request.data)
 	if serializer.is_valid():
 		# print serializer

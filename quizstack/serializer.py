@@ -4,4 +4,4 @@ from .models import QuizStack
 class QuizStackSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = QuizStack
-		fields = '__all__'
+		exclude = ('created_date', 'updated_date',)
