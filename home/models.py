@@ -15,7 +15,7 @@ class MerchantUser(models.Model):
     user = models.OneToOneField(User, blank=True)
     merchant_public_key = models.CharField(max_length = 10, unique = True, blank = True)
     merchant_private_key = models.CharField(max_length = 10, unique = True, blank = True)
-
+    
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
 
