@@ -27,6 +27,7 @@ def create_quizstack(request):
 				quiz.total_sections = len(set([qs.section_name for qs in quizstack_list]))
 				quiz.save()
 			else:
+				print serializer.errors
 				return Response({ 'errors' : serializer.errors }, status = status.HTTP_400_BAD_REQUEST)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
