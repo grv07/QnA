@@ -207,3 +207,9 @@ STATIC_URL = '/static/'
 
 MEDIA_ROOT = '/qna/media/'
 MEDIA_URL = '/media/'
+
+try:
+    from local_settings import *
+except ImportError as e:
+    from server_settings import *
+
