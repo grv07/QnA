@@ -36,7 +36,9 @@ class Quiz(models.Model):
 		blank=True, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
-	redirect_url = models.URLField(blank=True, null=True)
+	start_notification_url = models.URLField(blank=True, null=True)
+	finish_notification_url = models.URLField(blank=True, null=True)
+	grade_notification_url = models.URLField(blank=True, null=True)
 
 	no_of_attempt = models.IntegerField(
 		blank=False, default=False,
