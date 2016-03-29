@@ -112,10 +112,33 @@ def get_user_result(request, test_user_id, quiz_key):
 	fp.close()
 	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
 
-	html = t.render(Context({'data': {'score':sitting.current_score, 'attempt_no':sitting.attempt_no,'pass_percentage':quiz.passing_percent, 
-			'pass_percentage':quiz.passing_percent,'total_que':quiz.total_questions, 'filter_by_category':_filter_by_category[0],
-			'quiz_marks': quiz.total_marks,'correct_que_pt':correct_que_pt,'in_orrect_pt':in_correct_pt, 
-			'quiz_name':quiz.title, 'username':sitting.user.username,'view_format':return_format,'result_status':_result_status}}))
+	data = {
+			'quiz_id': quiz.id,
+			'quiz_name':quiz.title,
+			'passing_percentage': quiz.passing_percent,
+			'total_questions':quiz.total_questions,
+			'total_marks': quiz.total_marks,
+			'marks_scored': sitting.current_score,
+			'result_status':_result_status,
+			'EVENT_TYPE': 'gradeTest', 
+			'test_key': quiz.quiz_key, 
+			'sitting_id': sitting.id, 
+			'test_user_id': test_user_id, 
+			'timestamp_IST': str(timezone.now()), 
+			'username': sitting.user.username, 
+			'attempt_no': sitting.attempt_no,
+			'email': sitting.user.email,
+			'correct_questions_score': correct_que_pt, 
+			'incorrect_questions_score': in_correct_pt,
+			'finish_mode': 'NormalSubmission',
+			'start_time_IST': str(sitting.start_date),
+			'end_time_IST': str(sitting.end_date)
+		}
+	if not postNotifications(data, 'grade/asm_notification/'):
+		print 'grade notification not sent'
+	data['filter_by_category'] = _filter_by_category[0]
+	data['view_format'] = return_format
+	html = t.render(Context({'data': data }))
 	
 	if return_format == 'pdf':
 		return generate_PDF(request, html)
@@ -135,7 +158,7 @@ def save_sitting_user(request):
 				for question_id in request.data.get('questions_list'):
 					sitting_obj.add_unanswerd_question(question_id)
 			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
-			data = { 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id, 'test_user_id': test_user_id, 'timestamp_IST': timezone.now(), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email }
+			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id, 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email }
 			if not postNotifications(data, 'start/asm_notification/'):
 				print 'start notification not sent'
 			return Response({}, status = status.HTTP_200_OK)
@@ -204,6 +227,7 @@ def test_user_data(request):
 			create = True
 		except Quiz.DoesNotExist as e:
 			return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
+			
 		serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
 		if serializer.is_valid():
 			data['status'] = 'SUCCESS'
@@ -259,7 +283,6 @@ def save_time_remaining_to_cache(request):
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data_to_cache(request):
-	print request.data
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
@@ -285,7 +308,6 @@ def save_test_data_to_cache(request):
 
 @api_view(['POST'])
 def save_test_data_to_db(request):
-	print request.data
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
@@ -315,6 +337,9 @@ def save_test_data_to_db(request):
 
 		# test is set to complete must come after sitting_obj.add_unanswerd_question()
 		sitting_obj.mark_quiz_complete()
+		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
+		if not postNotifications(data, 'finish/asm_notification/'):
+			print 'finish notification not sent'
 		cache.delete('sitting_id'+str(test_user))
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		return Response({}, status = status.HTTP_200_OK)
