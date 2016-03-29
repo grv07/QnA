@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 from django.http import HttpResponse
+from django.template import Template, Context
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
@@ -80,39 +81,19 @@ def logout_user(request, format=None):
 	logout(request)
 	return Response({'status': 'success'}, status=204)
 
-@api_view(['GET'])
-@permission_classes((AllowAny,))
-def get_user_result(request, test_user_id, quiz_key):
-	from django.template import Template, Context
-	from django.http import HttpResponse
-	
-	_get_order_by = '-current_score'
-	get_order = request.GET.get('order',None)
-	quiz  = Quiz.objects.get(quiz_key = quiz_key)
-	return_format = request.GET.get('view_format',None)
-	user = TestUser.objects.filter(id = test_user_id)[0].user
+def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter_by_category = None, get_order_by = None):	
+	get_order = order
+	quiz = sitting.quiz
+	user = sitting.user
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 
-	try:
-		sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
-	except Exception as e:
-		print e.args
-		sitting = Sitting.objects.order_by(_get_order_by).filter(user = user, quiz_id = quiz.id)[0]
-	else:
-		sitting = Sitting.objects.order_by(_get_order_by).get(user = user, quiz_id = quiz.id)
-
-	_filter_by_category = filter_by_category(sitting)
-	
 	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.split(',')))*100)/quiz.total_questions)
-	correct_que_pt = int(_filter_by_category[1]*100)/quiz.total_questions
+	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
 	
-	fp = open('QnA/services/result.html')
-	t = Template(fp.read())
-	fp.close()
 	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
 
-	data = {
+	return {
 			'quiz_id': quiz.id,
 			'quiz_name':quiz.title,
 			'passing_percentage': quiz.passing_percent,
@@ -134,13 +115,24 @@ def get_user_result(request, test_user_id, quiz_key):
 			'start_time_IST': str(sitting.start_date),
 			'end_time_IST': str(sitting.end_date)
 		}
-	if not postNotifications(data, 'grade/asm_notification/'):
-		print 'grade notification not sent'
+
+
+
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def get_user_result(request, test_user_id, quiz_key):
+	test_user = TestUser.objects.get(id = test_user_id)
+	get_order_by = '-current_score'
+	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = Quiz.objects.get(quiz_key = quiz_key))
+	_filter_by_category = filter_by_category(sitting)
+	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
 	data['filter_by_category'] = _filter_by_category[0]
-	data['view_format'] = return_format
+	data['view_format'] = request.GET.get('view_format',None)
+	fp = open('QnA/services/result.html')
+	t = Template(fp.read())
+	fp.close()
 	html = t.render(Context({'data': data }))
-	
-	if return_format == 'pdf':
+	if data['view_format'] == 'pdf':
 		return generate_PDF(request, html)
 	else:	
 		return HttpResponse(html)
@@ -154,6 +146,8 @@ def save_sitting_user(request):
 		if not sitting_id and request.data.get('questions_list'):
 			quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
 			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user_id).user,  quiz = quiz)
+			sitting_obj.attempt_no += 1
+			sitting_obj.save()
 			if not sitting_obj.unanswerd_question_list:
 				for question_id in request.data.get('questions_list'):
 					sitting_obj.add_unanswerd_question(question_id)
@@ -326,7 +320,7 @@ def save_test_data_to_db(request):
 				print cache.get(key), '-----------------'
 		_test_user_obj.no_attempt += 1
 		_test_user_obj.save()
-		sitting_obj.attempt_no = _test_user_obj.no_attempt
+		# sitting_obj.attempt_no = _test_user_obj.no_attempt
 		sitting_obj.save_time_spent(request.data.get('time_spent'))
 
 		# Clear all unanswered_questions_list so as to modify it.
@@ -342,6 +336,11 @@ def save_test_data_to_db(request):
 			print 'finish notification not sent'
 		cache.delete('sitting_id'+str(test_user))
 		cache.delete(test_key + "|" + str(test_user) + "time")
+		_filter_by_category = filter_by_category(sitting_obj)
+		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+		print data
+		if not postNotifications(data, 'grade/asm_notification/'):
+			print 'grade notification not sent'
 		return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
