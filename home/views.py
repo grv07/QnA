@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
 from token_key import generate_token
 from django.core.cache import cache
-from QnA.services.utility import checkIfTrue, REGISTRATION_HTML, CACHE_TIMEOUT
+from QnA.services.utility import checkIfTrue, REGISTRATION_HTML, CACHE_TIMEOUT, postNotifications
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
 from QnA.services.generate_result_engine import generate_result, filter_by_category
@@ -129,13 +129,15 @@ def save_sitting_user(request):
 		test_user_id = request.data.get('test_user')
 		sitting_id = cache.get('sitting_id'+str(test_user_id), None)
 		if not sitting_id and request.data.get('questions_list'):
-			quiz_id = request.data.get('quiz_id')
-			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user_id).user,  quiz = Quiz.objects.get(pk = quiz_id))
+			quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
+			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user_id).user,  quiz = quiz)
 			if not sitting_obj.unanswerd_question_list:
 				for question_id in request.data.get('questions_list'):
 					sitting_obj.add_unanswerd_question(question_id)
 			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
-			sitting_id = cache.get('sitting_id'+str(test_user_id))
+			data = { 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id, 'test_user_id': test_user_id, 'timestamp_IST': timezone.now(), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email }
+			if not postNotifications(data, 'start/asm_notification/'):
+				print 'start notification not sent'
 			return Response({}, status = status.HTTP_200_OK)
 		return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
