@@ -406,7 +406,7 @@ class Sitting(models.Model):
 	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
 
-	end_date = models.DateTimeField(null=True, blank=True, verbose_name=_("End"))
+	end_date = models.DateTimeField(auto_now = True, verbose_name=_("End"))
 
 	objects = SittingManager()
 
