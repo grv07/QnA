@@ -185,9 +185,6 @@ def test_user_data(request):
 			data['test_key'] = test_user.test_key
 			data['token'] = token
 			data['testUser'] = test_user.id
-			data['existingAnswers'] = { 'answers': {} }
-			data['sectionNoWhereLeft'] = None
-			data['sectionsRemaining']  = []
 			data['test'] = test_data_helper(test_user.test_key, test_user_id)
 			return Response(data, status = status.HTTP_200_OK)
 		else:
@@ -199,25 +196,31 @@ def test_user_data(request):
 		email = request.data.get('email')
 		test_key = request.data.get('test_key')
 		try:
+			quiz = Quiz.objects.get(quiz_key = test_key)
 			user  = User.objects.get(username = name)
 			create = False
 		except User.DoesNotExist as e:
 			user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
 			create = True
+		except Quiz.DoesNotExist as e:
+        	return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
 		serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
 		if serializer.is_valid():
 			data['status'] = 'SUCCESS'
 			data['username'] = name
 			data['test_key'] = test_key	
 			is_new = True
-			
+		
 			if create:
 				test_user = serializer.save()
 			else:
 				try:
 					test_user = TestUser.objects.get(user = user, test_key = test_key)
-					if not test_user.no_attempt < Quiz.objects.get(quiz_key = test_key).no_of_attempt: 
-						return Response({'errors': 'There are no remaining attempts left for this test.'}, status=status.HTTP_400_BAD_REQUEST)				
+					if not test_user.no_attempt < quiz.no_of_attempt: 
+						return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
+						 status = status.HTTP_200_OK)				
+					else:
+						data['test']['remaining_attempts'] = quiz.no_of_attempt - test_user.no_attempt
 					is_new = False
 					test_user.save()
 				except 	TestUser.DoesNotExist as e:
@@ -232,7 +235,6 @@ def test_user_data(request):
 		else:
 			print serializer.errors
 			return Response({'status':'FAIL', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['PUT'])
 def save_time_remaining_to_cache(request):
