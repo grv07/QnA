@@ -282,7 +282,6 @@ def save_time_remaining_to_cache(request):
 @api_view(['POST'])
 # @authentication_classes([TestAuthentication])
 def save_test_data_to_cache(request):
-	print request.data
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
@@ -308,7 +307,6 @@ def save_test_data_to_cache(request):
 
 @api_view(['POST'])
 def save_test_data_to_db(request):
-	print request.data
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
