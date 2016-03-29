@@ -158,8 +158,13 @@ def test_user_data(request):
 		else:
 			try:
 				test_user = TestUser.objects.get(user = user, test_key = test_key)
+
 				if not test_user.no_attempt < quiz.no_of_attempt: 
-					return Response({'status':'FAIL', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'}, status = status.HTTP_400_BAD_REQUEST)				
+					return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
+					 status = status.HTTP_200_OK)				
+				else:
+					test_data['remaining_attempts'] = quiz.no_of_attempt - test_user.no_attempt
+				
 				is_new = False
 				test_user.save()
 			except 	TestUser.DoesNotExist as e:
@@ -199,7 +204,6 @@ def test_user_data(request):
 	else:
 		print serializer.errors
 		return Response({'status':'FAIL', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 @api_view(['PUT'])
