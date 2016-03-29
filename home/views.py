@@ -122,12 +122,57 @@ def get_user_result(request, test_user_id, quiz_key):
 	else:	
 		return HttpResponse(html)
 
+
+@api_view(['POST'])
+def save_sitting_user(request):
+	try:
+		test_user_id = request.data.get('test_user')
+		sitting_id = cache.get('sitting_id'+str(test_user_id), None)
+		if not sitting_id and request.data.get('questions_list'):
+			quiz_id = request.data.get('quiz_id')
+			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user_id).user,  quiz = Quiz.objects.get(pk = quiz_id))
+			if not sitting_obj.unanswerd_question_list:
+				for question_id in request.data.get('questions_list'):
+					sitting_obj.add_unanswerd_question(question_id)
+			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
+			sitting_id = cache.get('sitting_id'+str(test_user_id))
+			return Response({}, status = status.HTTP_200_OK)
+		return Response({}, status = status.HTTP_200_OK)
+	except Exception as e:
+		print e.args
+		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+
+
+def test_data_helper(test_key, test_user_id):
+	test_data = { 'isTestNotCompleted': False, 'sectionNoWhereLeft': None, 'sectionsRemaining': [], 'existingAnswers': { 'answers': {} } }
+	if cache.get('sitting_id'+str(test_user_id), None):	
+		test_data['status'] = 'INCOMPLETE'
+		test_data['isTestNotCompleted'] = True
+		test_data['timeRemaining'] = cache.get(test_key + "|" + str(test_user_id) + "time")['remaining_duration']
+		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user_id)+"|**")), key=lambda k: cache.get(k)['time'])
+		if preExistingKeys:
+			print preExistingKeys,'-------------'
+			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+			remaining_sections = []
+			total_sections_list = range(1, Quiz.objects.get(quiz_key = test_key).total_sections + 1)
+
+			for section_no in total_sections_list:
+				if test_key+"|"+str(test_user_id)+"|"+str(section_no) not in preExistingKeys:
+					remaining_sections += [section_no]
+			
+			remaining_sections += [ int(test_data['sectionNoWhereLeft']) ]
+			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+			test_data['sectionsRemaining'] = sorted(remaining_sections)
+			test_data['existingAnswers'] = { 'answers' : { 'Section#'+test_data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+	else:
+		test_data['status'] = 'ToBeTaken'
+	return test_data
+
 @api_view(['POST', 'GET'])
 @permission_classes((AllowAny,))
 # @authentication_classes([TestAuthentication])
 def test_user_data(request):
-	data = {}
-	data['isTestNotCompleted'] = False
+	data = { 'test': {} }
 	if request.method == 'GET':
 		test_user_id = request.query_params.get('test_user_id', None)
 		token = request.query_params.get('token', None)
@@ -141,21 +186,7 @@ def test_user_data(request):
 			data['existingAnswers'] = { 'answers': {} }
 			data['sectionNoWhereLeft'] = None
 			data['sectionsRemaining']  = []
-			if cache.get(test_user.test_key + "|" + test_user_id + "time"):
-				data['isTestNotCompleted'] = True
-				data['timeRemaining'] = cache.get(test_user.test_key + "|" + test_user_id + "time")['remaining_duration']
-				preExistingKeys = sorted(list(cache.iter_keys(test_user.test_key + "|" + test_user_id + "|**")), key=lambda k: cache.get(k)['time'])
-				if preExistingKeys:
-					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-					remaining_sections = []
-					total_sections_list = range(1, Quiz.objects.get(quiz_key = test_user.test_key).total_sections + 1)
-					for section_no in total_sections_list:
-						if test_user.test_key + "|" + test_user_id + "|" + str(section_no) not in preExistingKeys:
-							remaining_sections += [section_no]
-					remaining_sections += [ int(data['sectionNoWhereLeft']) ]
-					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-					data['sectionsRemaining'] = sorted(remaining_sections)
-					data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+			data['test'] = test_data_helper(test_user.test_key, test_user_id)
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -193,52 +224,12 @@ def test_user_data(request):
 			data['token'] = token
 			data['is_new'] = is_new
 			data['testUser'] = test_user.id
-			data['existingAnswers'] = { 'answers': {} }
-			data['sectionNoWhereLeft'] = None
-			data['sectionsRemaining']  = []
-			if cache.get(test_key + "|" + str(test_user.id) + "time"):
-				data['isTestNotCompleted'] = True
-				data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
-				preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
-				if preExistingKeys:
-					print preExistingKeys,'-------------'
-					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-					remaining_sections = []
-					total_sections_list = range(1, Quiz.objects.get(quiz_key = test_key).total_sections + 1)
-					for section_no in total_sections_list:
-						if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
-							remaining_sections += [section_no]
-					remaining_sections += [ int(data['sectionNoWhereLeft']) ]
-					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-					data['sectionsRemaining'] = sorted(remaining_sections)
-					data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
-			# print data
+			data['test'] = test_data_helper(test_key, test_user.id)				
 			data['testURL'] = TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			print serializer.errors
-			return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-@api_view(['POST'])
-def save_sitting_user(request):
-	try:
-		test_user = request.data.get('test_user')
-		sitting_id = cache.get('sitting_id'+str(test_user), None)
-		if not sitting_id and request.data.get('questions_list'):
-			quiz_id = request.data.get('quiz_id')
-			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
-			if not sitting_obj.unanswerd_question_list:
-				for question_id in request.data.get('questions_list'):
-					sitting_obj.add_unanswerd_question(question_id)
-			cache.set('sitting_id'+str(test_user), sitting_obj.id, timeout = CACHE_TIMEOUT)
-			sitting_id = cache.get('sitting_id'+str(test_user))
-			return Response({}, status = status.HTTP_200_OK)
-		return Response({}, status = status.HTTP_200_OK)
-	except Exception as e:
-		print e.args
-		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+			return Response({'status':'FAIL', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT'])

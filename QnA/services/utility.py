@@ -31,9 +31,6 @@ REGISTRATION_HTML = "<p><p>Hello <b>{name}</b>,</p><br><p>Thanks for registering
 
 # UPLOAD_LOCATION = '/qna/media/'
 
-def get_category_format(category_list, subcategory):
-	pass
-
 
 def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
 	from quiz.models import Question, SubCategory
@@ -85,14 +82,13 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 				questions_level_info[2] = questions_level_info[2] + 1
 			
 			if not is_have_sub_category:
-				print 'under there'
 				sca['questions'].append(d)
 	else:
 		print 'Not have questions <<<<<<<<<<<>>>>>>>>>>>>'
 
 	questions_level_info[3] = sum(questions_level_info)
 	sca['questions_level_info'] = questions_level_info
-	print sca
+	# print sca
 	return sca;
 
 def validate_stack():
