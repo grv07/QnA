@@ -144,7 +144,7 @@ def save_sitting_user(request):
 		print e.args
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
-
+# Helper function for get users cache data if exist in cache.
 def test_data_helper(test_key, test_user_id):
 	test_data = { 'isTestNotCompleted': False, 'sectionNoWhereLeft': None, 'sectionsRemaining': [], 'existingAnswers': { 'answers': {} } }
 	if cache.get('sitting_id'+str(test_user_id), None):	
@@ -185,7 +185,7 @@ def test_user_data(request):
 			data['test_key'] = test_user.test_key
 			data['token'] = token
 			data['testUser'] = test_user.id
-			data['test'] = test_data_helper(test_user.test_key, test_user_id)
+			data['test'].update(test_data_helper(test_user.test_key, test_user_id))
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -203,7 +203,7 @@ def test_user_data(request):
 			user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
 			create = True
 		except Quiz.DoesNotExist as e:
-        	return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
 		serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
 		if serializer.is_valid():
 			data['status'] = 'SUCCESS'
@@ -220,7 +220,7 @@ def test_user_data(request):
 						return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
 						 status = status.HTTP_200_OK)				
 					else:
-						data['test']['remaining_attempts'] = quiz.no_of_attempt - test_user.no_attempt
+						data['test'].update({'remaining_attempts':quiz.no_of_attempt - test_user.no_attempt})
 					is_new = False
 					test_user.save()
 				except 	TestUser.DoesNotExist as e:
@@ -229,8 +229,9 @@ def test_user_data(request):
 			data['token'] = token
 			data['is_new'] = is_new
 			data['testUser'] = test_user.id
-			data['test'] = test_data_helper(test_key, test_user.id)				
-			data['testURL'] = TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)
+			data['test'].update(test_data_helper(test_key, test_user.id))				
+			data['test'].update({'testURL':TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)})
+
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			print serializer.errors

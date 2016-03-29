@@ -62,7 +62,7 @@ class Quiz(models.Model):
 		blank=True, help_text=_("Displayed if user fails."))
 
 	total_marks = models.IntegerField(
-		blank=True, default=20,
+		blank=True, default=0,
 		verbose_name=_("total_marks"))
 
 	allow_public_access = models.BooleanField(default = False,
