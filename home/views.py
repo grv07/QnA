@@ -16,6 +16,7 @@ from quiz.models import Sitting, Quiz, Question
 from quiz.serializer import SittingSerializer
 from home.models import TestUser
 from django.utils import timezone
+from QnA.settings import TEST_URL_THIRD_PARTY
 
 
 
@@ -121,70 +122,123 @@ def get_user_result(request, test_user_id, quiz_key):
 	else:	
 		return HttpResponse(html)
 
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 @permission_classes((AllowAny,))
 # @authentication_classes([TestAuthentication])
 def test_user_data(request):
-	'''Save data of test user if new >> then create new obj. , If found in DB then reuse it'''
 	data = {}
-	name = request.data.get('username')
-	email = request.data.get('email')
-	test_key = request.data.get('test_key')
 	data['isTestNotCompleted'] = False
-	try:
-		user  = User.objects.get(username = name)
-		create = False
-	except User.DoesNotExist as e:
-		user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
-		create = True
-
-	serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
-	if serializer.is_valid():
-		data['status'] = 'success'
-		data['username'] = name
-		data['test_key'] = test_key	
-		is_new = True
-		
-		if create:
-			test_user = serializer.save()
+	if request.method == 'GET':
+		test_user_id = request.query_params.get('test_user_id', None)
+		token = request.query_params.get('token', None)
+		if test_user_id and token:
+			test_user = TestUser.objects.get(id = test_user_id)
+			data['status'] = 'SUCCESS'
+			data['username'] = test_user.user.username
+			data['test_key'] = test_user.test_key
+			data['token'] = token
+			data['testUser'] = test_user.id
+			data['existingAnswers'] = { 'answers': {} }
+			data['sectionNoWhereLeft'] = None
+			data['sectionsRemaining']  = []
+			if cache.get(test_user.test_key + "|" + test_user_id + "time"):
+				data['isTestNotCompleted'] = True
+				data['timeRemaining'] = cache.get(test_user.test_key + "|" + test_user_id + "time")['remaining_duration']
+				preExistingKeys = sorted(list(cache.iter_keys(test_user.test_key + "|" + test_user_id + "|**")), key=lambda k: cache.get(k)['time'])
+				if preExistingKeys:
+					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+					remaining_sections = []
+					total_sections_list = range(1, Quiz.objects.get(quiz_key = test_user.test_key).total_sections + 1)
+					for section_no in total_sections_list:
+						if test_user.test_key + "|" + test_user_id + "|" + str(section_no) not in preExistingKeys:
+							remaining_sections += [section_no]
+					remaining_sections += [ int(data['sectionNoWhereLeft']) ]
+					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+					data['sectionsRemaining'] = sorted(remaining_sections)
+					data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+			return Response(data, status = status.HTTP_200_OK)
 		else:
-			try:
-				test_user = TestUser.objects.get(user = user, test_key = test_key)
-				if not test_user.no_attempt < Quiz.objects.get(quiz_key = test_key).no_of_attempt: 
-					return Response({'errors': 'There are no remaining attempts left for this test.'}, status=status.HTTP_400_BAD_REQUEST)				
-				is_new = False
-				test_user.save()
-			except 	TestUser.DoesNotExist as e:
-				test_user = serializer.save()
-		token = generate_token(user)
-		data['token'] = token
-		data['is_new'] = is_new
-		data['testUser'] = test_user.id
-		data['existingAnswers'] = { 'answers': {} }
-		data['sectionNoWhereLeft'] = None
-		data['sectionsRemaining']  = []
-		if cache.get(test_key + "|" + str(test_user.id) + "time"):
-			data['isTestNotCompleted'] = True
-			data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
-			preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
-			if preExistingKeys:
-				print preExistingKeys,'-------------'
-				data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-				remaining_sections = []
-				total_sections_list = range(1, Quiz.objects.get(id = request.data.get('quiz_id')).total_sections + 1)
-				for section_no in total_sections_list:
-					if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
-						remaining_sections += [section_no]
-				remaining_sections += [ int(data['sectionNoWhereLeft']) ]
-				data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-				data['sectionsRemaining'] = sorted(remaining_sections)
-				data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
-		# print data
-		return Response(data, status = status.HTTP_200_OK)
-	else:
-		print serializer.errors
-		return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
 
+	elif request.method == 'POST':
+		'''Save data of test user if new >> then create new obj. , If found in DB then reuse it'''
+		name = request.data.get('username')
+		email = request.data.get('email')
+		test_key = request.data.get('test_key')
+		try:
+			user  = User.objects.get(username = name)
+			create = False
+		except User.DoesNotExist as e:
+			user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
+			create = True
+		serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
+		if serializer.is_valid():
+			data['status'] = 'SUCCESS'
+			data['username'] = name
+			data['test_key'] = test_key	
+			is_new = True
+			
+			if create:
+				test_user = serializer.save()
+			else:
+				try:
+					test_user = TestUser.objects.get(user = user, test_key = test_key)
+					if not test_user.no_attempt < Quiz.objects.get(quiz_key = test_key).no_of_attempt: 
+						return Response({'errors': 'There are no remaining attempts left for this test.'}, status=status.HTTP_400_BAD_REQUEST)				
+					is_new = False
+					test_user.save()
+				except 	TestUser.DoesNotExist as e:
+					test_user = serializer.save()
+			token = generate_token(user)
+			data['token'] = token
+			data['is_new'] = is_new
+			data['testUser'] = test_user.id
+			data['existingAnswers'] = { 'answers': {} }
+			data['sectionNoWhereLeft'] = None
+			data['sectionsRemaining']  = []
+			if cache.get(test_key + "|" + str(test_user.id) + "time"):
+				data['isTestNotCompleted'] = True
+				data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
+				preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
+				if preExistingKeys:
+					print preExistingKeys,'-------------'
+					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+					remaining_sections = []
+					total_sections_list = range(1, Quiz.objects.get(quiz_key = test_key).total_sections + 1)
+					for section_no in total_sections_list:
+						if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
+							remaining_sections += [section_no]
+					remaining_sections += [ int(data['sectionNoWhereLeft']) ]
+					data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+					data['sectionsRemaining'] = sorted(remaining_sections)
+					data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+			# print data
+			data['testURL'] = TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)
+			return Response(data, status = status.HTTP_200_OK)
+		else:
+			print serializer.errors
+			return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['POST'])
+def save_sitting_user(request):
+	try:
+		test_user = request.data.get('test_user')
+		sitting_id = cache.get('sitting_id'+str(test_user), None)
+		if not sitting_id and request.data.get('questions_list'):
+			quiz_id = request.data.get('quiz_id')
+			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
+			if not sitting_obj.unanswerd_question_list:
+				for question_id in request.data.get('questions_list'):
+					sitting_obj.add_unanswerd_question(question_id)
+			cache.set('sitting_id'+str(test_user), sitting_obj.id, timeout = CACHE_TIMEOUT)
+			sitting_id = cache.get('sitting_id'+str(test_user))
+			return Response({}, status = status.HTTP_200_OK)
+		return Response({}, status = status.HTTP_200_OK)
+	except Exception as e:
+		print e.args
+		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT'])
@@ -192,14 +246,16 @@ def save_time_remaining_to_cache(request):
 	try:
 		test_user = request.data.get('test_user')
 		test_key = request.data.get('test_key')
-		cache_key = test_key + "|" + str(test_user) + "time"
-		cache_value = cache.get(cache_key)
-		if not cache_value:
-			cache.set(cache_key, { 'remaining_duration': request.data.get('remaining_duration') }, timeout = CACHE_TIMEOUT)
-		else:
-			cache_value['remaining_duration'] = request.data.get('remaining_duration')
-			cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
-		return Response({}, status = status.HTTP_200_OK)
+		sitting_id = cache.get('sitting_id'+str(test_user), None)
+		if sitting_id:
+			cache_key = test_key + "|" + str(test_user) + "time"
+			cache_value = cache.get(cache_key)
+			if not cache_value:
+				cache.set(cache_key, { 'remaining_duration': request.data.get('remaining_duration') }, timeout = CACHE_TIMEOUT)
+			else:
+				cache_value['remaining_duration'] = request.data.get('remaining_duration')
+				cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
+			return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
@@ -210,14 +266,6 @@ def save_test_data_to_cache(request):
 	print request.data
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
-	if not sitting_id and request.data.get('questions_list'):
-		quiz_id = request.data.get('quiz_id')
-		sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user).user,  quiz = Quiz.objects.get(pk = quiz_id))
-		if not sitting_obj.unanswerd_question_list:
-			for question_id in request.data.get('questions_list'):
-				sitting_obj.add_unanswerd_question(question_id)
-		cache.set('sitting_id'+str(test_user), sitting_obj.id, timeout = CACHE_TIMEOUT)
-		sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
 		answer = request.data.get('answer')
 		question_id = answer.keys()[0]
