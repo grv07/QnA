@@ -127,22 +127,30 @@ def get_user_result(request, test_user_id, quiz_key):
 def test_user_data(request):
 	'''Save data of test user if new >> then create new obj. , If found in DB then reuse it'''
 	data = {}
+	data['test'] = {}
+	test_data = data['test']
+	test_data['isTestNotCompleted'] = False
+
 	name = request.data.get('username')
 	email = request.data.get('email')
 	test_key = request.data.get('test_key')
-	data['isTestNotCompleted'] = False
+
 	try:
+		quiz = Quiz.objects.get(quiz_key = test_key)
 		user  = User.objects.get(username = name)
 		create = False
 	except User.DoesNotExist as e:
 		user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
 		create = True
+	except Quiz.DoesNotExist as e:
+		return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
 
 	serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
 	if serializer.is_valid():
-		data['status'] = 'success'
+		data['status'] = 'SUCCESS'
 		data['username'] = name
-		data['test_key'] = test_key	
+		test_data['test_key'] = test_key
+
 		is_new = True
 		
 		if create:
@@ -150,9 +158,8 @@ def test_user_data(request):
 		else:
 			try:
 				test_user = TestUser.objects.get(user = user, test_key = test_key)
-				print test_user.no_attempt
-				if not test_user.no_attempt < Quiz.objects.get(quiz_key = test_key).no_of_attempt: 
-					return Response({'errors': 'There are no remaining attempts left for this test.'}, status=status.HTTP_400_BAD_REQUEST)				
+				if not test_user.no_attempt < quiz.no_of_attempt: 
+					return Response({'status':'FAIL', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'}, status = status.HTTP_400_BAD_REQUEST)				
 				is_new = False
 				test_user.save()
 			except 	TestUser.DoesNotExist as e:
@@ -161,30 +168,37 @@ def test_user_data(request):
 		data['token'] = token
 		data['is_new'] = is_new
 		data['testUser'] = test_user.id
-		data['existingAnswers'] = { 'answers': {} }
-		data['sectionNoWhereLeft'] = None
-		data['sectionsRemaining']  = []
-		if cache.get(test_key + "|" + str(test_user.id) + "time"):
-			data['isTestNotCompleted'] = True
-			data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
+
+		test_data['existingAnswers'] = { 'answers': {} }
+		test_data['sectionNoWhereLeft'] = None
+		test_data['sectionsRemaining']  = []
+
+		if cache.get(test_key + "|" + str(test_user.id) + "time"):	
+			test_data['status'] = 'INCOMPLETE'
+			test_data['isTestNotCompleted'] = True
+			test_data['timeRemaining'] = cache.get(test_key + "|" + str(test_user.id) + "time")['remaining_duration']
 			preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user.id)+"|**")), key=lambda k: cache.get(k)['time'])
 			if preExistingKeys:
 				print preExistingKeys,'-------------'
-				data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+				test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
 				remaining_sections = []
-				total_sections_list = range(1, Quiz.objects.get(id = request.data.get('quiz_id')).total_sections + 1)
+				total_sections_list = range(1, quiz.total_sections + 1)
+				
 				for section_no in total_sections_list:
 					if test_key+"|"+str(test_user.id)+"|"+str(section_no) not in preExistingKeys:
 						remaining_sections += [section_no]
-				remaining_sections += [ int(data['sectionNoWhereLeft']) ]
-				data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-				data['sectionsRemaining'] = sorted(remaining_sections)
-				data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
-		# print data
+				
+				remaining_sections += [ int(test_data['sectionNoWhereLeft']) ]
+				test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
+				test_data['sectionsRemaining'] = sorted(remaining_sections)
+				test_data['existingAnswers'] = { 'answers' : { 'Section#'+data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+		else:
+			test_data['status'] = 'ToBeTaken'
+		test_data['url'] = 'http://localhost:9001/#/open/test/'+test_key	
 		return Response(data, status = status.HTTP_200_OK)
 	else:
 		print serializer.errors
-		return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+		return Response({'status':'FAIL', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
