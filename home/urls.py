@@ -9,7 +9,7 @@ urlpatterns = [
 	url(r'^user/data/$', views.test_user_data),
 	url(r'^save/sitting/user/$', views.save_sitting_user),
 	url(r'^save/test/cache/$', views.save_test_data_to_cache),
-	url(r'^user/result/(?P<test_user_id>\d+)/(?P<quiz_key>\w+)/$', views.get_user_result),
+	url(r'^user/result/(?P<test_user_id>\d+)/(?P<quiz_key>\w+)/(?P<attempt_no>[1-5]{1})$', views.get_user_result),
 	url(r'^save/test/db/$', views.save_test_data_to_db),
 	url(r'^save/time/remaining/$', views.save_time_remaining_to_cache),
 	url(r'^ping/$', views.ping),
