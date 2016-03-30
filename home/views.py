@@ -145,15 +145,25 @@ def save_sitting_user(request):
 		sitting_id = cache.get('sitting_id'+str(test_user_id), None)
 		if not sitting_id and request.data.get('questions_list'):
 			quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
-			sitting_obj = Sitting.objects.create(user = TestUser.objects.get(pk = test_user_id).user,  quiz = quiz)
-			sitting_obj.attempt_no += 1
+			test_user_obj = TestUser.objects.get(pk = test_user_id)
+			sitting_obj = Sitting.objects.create(user = test_user_obj.user,  quiz = quiz)
+			
+			test_user_obj.no_attempt += 1
+			test_user_obj.save()
+
+			sitting_obj.attempt_no = test_user_obj.no_attempt 
 			sitting_obj.save()
+
 			if not sitting_obj.unanswerd_question_list:
 				for question_id in request.data.get('questions_list'):
 					sitting_obj.add_unanswerd_question(question_id)
 			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
-			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id, 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email }
-			if not postNotifications(data, 'start/asm_notification/'):
+			
+			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
+					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
+					  'email': sitting_obj.user.email }
+			
+			if not postNotifications(data, sitting_obj.quiz.start_notification_url):
 				print 'start notification not sent'
 			return Response({}, status = status.HTTP_200_OK)
 		return Response({}, status = status.HTTP_200_OK)
@@ -214,7 +224,7 @@ def test_user_data(request):
 		test_key = request.data.get('test_key')
 		try:
 			quiz = Quiz.objects.get(quiz_key = test_key)
-			user  = User.objects.get(username = name)
+			user  = User.objects.get(username = name, email = email)
 			create = False
 		except User.DoesNotExist as e:
 			user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
@@ -226,7 +236,7 @@ def test_user_data(request):
 		if serializer.is_valid():
 			data['status'] = 'SUCCESS'
 			data['username'] = name
-			data['test_key'] = test_key	
+			data['test_key'] = test_key
 			is_new = True
 		
 			if create:
@@ -306,10 +316,13 @@ def save_test_data_to_db(request):
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
 		test_key = request.data.get('test_key')		
-		_test_user_obj = TestUser.objects.get(pk = test_user)
+		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
-		unanswered_questions_list = map(int, sitting_obj.unanswerd_question_list.split(','))
+		un_ans_que_list = sitting_obj.unanswerd_question_list
+
+		unanswered_questions_list = map(int, un_ans_que_list.strip().split(',')) if len(un_ans_que_list) > 0 else []
 		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
+		
 		for key in list(cache.iter_keys(cache_keys_pattern)):
 			answered_questions_list = generate_result(cache.get(key), sitting_obj, key)
 			if answered_questions_list:
@@ -318,9 +331,7 @@ def save_test_data_to_db(request):
 						unanswered_questions_list.remove(question_id) 
 				cache.delete(key)
 				print cache.get(key), '-----------------'
-		_test_user_obj.no_attempt += 1
-		_test_user_obj.save()
-		# sitting_obj.attempt_no = _test_user_obj.no_attempt
+
 		sitting_obj.save_time_spent(request.data.get('time_spent'))
 
 		# Clear all unanswered_questions_list so as to modify it.
@@ -332,14 +343,14 @@ def save_test_data_to_db(request):
 		# test is set to complete must come after sitting_obj.add_unanswerd_question()
 		sitting_obj.mark_quiz_complete()
 		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
-		if not postNotifications(data, 'finish/asm_notification/'):
+		if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
 			print 'finish notification not sent'
 		cache.delete('sitting_id'+str(test_user))
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
 		print data
-		if not postNotifications(data, 'grade/asm_notification/'):
+		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({}, status = status.HTTP_200_OK)
 	else:
