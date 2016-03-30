@@ -209,7 +209,6 @@ def test_user_data(request):
 			test_user = TestUser.objects.get(id = test_user_id)
 			data['status'] = 'SUCCESS'
 			data['username'] = test_user.user.username
-			quiz = Quiz.objects.get(quiz_key = test_user.test_key)
 			data['test_key'] = test_user.test_key
 			data['token'] = token
 			data['testUser'] = test_user.id
