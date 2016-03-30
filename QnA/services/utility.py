@@ -122,7 +122,6 @@ def checkIfTrue(str_value):
 
 def postNotifications(data = None, url = None):
 	import json
-
 	if data and url:
 		try:
 			import requests

@@ -120,10 +120,10 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
-def get_user_result(request, test_user_id, quiz_key):
+def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	test_user = TestUser.objects.get(id = test_user_id)
 	get_order_by = '-current_score'
-	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = Quiz.objects.get(quiz_key = quiz_key))
+	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = Quiz.objects.get(quiz_key = quiz_key), attempt_no = attempt_no)
 	_filter_by_category = filter_by_category(sitting)
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
 	data['filter_by_category'] = _filter_by_category[0]
@@ -244,22 +244,21 @@ def test_user_data(request):
 			else:
 				try:
 					test_user = TestUser.objects.get(user = user, test_key = test_key)
-					if not test_user.no_attempt < quiz.no_of_attempt: 
-						return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
-						 status = status.HTTP_200_OK)				
-					else:
-						data['test'].update({'remaining_attempts':quiz.no_of_attempt - test_user.no_attempt})
 					is_new = False
 					test_user.save()
 				except 	TestUser.DoesNotExist as e:
 					test_user = serializer.save()
+			if not test_user.no_attempt <= quiz.no_of_attempt: 
+				return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
+				 status = status.HTTP_200_OK)				
+			else:
+				data['test'].update({'remaining_attempts':quiz.no_of_attempt - test_user.no_attempt})
 			token = generate_token(user)
 			data['token'] = token
 			data['is_new'] = is_new
 			data['testUser'] = test_user.id
 			data['test'].update(test_data_helper(test_key, test_user.id))				
 			data['test'].update({'testURL':TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)})
-
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			print serializer.errors
@@ -349,7 +348,6 @@ def save_test_data_to_db(request):
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
-		print data
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({}, status = status.HTTP_200_OK)
