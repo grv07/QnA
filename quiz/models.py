@@ -36,7 +36,9 @@ class Quiz(models.Model):
 		blank=True, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
-	redirect_url = models.URLField(blank=True, null=True)
+	start_notification_url = models.URLField(blank=True, null=True)
+	finish_notification_url = models.URLField(blank=True, null=True)
+	grade_notification_url = models.URLField(blank=True, null=True)
 
 	no_of_attempt = models.IntegerField(
 		blank=False, default=False,
@@ -60,7 +62,7 @@ class Quiz(models.Model):
 		blank=True, help_text=_("Displayed if user fails."))
 
 	total_marks = models.IntegerField(
-		blank=True, default=20,
+		blank=True, default=0,
 		verbose_name=_("total_marks"))
 
 	allow_public_access = models.BooleanField(default = False,
@@ -404,7 +406,7 @@ class Sitting(models.Model):
 	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
 
-	end_date = models.DateTimeField(null=True, blank=True, verbose_name=_("End"))
+	end_date = models.DateTimeField(auto_now = True, verbose_name=_("End"))
 
 	objects = SittingManager()
 
@@ -542,7 +544,7 @@ class Sitting(models.Model):
 
 
 def figure_directory(instance, filename):
-    return '/qna/media/{0}/{1}/{2}'.format(instance.que_type, instance.sub_category.sub_category_name, filename)
+    return 'qna/media/{0}/{1}/{2}'.format(instance.que_type, instance.sub_category.sub_category_name, filename)
 
 @python_2_unicode_compatible
 class Question(models.Model):

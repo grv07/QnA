@@ -119,3 +119,18 @@ def checkIfTrue(str_value):
 		return True
 	elif str_value == 'false':
 		return False
+
+def postNotifications(data = None, url = None):
+	from QnA.local_settings import REQUEST_URL_THIRD_PARTY
+	import json
+	if data and url:
+		try:
+			import requests
+			post_url = REQUEST_URL_THIRD_PARTY+url
+			data['notification_url'] = post_url
+			requests.post(post_url, data = json.dumps(data))
+			return True
+		except Exception as e:
+			print e.args
+			return False
+	return False
