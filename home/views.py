@@ -209,10 +209,12 @@ def test_user_data(request):
 			test_user = TestUser.objects.get(id = test_user_id)
 			data['status'] = 'SUCCESS'
 			data['username'] = test_user.user.username
+			quiz = Quiz.objects.get(quiz_key = test_user.test_key)
 			data['test_key'] = test_user.test_key
 			data['token'] = token
 			data['testUser'] = test_user.id
 			data['test'].update(test_data_helper(test_user.test_key, test_user_id))
+			data['test'].update({'attempt_no':test_user.no_attempt})
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -248,7 +250,7 @@ def test_user_data(request):
 					test_user.save()
 				except 	TestUser.DoesNotExist as e:
 					test_user = serializer.save()
-			if not test_user.no_attempt <= quiz.no_of_attempt: 
+			if not test_user.no_attempt < quiz.no_of_attempt: 
 				return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
 				 status = status.HTTP_200_OK)				
 			else:
@@ -348,6 +350,7 @@ def save_test_data_to_db(request):
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+		data['htmlReport'] = 'http://'+str(request.get_host())+'/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({}, status = status.HTTP_200_OK)
