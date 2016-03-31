@@ -349,7 +349,7 @@ def save_test_data_to_db(request):
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
-		data['htmlReport'] = 'http://'+str(request.get_host())+'/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
+		data['htmlReport'] = 'http://'+str(request.get_host())+'/api/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({}, status = status.HTTP_200_OK)
