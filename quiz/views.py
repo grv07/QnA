@@ -442,3 +442,4 @@ def download_xls_file(request):
 	except OSError:
 		pass
 	return response
+

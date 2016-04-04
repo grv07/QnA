@@ -46,20 +46,18 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 		except SubCategory.DoesNotExist as e:
 			print e.args
 			return None
-		questions = Question.objects.filter(sub_category = sc)
 	else:
 		try:
 			sc = SubCategory.objects.filter(user = user_id)[1]
 		except SubCategory.DoesNotExist as e:
 			print e.args
 			return None
-		questions = Question.objects.filter(sub_category = sc)
+	questions = Question.objects.filter(sub_category = sc)
 		# questions = questions[:10] if len(questions) > 10 else None
 
 	sca['subcategory'] = sc.sub_category_name
 	sca['id'] = sc.id
 	sca['questions'] = []
-	print questions
 	if questions:
 		for question in questions:
 			d = {

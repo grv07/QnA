@@ -18,6 +18,7 @@ from quiz.serializer import SittingSerializer
 from home.models import TestUser
 from django.utils import timezone
 from QnA.settings import TEST_URL_THIRD_PARTY
+from quizstack.models import QuizStack
 
 
 
@@ -143,7 +144,7 @@ def save_sitting_user(request):
 	try:
 		test_user_id = request.data.get('test_user')
 		sitting_id = cache.get('sitting_id'+str(test_user_id), None)
-		if not sitting_id and request.data.get('questions_list'):
+		if not sitting_id:
 			quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
 			test_user_obj = TestUser.objects.get(pk = test_user_id)
 			sitting_obj = Sitting.objects.create(user = test_user_obj.user,  quiz = quiz)
@@ -155,8 +156,9 @@ def save_sitting_user(request):
 			sitting_obj.save()
 
 			if not sitting_obj.unanswerd_question_list:
-				for question_id in request.data.get('questions_list'):
-					sitting_obj.add_unanswerd_question(question_id)
+				for quizstack in QuizStack.objects.filter(quiz = quiz):
+					for question_id in quizstack.fetch_selected_questions():
+						sitting_obj.add_unanswerd_question(question_id)
 			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
 			
 			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,

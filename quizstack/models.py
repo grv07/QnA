@@ -21,7 +21,7 @@ class QuizStack(models.Model):
 	section_name = models.CharField(max_length = 30, default='section#1')	
 	# Selection criteria for questions
 	level = models.CharField(max_length = 30, choices = QUESTION_DIFFICULTY_OPTIONS, default='easy')
-	que_type = models.CharField(max_length = 30)
+	que_type = models.CharField(max_length = 30, blank=True)
 	duration = models.CharField(max_length = 3, default = 0)
 	no_questions = models.IntegerField()
 	question_order = models.CharField(max_length=7, choices = ANSWER_ORDER_OPTIONS, default='random')
@@ -29,6 +29,8 @@ class QuizStack(models.Model):
 	correct_grade = models.IntegerField(default = 1)
 	incorrect_grade = models.IntegerField(default = 0)
 	istimed = models.BooleanField(default = True)
+	selected_questions = models.CommaSeparatedIntegerField(
+		max_length=1024, verbose_name=_("Selected Question List"), null=True, blank=True, default = '')
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
@@ -41,6 +43,21 @@ class QuizStack(models.Model):
 
 	def __unicode__(self):
 		return unicode(self.id)
+
+	def add_selected_questions(self, selected_questions):
+		count = 0
+		if selected_questions:
+			for question_id in selected_questions:
+				count += 1
+				self.selected_questions += str(question_id)+","
+		self.no_questions = count
+		self.save()
+
+	def fetch_selected_questions(self):
+		if self.selected_questions:
+			selected_questions = self.selected_questions.split(',')
+			return selected_questions[:len(selected_questions) - 1]
+		return []
 
 	def save(self, *args, **kwargs):
 		super(QuizStack, self).save(*args, **kwargs)
