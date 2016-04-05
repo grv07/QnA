@@ -236,12 +236,23 @@ def pre_selected_questions(request, quizstack_id):
 	elif request.method == 'POST':
 		try:
 			if request.data:
-				quizstack.selected_questions = ''
-				quizstack.save()
-				quizstack.add_selected_questions(request.data)
-				return Response({ 'quizId': quizstack.quiz.id}, status = status.HTTP_200_OK)
+				total_already_present_questions = len(quizstack.fetch_selected_questions())
+				total_new_selected_questions = len(request.data)
+				if total_already_present_questions == total_new_selected_questions:
+					return Response({'errors': 'Already all questions are selected.'}, status = status.HTTP_400_BAD_REQUEST)
+				else:
+					quizstack.selected_questions = ''
+					quizstack.save()
+					if total_already_present_questions > total_new_selected_questions:
+						quizstack.quiz.total_questions -= abs(total_already_present_questions - total_new_selected_questions)
+					elif total_already_present_questions < total_new_selected_questions:
+						quizstack.quiz.total_questions += abs(total_already_present_questions - total_new_selected_questions)
+					quizstack.quiz.total_marks =  quizstack.quiz.total_questions*quizstack.correct_grade
+					quizstack.quiz.save()
+					quizstack.add_selected_questions(request.data)
+					return Response({ 'quizId': quizstack.quiz.id}, status = status.HTTP_200_OK)
 			else:
-				return Response({'errors': 'One question must be selected.'}, status = status.HTTP_404_NOT_FOUND)
+				return Response({'errors': 'One question must be selected.'}, status = status.HTTP_400_BAD_REQUEST)
 		except Exception as e:
 			print e.args
 			return Response({'errors': 'Questions cannot be saved.'}, status = status.HTTP_404_NOT_FOUND)
