@@ -227,8 +227,11 @@ def test_user_data(request):
 			user  = User.objects.get(username = name, email = email)
 			create = False
 		except User.DoesNotExist as e:
-			user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
-			create = True
+			try:
+				user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
+				create = True
+			except Exception as e:
+				return Response({'status':'FAIL', 'errors': 'Unable to create user.'}, status=status.HTTP_400_BAD_REQUEST)	
 		except Quiz.DoesNotExist as e:
 			return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
 			
