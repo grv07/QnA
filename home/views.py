@@ -87,10 +87,9 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 	user = sitting.user
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
-	print sitting.incorrect_questions_list.split(',')
-	print int(filter_by_category[1]*100)/quiz.total_questions
 	
-	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.split(',')))*100)/quiz.total_questions)
+	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.strip().split(',')))*100)/quiz.total_questions)
+
 	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
 	
 	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
