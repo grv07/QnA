@@ -1,5 +1,6 @@
 from django.utils.translation import ugettext as _
 
+
 QUESTION_DIFFICULTY_OPTIONS = (
 	('easy', _('EASY')),
 	('medium', _('MEDIUM')),
@@ -36,7 +37,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 	from quiz.models import Question, SubCategory
 	from mcq.models import Answer
 	from objective.models import ObjectiveQuestion
-
+	
 	questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
 	sca = {'subcategory' : None, 'id' : None, 'question' : None, 'questions_level_info' : None}
 
@@ -46,20 +47,17 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 		except SubCategory.DoesNotExist as e:
 			print e.args
 			return None
-		questions = Question.objects.filter(sub_category = sc)
 	else:
 		try:
 			sc = SubCategory.objects.filter(user = user_id)[1]
 		except SubCategory.DoesNotExist as e:
 			print e.args
 			return None
-		questions = Question.objects.filter(sub_category = sc)
-		# questions = questions[:10] if len(questions) > 10 else None
+	questions = Question.objects.filter(sub_category = sc)
 
 	sca['subcategory'] = sc.sub_category_name
 	sca['id'] = sc.id
 	sca['questions'] = []
-	print questions
 	if questions:
 		for question in questions:
 			d = {
@@ -88,7 +86,6 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 
 	questions_level_info[3] = sum(questions_level_info)
 	sca['questions_level_info'] = questions_level_info
-	# print sca
 	return sca;
 
 def validate_stack():
