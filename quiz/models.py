@@ -169,8 +169,7 @@ class SubCategory(models.Model):
 	user = models.ForeignKey(User)
 
 	category = models.ForeignKey(
-
-	Category,verbose_name=_("Category"), null=True, blank = True)
+		Category,verbose_name=_("Category"), null=True, blank=True)
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
