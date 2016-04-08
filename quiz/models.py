@@ -166,10 +166,10 @@ class SubCategory(models.Model):
 		verbose_name=_("Sub-Category"),
 		max_length=250)
 
-	user = models.ForeignKey(User, default = '1')
+	user = models.ForeignKey(User)
 
 	category = models.ForeignKey(
-		Category,verbose_name=_("Category"), null=True)
+		Category,verbose_name=_("Category"), null=True, blank=True)
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
@@ -179,7 +179,8 @@ class SubCategory(models.Model):
 	class Meta:
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
-		unique_together = ("sub_category_name", "category",)
+	        #This update category to >>> null=False if set unique with category
+		unique_together = ("sub_category_name", "user",)
 
 
 	def __str__(self):

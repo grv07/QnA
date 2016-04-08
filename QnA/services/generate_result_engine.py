@@ -50,7 +50,7 @@ def filter_by_category(sitting):
 	_correct_ans = json.loads(sitting.user_answers)
 	# Enjoy Helper functions
 	get_name_key = lambda que_id: Question.objects.get(pk = int(que_id)).sub_category.sub_category_name
-	get_que_set = lambda list: set(list.split(',')) if len(list) > 0 else [] 
+	get_que_set = lambda list: set(list.strip().split(',')) if len(list) > 0 else [] 
 
 	for que in get_que_set(sitting.incorrect_questions_list):
 		name_key = get_name_key(int(que))

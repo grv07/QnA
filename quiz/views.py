@@ -75,13 +75,8 @@ def update_quiz(request, userid, quizid ,format = None):
 def mark_quiz_public(request, userid, quizid):
 	try:
 		quiz = Quiz.objects.get(id = quizid, user = userid)
-		
-		if quiz.allow_public_access:
-			quiz.allow_public_access = False
-		else:
-			quiz.allow_public_access = True
-		quiz.save()	
-
+		quiz.allow_public_access = False if quiz.allow_public_access else True
+		quiz.save()
 		return Response({'title':quiz.title,"allow_public_access":quiz.allow_public_access}, status = status.HTTP_200_OK)
 	except Quiz.DoesNotExist as e:
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
@@ -236,7 +231,6 @@ def all_questions(request, user_id):
 	"""
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
-
 	if request.query_params.get('subCategoryId'):
 		try:
 			subcategory_id = request.query_params.get('subCategoryId')

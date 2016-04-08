@@ -192,8 +192,8 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 					if question.figure:
 						d[count]['figure'] = str(question.figure)
 					data['questions'].append(d)
-				added_questions.append(question_id)
-		data['total_questions'] = range(1,count+1)
+				added_questions.append(question.id)
+		data['total_questions'] = range(1, count+1)
 		data['added_questions'] = added_questions
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:

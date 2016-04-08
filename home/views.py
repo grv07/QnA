@@ -75,7 +75,7 @@ def login_user(request):
 		print e.args
 		return Response({'errors':'Incorrect credentials. Username is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 
- 
+
 @api_view(['POST'])
 def logout_user(request, format=None):
 	from django.contrib.auth import logout
@@ -88,8 +88,9 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 	user = sitting.user
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
+	
+	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.strip().split(',')))*100)/quiz.total_questions) if len(sitting.incorrect_questions_list) > 0 else 0 
 
-	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.split(',')))*100)/quiz.total_questions)
 	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
 	
 	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
@@ -127,6 +128,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = Quiz.objects.get(quiz_key = quiz_key), attempt_no = attempt_no)
 	_filter_by_category = filter_by_category(sitting)
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
+
 	data['filter_by_category'] = _filter_by_category[0]
 	data['view_format'] = request.GET.get('view_format',None)
 	fp = open('QnA/services/result.html')
@@ -135,7 +137,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	html = t.render(Context({'data': data }))
 	if data['view_format'] == 'pdf':
 		return generate_PDF(request, html)
-	else:	
+	else:
 		return HttpResponse(html)
 
 
@@ -229,8 +231,11 @@ def test_user_data(request):
 			user  = User.objects.get(username = name, email = email)
 			create = False
 		except User.DoesNotExist as e:
-			user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
-			create = True
+			try:
+				user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
+				create = True
+			except Exception as e:
+				return Response({'status':'FAIL', 'errors': 'Unable to create user.'}, status=status.HTTP_400_BAD_REQUEST)	
 		except Quiz.DoesNotExist as e:
 			return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
 			
@@ -350,7 +355,7 @@ def save_test_data_to_db(request):
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
-		data['htmlReport'] = 'http://'+str(request.get_host())+'/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
+		data['htmlReport'] = 'http://'+str(request.get_host())+'/api/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({ 'attempt_no': sitting_obj.attempt_no }, status = status.HTTP_200_OK)
