@@ -179,6 +179,7 @@ class SubCategory(models.Model):
 	class Meta:
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
+	    #This update category to >>> null=False if set unique with category
 		unique_together = ("sub_category_name", "user",)
 
 
