@@ -74,7 +74,7 @@ def login_user(request):
 		print e.args
 		return Response({'errors':'Incorrect credentials. Username is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 
- 
+
 @api_view(['POST'])
 def logout_user(request, format=None):
 	from django.contrib.auth import logout
@@ -87,7 +87,9 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 	user = sitting.user
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
-
+	print sitting.incorrect_questions_list.split(',')
+	print int(filter_by_category[1]*100)/quiz.total_questions
+	
 	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.split(',')))*100)/quiz.total_questions)
 	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
 	
@@ -134,7 +136,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	html = t.render(Context({'data': data }))
 	if data['view_format'] == 'pdf':
 		return generate_PDF(request, html)
-	else:	
+	else:
 		return HttpResponse(html)
 
 
