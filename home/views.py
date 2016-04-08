@@ -88,7 +88,7 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 	
-	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.strip().split(',')))*100)/quiz.total_questions)
+	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.strip().split(',')))*100)/quiz.total_questions) if len(sitting.incorrect_questions_list) > 0 else 0 
 
 	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
 	
@@ -127,6 +127,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = Quiz.objects.get(quiz_key = quiz_key), attempt_no = attempt_no)
 	_filter_by_category = filter_by_category(sitting)
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
+
 	data['filter_by_category'] = _filter_by_category[0]
 	data['view_format'] = request.GET.get('view_format',None)
 	fp = open('QnA/services/result.html')
