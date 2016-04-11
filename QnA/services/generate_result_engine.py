@@ -3,7 +3,7 @@ from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
 from .utility import QUESTION_TYPE_OPTIONS
 
-def generate_result(section_result, sitting_obj, cache_key):
+def generate_result(section_result, sitting_obj, cache_key, quizstack):
 	'''{u'answers': {
 		u'47': {u'status': u'NA', u'value': None},
 		u'20': {u'status': u'NA', u'value': None}, 
@@ -24,6 +24,7 @@ def generate_result(section_result, sitting_obj, cache_key):
 			if not _dict_data.get('status') == 'NA' and not _dict_data.get('value') == None:
 				try:
 					question = Question.objects.get(pk = question_id)
+					quizstack_obj = quizstack.filter(subcategory = question.sub_category)[0]
 				except Question.DoesNotExist as e:
 					print e.args
 					return None
@@ -34,9 +35,9 @@ def generate_result(section_result, sitting_obj, cache_key):
 				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 					is_correct = ObjectiveQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
 				if is_correct:
-					sitting_obj.add_to_score(question.points)
+					sitting_obj.add_to_score(quizstack_obj.correct_grade)
 				else:
-					sitting_obj.add_incorrect_question(question_id)
+					sitting_obj.add_incorrect_question(question_id, quizstack_obj.incorrect_grade)
 				answered_questions_list.append(question.id)
 		return answered_questions_list		
 				

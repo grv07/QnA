@@ -458,7 +458,7 @@ class Sitting(models.Model):
 		self.save()
 	
 	
-	def add_incorrect_question(self, question_id):
+	def add_incorrect_question(self, question_id, incorrect_points):
 		"""
 		Adds uid of incorrect question to the list.
 		The question object must be passed in.
@@ -467,7 +467,7 @@ class Sitting(models.Model):
 			self.incorrect_questions_list += ','
 		self.incorrect_questions_list += str(question_id)
 		if self.complete:
-			self.add_to_score(-1)
+			self.add_to_score(incorrect_points)
 		self.save()
 
 	def clear_all_unanswered_questions(self):

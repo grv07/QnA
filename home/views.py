@@ -328,9 +328,9 @@ def save_test_data_to_db(request):
 
 		unanswered_questions_list = map(int, un_ans_que_list.strip().split(',')) if len(un_ans_que_list) > 0 else []
 		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
-		
+		quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
 		for key in list(cache.iter_keys(cache_keys_pattern)):
-			answered_questions_list = generate_result(cache.get(key), sitting_obj, key)
+			answered_questions_list = generate_result(cache.get(key), sitting_obj, key, quizstack)
 			if answered_questions_list:
 				for question_id in answered_questions_list:
 					if question_id in unanswered_questions_list: 
