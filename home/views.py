@@ -176,15 +176,12 @@ def save_sitting_user(request):
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 # Helper function for get users cache data if exist in cache.
-def test_data_helper(test_key, test_user_id, total_duration):
+def test_data_helper(test_key, test_user_id):
 	test_data = { 'isTestNotCompleted': False, 'sectionNoWhereLeft': None, 'sectionsRemaining': [], 'existingAnswers': { 'answers': {} } }
 	if cache.get('sitting_id'+str(test_user_id), None):	
 		test_data['status'] = 'INCOMPLETE'
 		test_data['isTestNotCompleted'] = True
-		if cache.get(test_key + "|" + str(test_user_id) + "time"):
-			test_data['timeRemaining'] = cache.get(test_key + "|" + str(test_user_id) + "time")['remaining_duration']
-		else:
-			test_data['timeRemaining'] = total_duration
+		test_data['timeRemaining'] = cache.get(test_key + "|" + str(test_user_id) + "time")['remaining_duration']
 		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user_id)+"|**")), key=lambda k: cache.get(k)['time'])
 		if preExistingKeys:
 			print preExistingKeys,'-------------'
@@ -220,7 +217,7 @@ def test_user_data(request):
 
 			data['token'] = token
 			data['testUser'] = test_user.id
-			data['test'].update(test_data_helper(test_user.test_key, test_user_id, Quiz.objects.get(quiz_key = test_user.test_key).total_duration))
+			data['test'].update(test_data_helper(test_user.test_key, test_user_id))
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -268,7 +265,7 @@ def test_user_data(request):
 			data['token'] = token
 			data['is_new'] = is_new
 			data['testUser'] = test_user.id
-			data['test'].update(test_data_helper(test_key, test_user.id, quiz.total_duration))				
+			data['test'].update(test_data_helper(test_key, test_user.id))				
 			data['test'].update({'testURL':TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)})
 			return Response(data, status = status.HTTP_200_OK)
 		else:
