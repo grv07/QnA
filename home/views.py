@@ -17,7 +17,7 @@ from quiz.models import Sitting, Quiz, Question
 from quiz.serializer import SittingSerializer
 from home.models import TestUser
 from django.utils import timezone
-from QnA.settings import TEST_URL_THIRD_PARTY
+from QnA.settings import TEST_URL_THIRD_PARTY, TEST_BASE_URL, TEST_REPORT_URL
 from quizstack.models import QuizStack
 from django.utils.dateparse import parse_datetime
 
@@ -170,7 +170,6 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 		return
 		# return generate_PDF(request, html)
 	else:
-		print data
 		return Response(data, status = status.HTTP_200_OK)
 
 
@@ -389,7 +388,7 @@ def save_test_data_to_db(request):
 		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
-		data['htmlReport'] = 'http://'+str(request.get_host())+'/api/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
+		data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = str(test_user), quiz_key = test_key, attempt_no = str(sitting_obj.attempt_no))
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({ 'attempt_no': sitting_obj.attempt_no }, status = status.HTTP_200_OK)
