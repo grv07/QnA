@@ -1,6 +1,7 @@
 from mcq.models import MCQuestion
 from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
+from quizstack.models import QuizStack
 from .utility import QUESTION_TYPE_OPTIONS
 
 def generate_result(section_result, sitting_obj, cache_key, quizstack):
@@ -91,3 +92,29 @@ def filter_by_category(sitting):
 	for to_tuple in _cat_base_result:
 		_cat_base_result[to_tuple] = tuple(_cat_base_result[to_tuple])			
 	return [_cat_base_result,total_correct_que]	
+
+
+
+def filter_by_section(quiz, unanswerd_question_list, incorrect_question_list):
+	data = {}
+	unanswerd_and_incorrect_question_list = unanswerd_question_list + incorrect_question_list
+	quizstacks = QuizStack.objects.filter(quiz = quiz)
+	for section_no in xrange(1, quiz.total_sections+1):
+		data[section_no] = []
+		d_correct = { 'y':0, 'label': 'Section '+str(section_no) }
+		d_incorrect = d_correct.copy()
+		d_unattempt = d_correct.copy()
+		selected_questions = []
+		for quizstack in quizstacks.filter(section_name = 'Section#'+str(section_no)):
+			selected_questions += quizstack.fetch_selected_questions()
+		for q in selected_questions:
+			if int(q) in incorrect_question_list:
+				d_incorrect['y'] += 1
+			elif int(q) in unanswerd_question_list:
+				d_unattempt['y'] += 1
+			else:
+				d_correct['y'] += 1
+		data[section_no].append(d_correct)
+		data[section_no].append(d_incorrect)
+		data[section_no].append(d_unattempt)
+	return data

@@ -12,7 +12,7 @@ from django.core.cache import cache
 from QnA.services.utility import checkIfTrue, REGISTRATION_HTML, CACHE_TIMEOUT, postNotifications
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
-from QnA.services.generate_result_engine import generate_result, filter_by_category
+from QnA.services.generate_result_engine import generate_result, filter_by_category, filter_by_section
 from quiz.models import Sitting, Quiz, Question
 from quiz.serializer import SittingSerializer
 from home.models import TestUser
@@ -129,7 +129,6 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = quiz, attempt_no = attempt_no)
 	unanswerd_question_list = sitting.get_unanswered_questions()
 	incorrect_question_list = sitting.get_incorrect_questions()
-	unanswerd_and_incorrect_question_list = incorrect_question_list + unanswerd_question_list
 	_filter_by_category = filter_by_category(sitting)
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
 	data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
@@ -140,31 +139,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	# fp = open('QnA/services/result.html')
 	# t = Template(fp.read())
 	# fp.close()
-	data['section_wise_result_correct'] = []
-	data['section_wise_result_incorrect'] = []
-	data['section_wise_result_unattempt'] = []
-	quizstacks = QuizStack.objects.filter(quiz = quiz)
-	for section_no in xrange(1, quiz.total_sections+1):
-		d_correct = { 'y':0, 'indexLabel': 'Section '+str(section_no) }
-		d_incorrect = d_correct.copy()
-		d_unattempt = d_correct.copy()
-		selected_questions = []
-		for quizstack in quizstacks.filter(section_name = 'Section#'+str(section_no)):
-			selected_questions += quizstack.fetch_selected_questions()
-		for q in selected_questions:
-			if int(q) not in unanswerd_and_incorrect_question_list:
-				d_correct['y'] += 1
-			if int(q) in incorrect_question_list:
-				d_incorrect['y'] += 1
-			if int(q) in unanswerd_question_list:
-				d_unattempt['y'] += 1
-		if d_correct['y']:
-			data['section_wise_result_correct'].append(d_correct)
-		if d_incorrect['y']:
-			data['section_wise_result_incorrect'].append(d_incorrect)
-		if d_unattempt['y']:
-			data['section_wise_result_unattempt'].append(d_unattempt)	
-
+	data['section_wise_results'] = filter_by_section(quiz, unanswerd_question_list, incorrect_question_list)
 	# html = t.render(Context({'data': data }))
 	if data['view_format'] == 'pdf':
 		return
