@@ -8,7 +8,8 @@ from .models import QuizStack
 from .serializer import QuizStackSerializer
 from mcq.models import Answer
 from objective.models import ObjectiveQuestion
-from QnA.services.utility import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS, shuffleList
+from QnA.services.constants import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS
+from QnA.services.utility import shuffleList
 from django.core.cache import cache
 
 @api_view(['POST'])

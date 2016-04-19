@@ -1,7 +1,7 @@
 from mcq.models import MCQuestion
 from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
-from .utility import QUESTION_TYPE_OPTIONS
+from .constants import QUESTION_TYPE_OPTIONS
 
 def generate_result(section_result, sitting_obj, cache_key, quizstack):
 	'''{u'answers': {
@@ -91,3 +91,4 @@ def filter_by_category(sitting):
 	for to_tuple in _cat_base_result:
 		_cat_base_result[to_tuple] = tuple(_cat_base_result[to_tuple])			
 	return [_cat_base_result,total_correct_que]	
+
