@@ -10,7 +10,7 @@ from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
 from token_key import generate_token
 from django.core.cache import cache
 
-from QnA.services.utility import checkIfTrue, postNotifications, get_user_result_helper,save_test_data_to_db_helper
+from QnA.services.utility import checkIfTrue, postNotifications, get_user_result_helper, save_test_data_to_db_helper
 from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT
 
 from QnA.services.test_authentication import TestAuthentication
@@ -285,10 +285,13 @@ def save_test_data_to_cache(request):
 def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
+	print sitting_id
 	test_key = request.data.get('test_key')
 	time_spent = request.data.get('time_spent')
 	try:
-		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent)
+		host_name = request.META['HTTP_HOST']
+		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name)
+		print data
 		return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args

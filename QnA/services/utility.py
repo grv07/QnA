@@ -1,7 +1,17 @@
 from django.core.cache import cache
-from quiz.models import Question, SubCategory
+from django.utils import timezone
+
+import requests
+import json
+from random import shuffle
+
+from quiz.models import Question, SubCategory, Sitting, Quiz
 from mcq.models import Answer
+from quizstack.models import QuizStack
 from objective.models import ObjectiveQuestion
+from constants import QUESTION_TYPE_OPTIONS
+from generate_result_engine import generate_result, filter_by_category
+
 
 # UPLOAD_LOCATION = '/qna/media/'
 def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter_by_category = None, get_order_by = None):	
@@ -109,7 +119,6 @@ def validate_stack():
 
 
 def shuffleList(l):
-	from random import shuffle
 	shuffle(l)
 	return l
 
@@ -121,10 +130,8 @@ def checkIfTrue(str_value):
 		return False
 
 def postNotifications(data = None, url = None):
-	import json
 	if data and url:
 		try:
-			import requests
 			data['notification_url'] = url
 			requests.post(url, data = json.dumps(data))
 			return True
@@ -133,7 +140,7 @@ def postNotifications(data = None, url = None):
 			return False
 	return False
 
-def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent):
+def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name):
 	if sitting_id and test_user and test_key and time_spent:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
@@ -164,13 +171,15 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent):
 		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
 		if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
 			print 'finish notification not sent'
-		cache.delete('sitting_id'+str(test_user))
-		cache.delete(test_key + "|" + str(test_user) + "time")
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
 		data['htmlReport'] = 'http://'+str(host_name)+'/api/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
+		# Clean my cache ...
+		cache.delete('sitting_id'+str(test_user))
+		cache.delete(test_key + "|" + str(test_user) + "time")
+		# End ...
 		return { 'attempt_no': sitting_obj.attempt_no }
 	else:
 		raise ValueError('Any None not accepted ::: test_user: {0}, sitting_id: {1}, test_key: {2}, time_spent: {3}'.format(test_user, sitting_id, test_key, time_spent))
