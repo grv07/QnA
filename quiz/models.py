@@ -474,13 +474,11 @@ class Sitting(models.Model):
 		self.unanswerd_question_list = ''
 		self.save()
 
-	@property
 	def get_incorrect_questions(self):
-		"""
-		Returns a list of non empty integers, representing the pk of
-		questions
-		"""
-		return [int(q) for q in self.incorrect_questions.split(',') if q]
+		return [int(q) for q in self.incorrect_questions_list.split(',') if q]
+
+	def get_unanswered_questions(self):
+		return [int(q) for q in self.unanswerd_question_list.split(',') if q]
 
 	def remove_incorrect_question(self, question):
 		current = self.get_incorrect_questions
