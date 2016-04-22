@@ -2,6 +2,7 @@ from mcq.models import MCQuestion
 from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
 from quizstack.models import QuizStack
+from home.models import TestUser
 from .utility import QUESTION_TYPE_OPTIONS
 
 def generate_result(section_result, sitting_obj, cache_key, quizstack):
@@ -30,7 +31,7 @@ def generate_result(section_result, sitting_obj, cache_key, quizstack):
 					print e.args
 					return None
 				'''Check if given answers are correct or not'''
-				sitting_obj.add_user_answer(question_id, _dict_data.get('value'))
+				sitting_obj.add_user_answer(int(question_id), _dict_data.get('value'))
 				if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
 					is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
 				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
@@ -118,3 +119,33 @@ def filter_by_section(quiz, unanswerd_question_list, incorrect_question_list):
 		data[section_no].append(d_incorrect)
 		data[section_no].append(d_unattempt)
 	return data
+
+# Calculate the rank
+def get_rank(quiz_id, current_score, time_spent):
+	all_sitting_objs = Sitting.objects.filter(quiz = quiz_id)
+	rank = len(all_sitting_objs)
+	for sitting_obj in all_sitting_objs:
+		# print sitting_obj.time_spent, time_spent, sitting_obj.current_score, current_score
+		if current_score > sitting_obj.current_score:
+			rank -= 1
+		elif current_score == sitting_obj.current_score:
+			if time_spent < sitting_obj.time_spent:
+				rank -= 1
+	return rank
+
+# Save rank if rank == 0 (at first attempt) otherwise check if existing rank is better or newly calculated is. Use the minimum rank and save.
+def find_and_save_rank(test_user_id, quiz_id, current_score, time_spent):
+	try:
+		test_user = TestUser.objects.get(id = test_user_id)
+		current_rank = test_user.rank
+		calculated_rank = get_rank(quiz_id, current_score, time_spent)
+		if (current_rank == 0) or (current_rank > calculated_rank):
+			test_user.rank = calculated_rank
+			test_user.save()
+		return True
+	except Exception as e:
+		print e.args
+		return False
+
+
+

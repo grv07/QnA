@@ -36,7 +36,7 @@ class MerchantUser(models.Model):
 class TestUser(models.Model):
     user = models.ForeignKey(User)
     test_key = models.CharField(max_length = 20)
-    
+    rank = models.IntegerField(default = 0)    
     is_complete = models.BooleanField(default = False)
     no_attempt = models.IntegerField(default = 0)
 

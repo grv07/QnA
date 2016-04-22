@@ -12,7 +12,7 @@ from django.core.cache import cache
 from QnA.services.utility import checkIfTrue, REGISTRATION_HTML, CACHE_TIMEOUT, postNotifications
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
-from QnA.services.generate_result_engine import generate_result, filter_by_category, filter_by_section
+from QnA.services.generate_result_engine import generate_result, filter_by_category, filter_by_section, find_and_save_rank
 from quiz.models import Sitting, Quiz, Question
 from quiz.serializer import SittingSerializer
 from home.models import TestUser
@@ -133,13 +133,16 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
 	data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
 	data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
-
-	data['filter_by_category'] = _filter_by_category[0]
+	data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_ideal':{}, 'question_vs_time_result_real':{}}
+	data['analysis']['filter_by_category'] = _filter_by_category[0]
 	data['view_format'] = request.GET.get('view_format',None)
 	# fp = open('QnA/services/result.html')
 	# t = Template(fp.read())
 	# fp.close()
-	data['section_wise_results'] = filter_by_section(quiz, unanswerd_question_list, incorrect_question_list)
+	data['analysis']['section_wise_results'] = filter_by_section(quiz, unanswerd_question_list, incorrect_question_list)
+	data['analysis']['question_vs_time_result_ideal'] = {60: [85, 116], 61: ["5", 19], 62: ["lully", 66], 63: ["7", 36], 20: [64, 62], 21: [69, 70], 48: ["6", 47], 47: [82, 119], 29: ["76", 64], 146: ["ok", 61], 147: ["ok", 33], 144: ["wood", 59], 99: ["9.0", 110], 98: ["0.0", 111], 100: ["0.0", 87], 101: ["0.0", 134], 95: ["9.0", 115], 97: ["0.0", 109], 96: ["9.0", 92], 59: ["d", 17], 22: [74, 114], 17: [52, 118], 16: [49, 44], 19: [60, 136], 18: [56, 40], 57: ["20", 43], 56: ["20", 20], 34: ["IT", 49], 31: ["it", 25]}
+	data['analysis']['question_vs_time_result_real'] = {60: [85, 136], 61: ["5", 29], 62: ["lully", 86], 63: ["7", 56], 20: [64, 102], 21: [69, 100], 48: ["6", 37], 47: [82, 129], 29: ["76", 54], 146: ["ok", 51], 147: ["ok", 43], 144: ["wood", 49], 99: ["9.0", 110], 98: ["0.0", 121], 100: ["0.0", 117], 101: ["0.0", 114], 95: ["9.0", 105], 97: ["0.0", 119], 96: ["9.0", 112], 59: ["d", 27], 22: [74, 134], 17: [52, 98], 16: [49, 24], 19: [60, 126], 18: [56, 30], 57: ["20", 33], 56: ["20", 40], 34: ["IT", 89], 31: ["it", 45]}
+	data['rank'] = TestUser.objects.get(id = test_user_id).rank
 	# html = t.render(Context({'data': data }))
 	if data['view_format'] == 'pdf':
 		return
@@ -356,6 +359,11 @@ def save_test_data_to_db(request):
 
 		# test is set to complete must come after sitting_obj.add_unanswerd_question()
 		sitting_obj.mark_quiz_complete()
+
+		# find and save the rank
+		if not find_and_save_rank(test_user, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
+			print 'Cannot be saved'
+
 		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
 		if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
 			print 'finish notification not sent'
@@ -364,6 +372,7 @@ def save_test_data_to_db(request):
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
 		data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = str(test_user), quiz_key = test_key, attempt_no = str(sitting_obj.attempt_no))
+
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
 		return Response({ 'attempt_no': sitting_obj.attempt_no }, status = status.HTTP_200_OK)

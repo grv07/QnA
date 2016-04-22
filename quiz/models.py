@@ -498,9 +498,9 @@ class Sitting(models.Model):
 		else:
 			return self.quiz.fail_text
 
-	def add_user_answer(self, question_id, guess):
+	def add_user_answer(self, question_id, data):
 		current = json.loads(self.user_answers)
-		current[question_id] = guess
+		current[question_id] = data
 		self.user_answers = json.dumps(current)
 		self.save()
 
