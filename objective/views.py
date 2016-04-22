@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializer import ObjectiveQuestionSerializer
 from rest_framework import status
-from QnA.services.utility import BLANK_HTML, OBJECTIVE_FILE_COLS
+from QnA.services.constants import BLANK_HTML, OBJECTIVE_FILE_COLS
 
 
 @api_view(['POST'])

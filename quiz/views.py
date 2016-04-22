@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from QnA.services.utility import get_questions_format, QUESTION_TYPE_OPTIONS, BLANK_HTML, checkIfTrue
+from QnA.services.utility import get_questions_format, checkIfTrue
 
 from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
@@ -405,7 +405,7 @@ def answers_operations(request, userid, questionid):
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def download_xls_file(request):
-	from QnA.services.utility import MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
+	from QnA.services.constants import MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
 	from pyexcel_xls import save_data
 	from collections import OrderedDict
 

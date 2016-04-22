@@ -4,7 +4,7 @@ from mcq.models import MCQuestion
 from objective.models import ObjectiveQuestion
 from django.db import models
 from quiz.models import Quiz, SubCategory
-from QnA.services.utility import ANSWER_ORDER_OPTIONS, QUESTION_DIFFICULTY_OPTIONS
+from QnA.services.constants import ANSWER_ORDER_OPTIONS, QUESTION_DIFFICULTY_OPTIONS
 
 # Create your models here.
 '''

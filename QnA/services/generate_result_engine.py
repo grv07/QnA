@@ -3,7 +3,7 @@ from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
 from quizstack.models import QuizStack
 from home.models import TestUser
-from .utility import QUESTION_TYPE_OPTIONS
+from .constants import QUESTION_TYPE_OPTIONS
 
 def generate_result(section_result, sitting_obj, cache_key, quizstack):
 	'''{u'answers': {
@@ -95,7 +95,7 @@ def filter_by_category(sitting):
 	return [_cat_base_result,total_correct_que]	
 
 
-
+# Filter by section
 def filter_by_section(quiz, unanswerd_question_list, incorrect_question_list):
 	data = {}
 	unanswerd_and_incorrect_question_list = unanswerd_question_list + incorrect_question_list
@@ -146,6 +146,3 @@ def find_and_save_rank(test_user_id, quiz_id, current_score, time_spent):
 	except Exception as e:
 		print e.args
 		return False
-
-
-

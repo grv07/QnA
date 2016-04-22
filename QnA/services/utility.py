@@ -1,43 +1,57 @@
-from django.utils.translation import ugettext as _
+from django.core.cache import cache
+from django.utils import timezone
 
+import requests
+import json
+from random import shuffle
 
-QUESTION_DIFFICULTY_OPTIONS = (
-	('easy', _('EASY')),
-	('medium', _('MEDIUM')),
-	('hard', _('HARD'))
-)
+from quiz.models import Question, SubCategory, Sitting, Quiz
+from mcq.models import Answer
+from quizstack.models import QuizStack
+from objective.models import ObjectiveQuestion
+from constants import QUESTION_TYPE_OPTIONS
+from generate_result_engine import generate_result, filter_by_category, find_and_save_rank
 
-QUESTION_TYPE_OPTIONS = (
-	('mcq', _('MCQ')),
-	('objective', _('OBJECTIVE')),
-	# ('hard', _('HARD'))
-)
-
-ANSWER_ORDER_OPTIONS = (
-    ('content', _('CONTENT')),
-    ('random', _('RANDOM')),
-    ('none', _('NONE'))
-)
-
-MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
-'option4', 'option5', 'option6', 'correctoption', 'content']
-
-OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'content']
-
-BLANK_HTML = "<<Answer>>"
-
-CACHE_TIMEOUT = 18000
-
-REGISTRATION_HTML = "<p><p>Hello <b>{name}</b>,</p><br><p>Thanks for registering on <b>QnA</b>.</p><p>You username is <b>{username}</b>.</p></p>"
 
 # UPLOAD_LOCATION = '/qna/media/'
+def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter_by_category = None, get_order_by = None):	
+	get_order = order
+	quiz = sitting.quiz
+	user = sitting.user
+	if not get_order == 'acending':
+		_get_order_by = 'current_score'
+	
+	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.strip().split(',')))*100)/quiz.total_questions) if len(sitting.incorrect_questions_list) > 0 else 0 
+
+	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
+	
+	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
+
+	return {
+			'quiz_id': quiz.id,
+			'quiz_name':quiz.title,
+			'passing_percentage': quiz.passing_percent,
+			'total_questions':quiz.total_questions,
+			'total_marks': quiz.total_marks,
+			'marks_scored': sitting.current_score,
+			'result_status':_result_status,
+			'EVENT_TYPE': 'gradeTest', 
+			'test_key': quiz.quiz_key, 
+			'sitting_id': sitting.id, 
+			'test_user_id': test_user_id, 
+			'timestamp_IST': str(timezone.now()), 
+			'username': sitting.user.username, 
+			'attempt_no': sitting.attempt_no,
+			'email': sitting.user.email,
+			'correct_questions_score': correct_que_pt, 
+			'incorrect_questions_score': in_correct_pt,
+			'finish_mode': 'NormalSubmission',
+			'start_time_IST': str(sitting.start_date),
+			'end_time_IST': str(sitting.end_date)
+		}
 
 
 def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
-	from quiz.models import Question, SubCategory
-	from mcq.models import Answer
-	from objective.models import ObjectiveQuestion
-	
 	questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
 	sca = {'subcategory' : None, 'id' : None, 'question' : None, 'questions_level_info' : None}
 
@@ -105,7 +119,6 @@ def validate_stack():
 
 
 def shuffleList(l):
-	from random import shuffle
 	shuffle(l)
 	return l
 
@@ -117,10 +130,8 @@ def checkIfTrue(str_value):
 		return False
 
 def postNotifications(data = None, url = None):
-	import json
 	if data and url:
 		try:
-			import requests
 			data['notification_url'] = url
 			requests.post(url, data = json.dumps(data))
 			return True
@@ -128,3 +139,52 @@ def postNotifications(data = None, url = None):
 			print e.args
 			return False
 	return False
+
+def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name):
+	if sitting_id and test_user and test_key and time_spent:
+		# _test_user_obj = TestUser.objects.get(pk = test_user)
+		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
+		un_ans_que_list = sitting_obj.unanswerd_question_list
+
+		unanswered_questions_list = map(int, un_ans_que_list.strip().split(',')) if len(un_ans_que_list) > 0 else []
+		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
+		quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
+		for key in list(cache.iter_keys(cache_keys_pattern)):
+			answered_questions_list = generate_result(cache.get(key), sitting_obj, key, quizstack)
+			if answered_questions_list:
+				for question_id in answered_questions_list:
+					if question_id in unanswered_questions_list: 
+						unanswered_questions_list.remove(question_id) 
+				cache.delete(key)
+				print cache.get(key), '-----------------'
+
+		sitting_obj.save_time_spent(time_spent)
+
+		# Clear all unanswered_questions_list so as to modify it.
+		sitting_obj.clear_all_unanswered_questions()
+		for question_id in unanswered_questions_list:
+			sitting_obj.add_unanswerd_question(question_id)
+		sitting_obj.save()
+
+		# test is set to complete must come after sitting_obj.add_unanswerd_question()
+		sitting_obj.mark_quiz_complete()
+
+		# find and save the rank
+		if not find_and_save_rank(test_user, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
+			print 'Cannot be saved'
+
+		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
+		if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
+			print 'finish notification not sent'
+		_filter_by_category = filter_by_category(sitting_obj)
+		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+		data['htmlReport'] = 'http://'+str(host_name)+'/api/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
+		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
+			print 'grade notification not sent'
+		# Clean my cache ...
+		cache.delete('sitting_id'+str(test_user))
+		cache.delete(test_key + "|" + str(test_user) + "time")
+		# End ...
+		return { 'attempt_no': sitting_obj.attempt_no }
+	else:
+		raise ValueError('Any None not accepted ::: test_user: {0}, sitting_id: {1}, test_key: {2}, time_spent: {3}'.format(test_user, sitting_id, test_key, time_spent))
