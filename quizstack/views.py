@@ -25,7 +25,7 @@ def create_quizstack(request):
 				quizstack_obj.add_selected_questions(selected_questions)
 				quiz.total_questions += int(request.data.get('no_questions'))
 				quiz.total_marks += int(request.data.get('correct_grade'))*int(request.data.get('no_questions'))
-				quiz.total_duration += int(request.data.get('duration'))*60
+				quiz.total_duration += int(request.data.get('duration'))
 				quiz.total_sections = len(set([qs.section_name for qs in quizstack_list]))
 				quiz.save()
 			else:
@@ -43,7 +43,7 @@ def create_quizstack(request):
 def get_quizstack(request, quiz_id, quizstack_id):
 	if quizstack_id == 'all':
 		try:
-			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('-id')
+			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('section_name')
 			serializer = QuizStackSerializer(quizstack_list, many = True)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
@@ -194,8 +194,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 						d[count]['figure'] = str(question.figure)
 					data['questions'].append(d)
 				added_questions.append(question.id)
-		data['total_questions'] = range(1, count+1)
-		data['added_questions'] = added_questions
+		data['total_questions'] = count
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args

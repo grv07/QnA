@@ -9,7 +9,6 @@ QUESTION_DIFFICULTY_OPTIONS = (
 QUESTION_TYPE_OPTIONS = (
 	('mcq', _('MCQ')),
 	('objective', _('OBJECTIVE')),
-	# ('hard', _('HARD'))
 )
 
 ANSWER_ORDER_OPTIONS = (
@@ -19,7 +18,7 @@ ANSWER_ORDER_OPTIONS = (
 )
 
 MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
-'option4', 'option5', 'option6', 'correctoption', 'content']
+'option4', 'option5', 'option6', 'correctoption', 'content', 'ideal_time']
 
 OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'content']
 

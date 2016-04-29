@@ -52,7 +52,7 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 
 
 def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
-	questions_level_info = [0 , 0, 0, 0] # [Easy, Medium ,Hard, Total]
+	questions_level_info = [0 , 0, 0, 0, 0] # [Easy, Medium ,Hard, Total, IdealTime]
 	sca = {'subcategory' : None, 'id' : None, 'question' : None, 'questions_level_info' : None}
 
 	if subcategory_id:
@@ -91,15 +91,15 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 				questions_level_info[1] = questions_level_info[1] + 1
 			else:
 				questions_level_info[2] = questions_level_info[2] + 1
+			questions_level_info[4] += question.ideal_time
 			
 			if not is_have_sub_category:
 				sca['questions'].append(d)
 	else:
 		print 'Not have questions <<<<<<<<<<<>>>>>>>>>>>>'
-
-	questions_level_info[3] = sum(questions_level_info)
+	questions_level_info[3] = sum(questions_level_info[:3])
 	sca['questions_level_info'] = questions_level_info
-	return sca;
+	return sca
 
 def validate_stack():
 	'''
@@ -117,6 +117,12 @@ def validate_stack():
 	pass
 
 
+
+def check_for_float(value):
+	if type(value) == float:
+		value = str(value).replace('.0','')
+	return value
+		
 
 def shuffleList(l):
 	shuffle(l)

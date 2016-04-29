@@ -13,6 +13,8 @@ from mcq.serializer import AnswerSerializer
 from objective.serializer import ObjectiveQuestionSerializer
 from objective.models import ObjectiveQuestion
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
+from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 @api_view(['GET'])
@@ -246,7 +248,7 @@ def all_questions(request, user_id):
 				result['level'] += ['medium']
 			if result['questions_level_info'][2] != 0:
 				result['level'] += ['hard']
-			result['duration'] = result['questions_level_info'][3]*2
+			result['duration'] = result['questions_level_info'][4]
 			result['no_questions'] = result['questions_level_info'][3]
 			result['correct_grade'] = 1
 			result['incorrect_grade'] = 0
@@ -328,6 +330,7 @@ def question_operations(request, userid, questionid):
 		data = {}
 		data['explanation'] = request.data['data[explanation]']
 		data['level'] = request.data['data[level]']
+		data['ideal_time'] = request.data['data[ideal_time]']
 		if request.data.get('data[figure]', None):
 			data['figure'] = request.data['data[figure]']
 			if question.figure:

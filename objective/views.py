@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from .serializer import ObjectiveQuestionSerializer
 from rest_framework import status
 from QnA.services.constants import BLANK_HTML, OBJECTIVE_FILE_COLS
-
+from QnA.services.utility import check_for_float
 
 @api_view(['POST'])
 def save_XLS_to_OBJECTIVE(request):
@@ -33,18 +33,12 @@ def save_XLS_to_OBJECTIVE(request):
 					if not d.has_key(i[0]):
 						try:
 							d[i[0]] = SubCategory.objects.get(sub_category_name=i[0])
-						except Exception as e:
-							return Response({ "errors" : "There is some error while saving your questions. Correct the format." } , status = status.HTTP_400_BAD_REQUEST)
+						except SubCategory.DoesNotExist as e:
+							return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
 
-					temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':'', 'correct':'', 'content':i[4].replace(BLANK_HTML,'<>'), 'que_type': 'objective' }
-					if type(i[2]) == float:
-						temp_dict['explanation'] = str(i[2]).replace('.0','')
-					else:
-						temp_dict['explanation']  = i[2]
-					if type(i[3]) == float:
-						temp_dict['correct'] = str(i[3]).replace('.0','')
-					else:
-						temp_dict['correct'] = i[3]
+					temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':'', 'correct':'', 'content':i[4], 'que_type': 'objective' }
+					temp_dict['explanation'] = check_for_float(i[2])
+					temp_dict['correct'] = check_for_float(i[3])
 					serializer = ObjectiveQuestionSerializer(data = temp_dict)
 					if serializer.is_valid():
 						correct_serializers_list.append(serializer)
@@ -66,7 +60,7 @@ def create_objective(request):
 	try:
 		if BLANK_HTML in request.data['data[content]']:
 			data = {}
-			data['content'] = request.data['data[content]'].replace(BLANK_HTML,'<>')
+			data['content'] = request.data['data[content]']
 			data['explanation'] = request.data['data[explanation]']
 			data['correct'] = request.data['data[correct]']
 			data['level'] = request.data['data[level]']

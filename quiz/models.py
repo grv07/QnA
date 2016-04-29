@@ -585,6 +585,8 @@ class Question(models.Model):
 								help_text=_("The difficulty level of a MCQQuestion"),
 								verbose_name=_("Difficulty Level"))
 
+	ideal_time = models.PositiveSmallIntegerField(validators=[MaxValueValidator(300)])
+
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
 

@@ -1,4 +1,4 @@
-from mcq.models import MCQuestion
+from mcq.models import MCQuestion, Answer
 from objective.models import ObjectiveQuestion
 from quiz.models import Sitting, Quiz, Question
 from quizstack.models import QuizStack
@@ -95,13 +95,14 @@ def filter_by_category(sitting):
 	return [_cat_base_result,total_correct_que]	
 
 
+
 # Filter by section
-def filter_by_section(quiz, unanswerd_question_list, incorrect_question_list):
-	data = {}
+def get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list):
+	data = { 'section_wise':{}, 'selected_questions':{} }
 	unanswerd_and_incorrect_question_list = unanswerd_question_list + incorrect_question_list
 	quizstacks = QuizStack.objects.filter(quiz = quiz)
 	for section_no in xrange(1, quiz.total_sections+1):
-		data[section_no] = []
+		data['section_wise'][section_no] = []
 		d_correct = { 'y':0, 'label': 'Section '+str(section_no) }
 		d_incorrect = d_correct.copy()
 		d_unattempt = d_correct.copy()
@@ -115,9 +116,17 @@ def filter_by_section(quiz, unanswerd_question_list, incorrect_question_list):
 				d_unattempt['y'] += 1
 			else:
 				d_correct['y'] += 1
-		data[section_no].append(d_correct)
-		data[section_no].append(d_incorrect)
-		data[section_no].append(d_unattempt)
+			question = Question.objects.get(id = int(q))
+			data['selected_questions'][q] = []
+			data['selected_questions'][q].append({
+				'content' : question.content,
+				'ideal_time' : question.ideal_time,
+				'options'  : [{ 'content' : answer.content, 'correct' : answer.correct 
+				} for answer in Answer.objects.filter(question = question)]
+				})
+		data['section_wise'][section_no].append(d_correct)
+		data['section_wise'][section_no].append(d_incorrect)
+		data['section_wise'][section_no].append(d_unattempt)
 	return data
 
 # Calculate the rank
@@ -142,7 +151,7 @@ def find_and_save_rank(test_user_id, quiz_id, current_score, time_spent):
 		if (current_rank == 0) or (current_rank > calculated_rank):
 			test_user.rank = calculated_rank
 			test_user.save()
-		return True
+		return test_user.rank
 	except Exception as e:
 		print e.args
-		return False
+		return 0
