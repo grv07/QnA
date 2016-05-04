@@ -146,7 +146,7 @@ def postNotifications(data = None, url = None):
 			return False
 	return False
 
-def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name):
+def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name, time_spent_on_question):
 	if sitting_id and test_user and test_key and time_spent:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
@@ -156,7 +156,7 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, hos
 		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
 		quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
 		for key in list(cache.iter_keys(cache_keys_pattern)):
-			answered_questions_list = generate_result(cache.get(key), sitting_obj, key, quizstack)
+			answered_questions_list = generate_result(cache.get(key), sitting_obj, key, quizstack, time_spent_on_question)
 			if answered_questions_list:
 				for question_id in answered_questions_list:
 					if question_id in unanswered_questions_list: 
@@ -176,7 +176,7 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, hos
 		sitting_obj.mark_quiz_complete()
 
 		# find and save the rank
-		if not find_and_save_rank(test_user, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
+		if not find_and_save_rank(test_user, test_key, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
 			print 'Cannot be saved'
 
 		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }

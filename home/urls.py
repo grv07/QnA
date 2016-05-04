@@ -11,6 +11,8 @@ urlpatterns = [
 	url(r'^save/test/cache/$', views.save_test_data_to_cache),
 	url(r'^user/result/(?P<test_user_id>\d+)/(?P<quiz_key>\w+)/(?P<attempt_no>[1-5]{1})$', views.get_user_result),
 	url(r'^save/test/db/$', views.save_test_data_to_db),
+	url(r'^save/test/bookmarks/$', views.save_test_bookmarks),
 	url(r'^save/time/remaining/$', views.save_time_remaining_to_cache),
+	url(r'^get/bookmarks/$', views.get_bookmark_questions),
 	url(r'^ping/$', views.ping),
 ]

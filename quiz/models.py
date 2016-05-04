@@ -475,10 +475,10 @@ class Sitting(models.Model):
 		self.save()
 
 	def get_incorrect_questions(self):
-		return [int(q) for q in self.incorrect_questions_list.split(',') if q]
+		return map(int, self.incorrect_questions_list.split(','))
 
 	def get_unanswered_questions(self):
-		return [int(q) for q in self.unanswerd_question_list.split(',') if q]
+		return map(int, self.unanswerd_question_list.split(','))
 
 	def remove_incorrect_question(self, question):
 		current = self.get_incorrect_questions

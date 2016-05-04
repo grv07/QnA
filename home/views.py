@@ -15,14 +15,15 @@ from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT
 
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
-from QnA.services.generate_result_engine import generate_result, filter_by_category, get_data_for_analysis, find_and_save_rank
+from QnA.services.generate_result_engine import generate_result, filter_by_category, get_data_for_analysis, find_and_save_rank, get_topper_data
 from quiz.models import Sitting, Quiz, Question
-from quiz.serializer import SittingSerializer
-from home.models import TestUser
+from quiz.serializer import SittingSerializer, QuestionSerializer
+from home.models import TestUser, BookMarks
 from django.utils import timezone
 from QnA.settings import TEST_URL_THIRD_PARTY, TEST_BASE_URL, TEST_REPORT_URL
 from quizstack.models import QuizStack
 from django.utils.dateparse import parse_datetime
+import ast
 
 
 # Generate pdf from html
@@ -96,10 +97,12 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	incorrect_question_list = sitting.get_incorrect_questions()
 	_filter_by_category = filter_by_category(sitting)
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
-	data['rank'] = find_and_save_rank(test_user_id, sitting.quiz.id, sitting.current_score, sitting.time_spent)
+	topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
+	data['rank'] = find_and_save_rank(test_user_id, quiz_key, sitting.quiz.id, sitting.current_score, sitting.time_spent)
 	data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
 	data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
-	data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_ideal':{}, 'question_vs_time_result_real':{}}
+
+	data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': ast.literal_eval(topper_sitting_obj.user_answers), 'question_vs_time_result_user': ast.literal_eval(sitting.user_answers) }
 	data['analysis']['filter_by_category'] = _filter_by_category[0]
 	data['view_format'] = request.GET.get('view_format',None)
 	# fp = open('QnA/services/result.html')
@@ -108,7 +111,6 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	data_for_analysis = get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list)
 	data['analysis']['section_wise_results'] = data_for_analysis['section_wise']
 	data['real_questions_and_answers_data'] = data_for_analysis['selected_questions']
-	data['user_questions_and_answers_data'] = sitting.user_answers
 	# html = t.render(Context({'data': data }))
 	if data['view_format'] == 'pdf':
 		return
@@ -137,7 +139,7 @@ def save_sitting_user(request):
 				for quizstack in QuizStack.objects.filter(quiz = quiz):
 					for question_id in quizstack.fetch_selected_questions():
 						sitting_obj.add_unanswerd_question(question_id)
-			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
+			# cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
 			
 			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
 					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
@@ -153,28 +155,22 @@ def save_sitting_user(request):
 
 # Helper function for get users cache data if exist in cache.
 def test_data_helper(test_key, test_user_id):
-	test_data = { 'isTestNotCompleted': False, 'sectionNoWhereLeft': None, 'sectionsRemaining': [], 'existingAnswers': { 'answers': {} } }
+	test_data = { 'isTestNotCompleted': False, 'existingAnswers': { 'answers': None } }
 	if cache.get('sitting_id'+str(test_user_id), None):	
 		test_data['status'] = 'INCOMPLETE'
 		test_data['isTestNotCompleted'] = True
 		test_data['timeRemaining'] = cache.get(test_key + "|" + str(test_user_id) + "time")['remaining_duration']
-		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user_id)+"|**")), key=lambda k: cache.get(k)['time'])
+		test_data['sectionNoWhereLeft'] = 1
+		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user_id)+"|**")))
 		if preExistingKeys:
 			print preExistingKeys,'-------------'
-			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-			remaining_sections = []
-			total_sections_list = range(1, Quiz.objects.get(quiz_key = test_key).total_sections + 1)
-
-			for section_no in total_sections_list:
-				if test_key+"|"+str(test_user_id)+"|"+str(section_no) not in preExistingKeys:
-					remaining_sections += [section_no]
-			
-			remaining_sections += [ int(test_data['sectionNoWhereLeft']) ]
-			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]
-			test_data['sectionsRemaining'] = sorted(remaining_sections)
-			test_data['existingAnswers'] = { 'answers' : { 'Section#'+test_data['sectionNoWhereLeft']: cache.get(preExistingKeys[len(preExistingKeys)-1])['answers'] } }
+			test_data['existingAnswers']['answers'] = {}
+			for key in preExistingKeys:
+				test_data['existingAnswers']['answers']['Section#'+key.split('|')[2]] = cache.get(key)['answers']
+			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]		
 	else:
 		test_data['status'] = 'ToBeTaken'
+	print test_data
 	return test_data
 
 @api_view(['POST', 'GET'])
@@ -190,7 +186,6 @@ def test_user_data(request):
 			data['status'] = 'SUCCESS'
 			data['username'] = test_user.user.username
 			data['test_key'] = test_user.test_key
-
 			data['token'] = token
 			data['testUser'] = test_user.id
 			data['test'].update(test_data_helper(test_user.test_key, test_user_id))
@@ -212,6 +207,7 @@ def test_user_data(request):
 				user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
 				create = True
 			except Exception as e:
+				print e.args,'--------'
 				return Response({'status':'FAIL', 'errors': 'Unable to create user.'}, status=status.HTTP_400_BAD_REQUEST)	
 		except Quiz.DoesNotExist as e:
 			return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -297,16 +293,63 @@ def save_test_data_to_cache(request):
 def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
-	print sitting_id
 	test_key = request.data.get('test_key')
 	time_spent = request.data.get('time_spent')
+	time_spent_on_question = request.data.get('time_spent_on_question')
 	try:
 		host_name = request.META['HTTP_HOST']
-		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name)
+		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name, time_spent_on_question)
 		return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def save_test_bookmarks(request):
+	test_user = request.data.get('test_user')
+	sitting_id = cache.get('sitting_id'+str(test_user))
+	try:
+		if sitting_id:
+			bookmarked_questions_list = request.data.get('bookmarked_questions')
+			existing_bookmarks = []
+			if bookmarked_questions_list:
+				bookmark, created = BookMarks.objects.get_or_create(user = TestUser.objects.get(id = test_user).user)
+				if not created:
+					existing_bookmarks = bookmark.fetch_bookmarks()
+				for question_id in bookmarked_questions_list:
+					if question_id not in existing_bookmarks:
+						bookmark.add_bookmark(question_id)
+			return Response({}, status = status.HTTP_200_OK)
+		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+	except Exception as e:
+		print e.args
+		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes((AllowAny,))
+def get_bookmark_questions(request):
+	username = request.data.get('username')
+	email = request.data.get('email')
+	if username and email:
+		try:
+			user = User.objects.get(username = username, email = email)
+		except User.DoesNotExist:
+			return Response({ 'errors': 'User not found.'}, status = status.HTTP_400_BAD_REQUEST)
+		try:
+			bookmark = BookMarks.objects.get(user = user)
+		except BookMarks.DoesNotExist:
+			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
+		
+		bookmarked_questions_list = bookmark.fetch_bookmarks()
+		if bookmarked_questions_list:
+			questionserializer = QuestionSerializer( [Question.objects.get(id = q) for q in bookmarked_questions_list], many = True)
+			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
+		else:
+			return Response({ 'data': {} }, status = status.HTTP_200_OK)
+	return Response({ 'errors': 'Username or email not provided.'}, status = status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))

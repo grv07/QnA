@@ -5,7 +5,7 @@ from quizstack.models import QuizStack
 from home.models import TestUser
 from .constants import QUESTION_TYPE_OPTIONS
 
-def generate_result(section_result, sitting_obj, cache_key, quizstack):
+def generate_result(section_result, sitting_obj, cache_key, quizstack, time_spent_on_question):
 	'''{u'answers': {
 		u'47': {u'status': u'NA', u'value': None},
 		u'20': {u'status': u'NA', u'value': None}, 
@@ -13,13 +13,11 @@ def generate_result(section_result, sitting_obj, cache_key, quizstack):
 		u'22': {u'status': u'A',u'value': 74}, 
 		u'48': {u'status': u'A',u'value': u'6'}
 		}
-	 }'''
-	 
+	 }'''	 
 	answered_questions_list = []
 	quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
 	if section_result:
 		_progress_list = section_result['answers']
-
 		for question_id in _progress_list.keys():
 			_dict_data = _progress_list.get(str(question_id))
 			is_correct = False
@@ -31,7 +29,7 @@ def generate_result(section_result, sitting_obj, cache_key, quizstack):
 					print e.args
 					return None
 				'''Check if given answers are correct or not'''
-				sitting_obj.add_user_answer(int(question_id), _dict_data.get('value'))
+				sitting_obj.add_user_answer(int(question_id), [ _dict_data.get('value'), round(time_spent_on_question[question_id].get('time'), 2)] )
 				if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
 					is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
 				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
@@ -117,8 +115,8 @@ def get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list
 			else:
 				d_correct['y'] += 1
 			question = Question.objects.get(id = int(q))
-			data['selected_questions'][q] = []
-			data['selected_questions'][q].append({
+			data['selected_questions'][q] = {}
+			data['selected_questions'][q].update({
 				'content' : question.content,
 				'ideal_time' : question.ideal_time,
 				'options'  : [{ 'content' : answer.content, 'correct' : answer.correct 
@@ -130,24 +128,33 @@ def get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list
 	return data
 
 # Calculate the rank
-def get_rank(quiz_id, current_score, time_spent):
-	all_sitting_objs = Sitting.objects.filter(quiz = quiz_id)
-	rank = len(all_sitting_objs)
-	for sitting_obj in all_sitting_objs:
-		# print sitting_obj.time_spent, time_spent, sitting_obj.current_score, current_score
-		if current_score > sitting_obj.current_score:
+def get_rank(quiz_key, quiz_id, current_score, time_spent):
+	all_test_users = TestUser.objects.filter(test_key = quiz_key)
+	# all_sitting_objs = Sitting.objects.filter(quiz = quiz_id)
+	total = len(all_test_users)
+	rank = total
+	for test_user in all_test_users:
+		max_sitting_obj = get_max_sitting_obj(test_user, quiz_id)
+		# print max_sitting_obj.time_spent, time_spent, max_sitting_obj.current_score, current_score
+		if current_score > max_sitting_obj.current_score:
 			rank -= 1
-		elif current_score == sitting_obj.current_score:
-			if time_spent < sitting_obj.time_spent:
+			if test_user.rank+1 <= total:
+				test_user.rank += 1
+				test_user.save()
+		elif current_score == max_sitting_obj.current_score:
+			if time_spent < max_sitting_obj.time_spent:
 				rank -= 1
+				if test_user.rank+1 <= total:
+					test_user.rank += 1
+					test_user.save()
 	return rank
 
 # Save rank if rank == 0 (at first attempt) otherwise check if existing rank is better or newly calculated is. Use the minimum rank and save.
-def find_and_save_rank(test_user_id, quiz_id, current_score, time_spent):
+def find_and_save_rank(test_user_id, quiz_key, quiz_id, current_score, time_spent):
 	try:
 		test_user = TestUser.objects.get(id = test_user_id)
 		current_rank = test_user.rank
-		calculated_rank = get_rank(quiz_id, current_score, time_spent)
+		calculated_rank = get_rank(quiz_key, quiz_id, current_score, time_spent)
 		if (current_rank == 0) or (current_rank > calculated_rank):
 			test_user.rank = calculated_rank
 			test_user.save()
@@ -155,3 +162,23 @@ def find_and_save_rank(test_user_id, quiz_id, current_score, time_spent):
 	except Exception as e:
 		print e.args
 		return 0
+
+
+def get_max_sitting_obj(test_user, quiz_id):
+	sitting_objs = Sitting.objects.filter(user = test_user.user, quiz = quiz_id)
+	sitting_obj_topper = sitting_objs[0]
+	if(len(sitting_objs) == 1):
+		return sitting_obj_topper
+	else:
+		for sitting in sitting_objs[1:]:
+			if sitting.current_score > sitting_obj_topper.current_score:
+				sitting_obj_topper = sitting
+			elif sitting.current_score == sitting_obj_topper.current_score:
+				if sitting.time_spent > sitting_obj_topper.time_spent:
+					sitting_obj_topper = sitting
+		return sitting_obj_topper
+
+
+def get_topper_data(quiz_key, quiz_id):
+	test_user = TestUser.objects.get(test_key = quiz_key, rank = 1)
+	return get_max_sitting_obj(test_user, quiz_id)

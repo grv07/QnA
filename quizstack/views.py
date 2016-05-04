@@ -189,7 +189,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 					elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 						options = []
 					count += 1
-					d = { count : { 'id': int(question_id), 'content': question.content, 'options': options, 'que_type': question.que_type, 'figure': None, 'status': 'NV', 'explanation' : question.explanation } }
+					d = { count : { 'id': int(question_id), 'content': question.content, 'options': options, 'que_type': question.que_type, 'figure': None, 'status': 'NV' } }
 					if question.figure:
 						d[count]['figure'] = str(question.figure)
 					data['questions'].append(d)

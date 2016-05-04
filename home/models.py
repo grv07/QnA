@@ -5,12 +5,10 @@ from quiz.models import Quiz
 import string, random
 
 from django.contrib.auth.models import User
-from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
 
 
-@python_2_unicode_compatible
 class MerchantUser(models.Model):
     user = models.OneToOneField(User, blank=True)
     merchant_public_key = models.CharField(max_length = 10, unique = True, blank = True)
@@ -32,7 +30,6 @@ class MerchantUser(models.Model):
         super(MerchantUser, self).save(force_insert, force_update, *args, **kwargs)
 
 
-@python_2_unicode_compatible
 class TestUser(models.Model):
     user = models.ForeignKey(User)
     test_key = models.CharField(max_length = 20)
@@ -50,18 +47,32 @@ class TestUser(models.Model):
     class Meta:
         verbose_name = _("TestUser")
 
-# Create your models here.
-@python_2_unicode_compatible
-class TestUserDetails(models.Model):
-    test_user = models.ForeignKey(TestUser, related_name = 'test_user_details')
-    result = models.CharField(max_length=3000)
-    time_spent = models.IntegerField()
+
+class BookMarks(models.Model):
+    user = models.ForeignKey(User)
+    questions_list = models.CommaSeparatedIntegerField(
+        max_length=1024, blank=True, verbose_name =_("Bookmarked questions"), default = '')
+
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
 
     def __str__(self):
-        return self.test_user.user.email, self.test_user.test_key
+        return self.user.username, self.questions_list
         
     class Meta:
-      # unique_together = ('email', 'quiz')
-        verbose_name = _("TestUserDetails")
+        verbose_name = _("BookMarks")
+
+    def add_bookmark(self, question_id):
+        if len(self.questions_list) > 0:
+            self.questions_list += ','
+        self.questions_list += str(question_id)
+        self.save()
+
+    def fetch_bookmarks(self):
+        return [int(q) for q in self.questions_list.split(',') if q]
+
+    def remove_bookmark(self, question_id):
+        current = self.fetch_bookmarks()
+        current.remove(question_id)
+        self.incorrect_questions = ','.join(map(str, current))
+        self.save()
