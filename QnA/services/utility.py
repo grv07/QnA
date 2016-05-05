@@ -21,7 +21,8 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 	
-	in_correct_pt  = float((len(set(sitting.incorrect_questions_list.strip().split(',')))*100)/quiz.total_questions) if len(sitting.incorrect_questions_list) > 0 else 0 
+	incorrect_questions_length = len(sitting.get_incorrect_questions())
+	in_correct_pt  = float((incorrect_questions_length*100)/quiz.total_questions) if incorrect_questions_length > 0 else 0 
 
 	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
 	
@@ -150,9 +151,9 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, hos
 	if sitting_id and test_user and test_key and time_spent:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
-		un_ans_que_list = sitting_obj.unanswerd_question_list
+		un_ans_que_list = sitting_obj.unanswered_questions.keys()
 
-		unanswered_questions_list = map(int, un_ans_que_list.strip().split(',')) if len(un_ans_que_list) > 0 else []
+		unanswered_questions_list = map(int, un_ans_que_list) if len(un_ans_que_list) > 0 else []
 		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
 		quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
 		for key in list(cache.iter_keys(cache_keys_pattern)):
@@ -169,10 +170,15 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, hos
 		# Clear all unanswered_questions_list so as to modify it.
 		sitting_obj.clear_all_unanswered_questions()
 		for question_id in unanswered_questions_list:
-			sitting_obj.add_unanswerd_question(question_id)
+			qtime = time_spent_on_question.get(str(question_id), None)
+			if qtime:
+				if qtime < 100.00:
+					sitting_obj.add_unanswered_question(question_id, round(qtime, 2))
+			else:
+				sitting_obj.add_unanswered_question(question_id, 0)
 		sitting_obj.save()
 
-		# test is set to complete must come after sitting_obj.add_unanswerd_question()
+		# test is set to complete must come after sitting_obj.add_unanswered_question()
 		sitting_obj.mark_quiz_complete()
 
 		# find and save the rank
@@ -190,7 +196,14 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, hos
 		# Clean my cache ...
 		cache.delete('sitting_id'+str(test_user))
 		cache.delete(test_key + "|" + str(test_user) + "time")
+		cache.delete(test_key + "|" + str(test_user) + "qtime")
 		# End ...
 		return { 'attempt_no': sitting_obj.attempt_no }
 	else:
 		raise ValueError('Any None not accepted ::: test_user: {0}, sitting_id: {1}, test_key: {2}, time_spent: {3}'.format(test_user, sitting_id, test_key, time_spent))
+
+
+def merge_two_dicts(d1, d2):
+    d = d1.copy()
+    d.update(d2)
+    return d

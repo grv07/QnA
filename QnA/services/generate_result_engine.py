@@ -15,7 +15,7 @@ def generate_result(section_result, sitting_obj, cache_key, quizstack, time_spen
 		}
 	 }'''	 
 	answered_questions_list = []
-	quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
+	# quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
 	if section_result:
 		_progress_list = section_result['answers']
 		for question_id in _progress_list.keys():
@@ -29,7 +29,7 @@ def generate_result(section_result, sitting_obj, cache_key, quizstack, time_spen
 					print e.args
 					return None
 				'''Check if given answers are correct or not'''
-				sitting_obj.add_user_answer(int(question_id), [ _dict_data.get('value'), round(time_spent_on_question[question_id].get('time'), 2)] )
+				sitting_obj.add_user_answer(int(question_id), [ _dict_data.get('value'), round(time_spent_on_question[question_id], 2)] )
 				if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
 					is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
 				elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
@@ -44,16 +44,14 @@ def generate_result(section_result, sitting_obj, cache_key, quizstack, time_spen
 
 def filter_by_category(sitting):
 	'''Return {'sub_cat_name':(incorrect, correct, unattemped, total), total_correct}'''
-	import json
 	# Cat wise filter on question, Total correct questions
 	_cat_base_result = {}
 	total_correct_que = 0
-	_correct_ans = json.loads(sitting.user_answers)
+	_correct_ans = sitting.user_answers
 	# Enjoy Helper functions
 	get_name_key = lambda que_id: Question.objects.get(pk = int(que_id)).sub_category.sub_category_name
 	get_que_set = lambda list: set(list.strip().split(',')) if len(list) > 0 else [] 
-
-	for que in get_que_set(sitting.incorrect_questions_list):
+	for que in sitting.get_incorrect_questions():
 		name_key = get_name_key(int(que))
 		if _correct_ans.has_key(que):
 			_correct_ans.pop(que)
@@ -65,7 +63,7 @@ def filter_by_category(sitting):
 			_cat_base_result[name_key][0] += 1
 			_cat_base_result[name_key][3] += 1
 
-	for que in get_que_set(sitting.unanswerd_question_list):
+	for que in sitting.unanswered_questions.keys():
 		name_key = get_name_key(que)
 		if _correct_ans.has_key(que):
 			_correct_ans.pop(que)
@@ -95,9 +93,9 @@ def filter_by_category(sitting):
 
 
 # Filter by section
-def get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list):
+def get_data_for_analysis(quiz, unanswered_questions_list, incorrect_questions_list):
 	data = { 'section_wise':{}, 'selected_questions':{} }
-	unanswerd_and_incorrect_question_list = unanswerd_question_list + incorrect_question_list
+	unanswerd_and_incorrect_questions_list = unanswered_questions_list + incorrect_questions_list
 	quizstacks = QuizStack.objects.filter(quiz = quiz)
 	for section_no in xrange(1, quiz.total_sections+1):
 		data['section_wise'][section_no] = []
@@ -108,9 +106,9 @@ def get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list
 		for quizstack in quizstacks.filter(section_name = 'Section#'+str(section_no)):
 			selected_questions += quizstack.fetch_selected_questions()
 		for q in selected_questions:
-			if int(q) in incorrect_question_list:
+			if q in incorrect_questions_list:
 				d_incorrect['y'] += 1
-			elif int(q) in unanswerd_question_list:
+			elif q in unanswered_questions_list:
 				d_unattempt['y'] += 1
 			else:
 				d_correct['y'] += 1
@@ -119,9 +117,14 @@ def get_data_for_analysis(quiz, unanswerd_question_list, incorrect_question_list
 			data['selected_questions'][q].update({
 				'content' : question.content,
 				'ideal_time' : question.ideal_time,
-				'options'  : [{ 'content' : answer.content, 'correct' : answer.correct 
-				} for answer in Answer.objects.filter(question = question)]
+				'explanation'  : question.explanation,
 				})
+			correct_answer_id = 0
+			for answer in Answer.objects.filter(question = question):
+				if answer.correct == True:
+					correct_answer_id = answer.id
+					break
+			data['selected_questions'][q]['correct_answer_id'] = correct_answer_id			
 		data['section_wise'][section_no].append(d_correct)
 		data['section_wise'][section_no].append(d_incorrect)
 		data['section_wise'][section_no].append(d_unattempt)

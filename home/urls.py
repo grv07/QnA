@@ -13,6 +13,7 @@ urlpatterns = [
 	url(r'^save/test/db/$', views.save_test_data_to_db),
 	url(r'^save/test/bookmarks/$', views.save_test_bookmarks),
 	url(r'^save/time/remaining/$', views.save_time_remaining_to_cache),
+	url(r'^save/question/time/$', views.save_question_time),
 	url(r'^get/bookmarks/$', views.get_bookmark_questions),
 	url(r'^ping/$', views.ping),
 ]

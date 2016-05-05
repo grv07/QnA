@@ -69,10 +69,12 @@ class BookMarks(models.Model):
         self.save()
 
     def fetch_bookmarks(self):
-        return [int(q) for q in self.questions_list.split(',') if q]
+        if self.questions_list:
+            return map(int, self.questions_list.split(','))
+        return []
 
     def remove_bookmark(self, question_id):
         current = self.fetch_bookmarks()
         current.remove(question_id)
-        self.incorrect_questions = ','.join(map(str, current))
+        self.questions_list = ','.join(map(str, current))
         self.save()
