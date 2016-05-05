@@ -113,18 +113,9 @@ def get_data_for_analysis(quiz, unanswered_questions_list, incorrect_questions_l
 			else:
 				d_correct['y'] += 1
 			question = Question.objects.get(id = int(q))
-			data['selected_questions'][q] = {}
-			data['selected_questions'][q].update({
-				'content' : question.content,
+			data['selected_questions'][q] ={
 				'ideal_time' : question.ideal_time,
-				'explanation'  : question.explanation,
-				})
-			correct_answer_id = 0
-			for answer in Answer.objects.filter(question = question):
-				if answer.correct == True:
-					correct_answer_id = answer.id
-					break
-			data['selected_questions'][q]['correct_answer_id'] = correct_answer_id			
+				}			
 		data['section_wise'][section_no].append(d_correct)
 		data['section_wise'][section_no].append(d_incorrect)
 		data['section_wise'][section_no].append(d_unattempt)

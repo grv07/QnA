@@ -22,6 +22,7 @@ from home.models import TestUser, BookMarks
 from django.utils import timezone
 from QnA.settings import TEST_URL_THIRD_PARTY, TEST_BASE_URL, TEST_REPORT_URL
 from quizstack.models import QuizStack
+from mcq.models import Answer
 from django.utils.dateparse import parse_datetime
 import ast
 
@@ -98,6 +99,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	_filter_by_category = filter_by_category(sitting)
 	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
 	topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
+	data['sitting_id'] = sitting.id
 	data['rank'] = find_and_save_rank(test_user_id, quiz_key, sitting.quiz.id, sitting.current_score, sitting.time_spent)
 	data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
 	data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
@@ -369,10 +371,47 @@ def get_bookmark_questions(request):
 		bookmarked_questions_list = bookmark.fetch_bookmarks()
 		if bookmarked_questions_list:
 			questionserializer = QuestionSerializer( [Question.objects.get(id = q) for q in bookmarked_questions_list], many = True)
-			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
+			return Response({ 'data': { questionserializer.data } }, status = status.HTTP_200_OK)
 		else:
-			return Response({ 'data': {} }, status = status.HTTP_200_OK)
+			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
 	return Response({ 'errors': 'Username or email not provided.'}, status = status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def question_stats(request, sitting_id):
+	count = int(request.query_params.get('count'))
+	try:
+		data = { 'questionStats': [], 'stop': False }
+		sitting = Sitting.objects.get(id = sitting_id)
+		all_question_ids = merge_two_dicts(sitting.user_answers, sitting.unanswered_questions)
+		all_question_ids_keys = all_question_ids.keys()
+		if len(all_question_ids_keys) == (count+1)*5:
+			data['stop'] = True
+		question_ids = all_question_ids_keys[count*5:(count+1)*5]
+		for question_id in question_ids:
+			question = Question.objects.get(id = question_id)
+			correct_answer_id = 0
+			answer_status = 'Unattempted'
+			for answer in Answer.objects.filter(question = question):
+				if answer.correct == True:
+					correct_answer_id = answer.id
+					break
+			if isinstance(all_question_ids[question_id], list):
+				if all_question_ids[question_id][0] == correct_answer_id:
+					answer_status = 'Correct'
+				else:
+					answer_status = 'Incorrect'
+			data['questionStats'].append({
+				'content': question.content,
+				'hint': question.explanation,
+				'status': answer_status
+				})
+		return Response(data, status = status.HTTP_200_OK)
+	except Sitting.DoesNotExist as e:
+		print e.args
+		return Response({ 'errors': '' }, status = status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
