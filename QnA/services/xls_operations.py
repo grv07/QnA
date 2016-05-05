@@ -14,4 +14,4 @@ def save_test_private_access_from_xls(f, quiz):
 		user_name = d[0]
 		user_email = d[1]
 		InvitedUser.objects.create(quiz = quiz, user_name = user_name, user_email = user_email)
-	return True	
+	return True

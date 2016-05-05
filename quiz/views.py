@@ -15,10 +15,8 @@ from objective.models import ObjectiveQuestion
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
 from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
 
-
-from QnA.services.utility import MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
 from QnA.services.xls_operations import save_test_private_access_from_xls
-from QnA.services.constants import QUIZ_ACCESS_FILE_COLS
+from QnA.services.constants import QUIZ_ACCESS_FILE_COLS, MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
 from pyexcel_xls import save_data
 from collections import OrderedDict
 
