@@ -14,6 +14,12 @@ from objective.serializer import ObjectiveQuestionSerializer
 from objective.models import ObjectiveQuestion
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
 
+from QnA.services.utility import MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
+from QnA.services.xls_operations import save_test_private_access_from_xls
+from QnA.services.constants import QUIZ_ACCESS_FILE_COLS
+from pyexcel_xls import save_data
+from collections import OrderedDict
+
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 @api_view(['GET'])
 def get_quiz(request, userid, quizid ,format = None):
@@ -138,7 +144,7 @@ def get_category(request, pk ,format = None):
 		serializer = CategorySerializer(category)
 		return Response(serializer.data, status = status.HTTP_200_OK)
 	except Category.DoesNotExist as e:
-		return Response({'msg': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 def category_list(request, userid, categoryid, format = None):
@@ -171,7 +177,7 @@ def delete_category(request, pk, format = None):
 	try:
 		category = Category.objects.get(pk = pk)
 	except Category.DoesNotExist as e:
-		return Response({'msg': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+		return Response({'errors': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
 
 	if request.method == 'GET':
 		serializer = CategorySerializer(category)
@@ -405,10 +411,6 @@ def answers_operations(request, userid, questionid):
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def download_xls_file(request):
-	from QnA.services.utility import MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
-	from pyexcel_xls import save_data
-	from collections import OrderedDict
-
 	que_type = request.data.get('que_type')	
 	if request.data.get('sub_cat_info'):
 		sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
@@ -437,3 +439,33 @@ def download_xls_file(request):
 		pass
 	return response
 
+@api_view(['GET','POST'])
+@permission_classes((AllowAny,))
+def download_access_xls_file(request):
+	test_id = request.data.get('test_id')
+	if test_id:
+		quiz = Quiz.objects.get(pk = test_id)
+	else:
+		return Response({'errors': 'Invalid data here.'}, status=status.HTTP_400_BAD_REQUEST)
+	data = {"Sheet 1": [QUIZ_ACCESS_FILE_COLS]}
+	save_data(quiz.title+"_file.xls", data)
+	
+	from django.http import FileResponse
+	response = FileResponse(open(quiz.title+"_file.xls", 'rb'))
+	try:
+		import os
+		os.remove(quiz.title+"access_file.xls")
+	except OSError:
+		pass
+	return response
+
+@api_view(['POST'])
+def upload_private_access_xls(request):
+	try:
+		file = request.data['file_data']
+		quiz = Quiz.objects.get(pk = request.data['quiz_id'])
+		if save_test_private_access_from_xls(file, quiz):
+			return Response({'msg': 'Private access user create successfully'}, status=status.HTTP_200_OK)
+	except Exception as e:
+		print e
+		return Response({'errors': 'Invalid data here.'}, status=status.HTTP_400_BAD_REQUEST)

@@ -28,4 +28,6 @@ urlpatterns = [
     url(r'^question/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.question_operations),
     url(r'^answers/(?P<userid>\d+)/(?P<questionid>\d+)/$', views.answers_operations),
     url(r'^question/download/xls/$', views.download_xls_file),
+    url(r'^access/download/xls/$', views.download_access_xls_file),
+    url(r'^access/upload/xls/$', views.upload_private_access_xls),
 ]

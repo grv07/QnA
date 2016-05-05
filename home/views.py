@@ -1,25 +1,30 @@
 from rest_framework.response import Response
-from django.http import HttpResponse
-from django.template import Template, Context
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.decorators import authentication_classes
+
 from django.contrib.auth.models import User
-from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
-from token_key import generate_token
+from django.http import HttpResponse
+from django.template import Template, Context
 from django.core.cache import cache
+from django.utils import timezone
+
+from quiz.serializer import SittingSerializer
+from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
+
+from token_key import generate_token
+from QnA.settings import TEST_URL_THIRD_PARTY
+
+
 from QnA.services.utility import checkIfTrue, REGISTRATION_HTML, CACHE_TIMEOUT, postNotifications
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
 from QnA.services.generate_result_engine import generate_result, filter_by_category
-from quiz.models import Sitting, Quiz, Question
-from quiz.serializer import SittingSerializer
-from home.models import TestUser
-from django.utils import timezone
-from QnA.settings import TEST_URL_THIRD_PARTY
-from quizstack.models import QuizStack
 
+from quiz.models import Sitting, Quiz, Question
+from home.models import TestUser, InvitedUser
+from quizstack.models import QuizStack
 
 
 # Generate pdf from html
@@ -228,6 +233,16 @@ def test_user_data(request):
 		test_key = request.data.get('test_key')
 		try:
 			quiz = Quiz.objects.get(quiz_key = test_key)
+			# If test is not public then check private access of user.
+			if not quiz.allow_public_access:
+				try:
+					# Is user invited check.
+					invited_user = InvitedUser.objects.get(quiz = quiz, user_name = name, user_email = email)
+				except InvitedUser.DoesNotExist as e:
+					# User can't access this test.
+					print e.args
+					return Response({'status':'NOT-ALLOW', 'errors': 'Unable to access this test.'}, status=status.HTTP_400_BAD_REQUEST)
+			
 			user  = User.objects.get(username = name, email = email)
 			create = False
 		except User.DoesNotExist as e:

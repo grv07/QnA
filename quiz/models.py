@@ -66,7 +66,7 @@ class Quiz(models.Model):
 		verbose_name=_("total_marks"))
 
 	allow_public_access = models.BooleanField(default = False,
-		help_text=_("Allow users to take test."),blank=True
+		help_text=_("Allow all_users to take test."),blank=True
 		)
 
 	total_questions = models.IntegerField(blank=True, default=0)

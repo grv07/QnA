@@ -65,3 +65,23 @@ class TestUserDetails(models.Model):
     class Meta:
       # unique_together = ('email', 'quiz')
         verbose_name = _("TestUserDetails")
+
+# Create your models here.
+@python_2_unicode_compatible
+class InvitedUser(models.Model):
+    quiz = models.ForeignKey(Quiz)
+    
+    user_name = models.CharField(max_length=50)
+    user_email = models.EmailField(max_length=50, unique=True)
+    
+    created_date = models.DateTimeField(auto_now_add = True)
+    updated_date = models.DateTimeField(auto_now = True)
+
+    def __str__(self):
+        return self.test_user.user.email, self.test_user.test_key
+        
+    class Meta:
+      # unique_together = ('email', 'quiz')
+        verbose_name = _("InvitedUser")  
+        unique_together = ("quiz", "user_email",)      
+
