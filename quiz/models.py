@@ -12,8 +12,10 @@ from django.utils.timezone import now
 from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 
-from QnA.services.utility import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
+
+from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
 
 @python_2_unicode_compatible
 class Quiz(models.Model):
@@ -29,8 +31,8 @@ class Quiz(models.Model):
 		max_length=60, blank = False)
 
 	user_picturing = models.BooleanField(default = False,
-	 	verbose_name=_("User pict."),
-	 	help_text=_("Take a user picture when start test?"))
+		verbose_name=_("User pict."),
+		help_text=_("Take a user picture when start test?"))
 
 	url = models.URLField(
 		blank=True, help_text=_("a user friendly url"),
@@ -179,7 +181,7 @@ class SubCategory(models.Model):
 	class Meta:
 		verbose_name = _("Sub-Category")
 		verbose_name_plural = _("Sub-Categories")
-	        #This update category to >>> null=False if set unique with category
+			#This update category to >>> null=False if set unique with category
 		unique_together = ("sub_category_name", "user",)
 
 
@@ -386,19 +388,17 @@ class Sitting(models.Model):
 
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
-	unanswerd_question_list = models.CommaSeparatedIntegerField(
-		max_length=1024, verbose_name=_("Question List"), null=True, blank=True, default = '')
+	unanswered_questions = JSONField(verbose_name=_("Question List"), null=True, blank=True)
 
 	incorrect_questions_list = models.CommaSeparatedIntegerField(
-		max_length=1024, blank=True, verbose_name=_("Incorrect questions"), default = '')
+		max_length=1024, verbose_name=_("Incorrect Question List"), null=True, blank=True, default = '')
 
 	current_score = models.IntegerField(verbose_name=_("Current Score"), default = 0)
 
 	complete = models.BooleanField(default=False, blank=False,
 								   verbose_name=_("Complete"))
 
-	user_answers = models.TextField(blank=True, default='{}',
-									verbose_name=_("User Answers"))
+	user_answers = JSONField(blank=True, verbose_name=_("User Answers"), null=True)
 
 	time_spent = models.IntegerField(default = 0)
 
@@ -416,6 +416,27 @@ class Sitting(models.Model):
 
 	def add_to_score(self, points):
 		self.current_score += int(points)
+		self.save()
+
+	def add_user_answer(self, question_id, data):
+		if self.user_answers:
+			self.user_answers[question_id] = data
+		else:
+			self.user_answers = { question_id: data }
+		self.save()
+
+	def add_unanswered_question(self, question_id, data):
+		if self.unanswered_questions:
+			self.unanswered_questions[question_id] = data
+		else:
+			self.unanswered_questions = { question_id: data }
+		self.save()
+
+	def add_incorrect_question(self, question_id, incorrect_point):
+		if len(self.incorrect_questions_list) > 0:
+			self.incorrect_questions_list += ','
+		self.incorrect_questions_list += str(question_id)
+		self.add_to_score(incorrect_point)
 		self.save()
 
 	@property
@@ -444,49 +465,26 @@ class Sitting(models.Model):
 
 	def mark_quiz_complete(self):
 		self.complete = True
-		self.end = now()
-		self.save()
-
-	def add_unanswerd_question(self, question_id):
-		"""
-		Adds uid of incorrect question to the list.
-		The question object must be passed in.
-		"""
-		if len(self.unanswerd_question_list) > 0:
-			self.unanswerd_question_list += ','
-		self.unanswerd_question_list += str(question_id)
-		self.save()
-	
-	
-	def add_incorrect_question(self, question_id, incorrect_points):
-		"""
-		Adds uid of incorrect question to the list.
-		The question object must be passed in.
-		"""
-		if len(self.incorrect_questions_list) > 0:
-			self.incorrect_questions_list += ','
-		self.incorrect_questions_list += str(question_id)
-		if self.complete:
-			self.add_to_score(incorrect_points)
+		self.end_date = now()
 		self.save()
 
 	def clear_all_unanswered_questions(self):
-		self.unanswerd_question_list = ''
+		self.unanswered_questions = {}
 		self.save()
 
-	@property
 	def get_incorrect_questions(self):
-		"""
-		Returns a list of non empty integers, representing the pk of
-		questions
-		"""
-		return [int(q) for q in self.incorrect_questions.split(',') if q]
+		if self.incorrect_questions_list:
+			return map(int, self.incorrect_questions_list.strip().split(','))
+		return []
 
-	def remove_incorrect_question(self, question):
-		current = self.get_incorrect_questions
-		current.remove(question.id)
-		self.incorrect_questions = ','.join(map(str, current))
-		self.add_to_score(1)
+	def get_unanswered_questions(self):
+		return self.unanswered_questions
+
+	def remove_incorrect_question(self, question_id, question_marks = 1):
+		current = self.get_incorrect_questions()
+		current.remove(question_id)
+		self.incorrect_questions_list = ','.join(map(str, current))
+		self.add_to_score(question_marks)
 		self.save()
 
 	@property
@@ -499,12 +497,6 @@ class Sitting(models.Model):
 			return self.quiz.success_text
 		else:
 			return self.quiz.fail_text
-
-	def add_user_answer(self, question_id, guess):
-		current = json.loads(self.user_answers)
-		current[question_id] = guess
-		self.user_answers = json.dumps(current)
-		self.save()
 
 	def get_questions(self, with_answers=False):
 		question_ids = self._question_ids()
@@ -545,7 +537,7 @@ class Sitting(models.Model):
 
 
 def figure_directory(instance, filename):
-    return '/qna/media/{0}/{1}/{2}'.format(instance.que_type, instance.sub_category.sub_category_name, filename)
+	return '/qna/media/{0}/{1}/{2}'.format(instance.que_type, instance.sub_category.sub_category_name, filename)
 
 @python_2_unicode_compatible
 class Question(models.Model):
@@ -586,6 +578,8 @@ class Question(models.Model):
 								choices=QUESTION_DIFFICULTY_OPTIONS,
 								help_text=_("The difficulty level of a MCQQuestion"),
 								verbose_name=_("Difficulty Level"))
+
+	ideal_time = models.PositiveSmallIntegerField(validators=[MaxValueValidator(300)])
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)

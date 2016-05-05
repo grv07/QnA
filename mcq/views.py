@@ -8,7 +8,7 @@ from QnA.services import answer_engine
 from quiz.models import Quiz
 from models import MCQuestion
 from serializer import MCQuestionSerializer
-
+from QnA.services.constants import BLANK_HTML
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
@@ -34,7 +34,7 @@ def save_XLS_to_MCQ(request):
 	total_entries = len(data)
 
 	temp_data = data[0]
-	_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content']
+	_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content', 'ideal_time']
 	# This dict contains raw-way data with specified keys from temp_data or xls keys
 	data_dict = collections.OrderedDict({})
 	# _quiz_id = None
@@ -60,6 +60,7 @@ def save_XLS_to_MCQ(request):
 				if mcq_data:
 					optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
 					data_list[i]['optioncontent'] =  optioncontent
+
 				# data_list[i]['optioncontent'] = optioncontent[option_check.index(temp_data[j])] = str(mcq_data)
 
 			#Check first for // key(category name) value(category id) // pair in dict. if not exist then call query.  
@@ -77,12 +78,15 @@ def save_XLS_to_MCQ(request):
 
 			#Check first for // key(sub_category name) value(sub_category id) // pair in dict. if not exist then call query.
 			elif temp_data[j] == 'sub_category':
-				if sub_category_dict.has_key(mcq_data):
-					sub_category_id = sub_category_dict.get(mcq_data)
-				else:
-					sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
-					sub_category_dict[mcq_data] = sub_category_id
-				data_list[i][temp_data[j]] = str(sub_category_id)
+				try:
+					if sub_category_dict.has_key(mcq_data):
+						sub_category_id = sub_category_dict.get(mcq_data)
+					else:
+						sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
+						sub_category_dict[mcq_data] = sub_category_id
+					data_list[i][temp_data[j]] = str(sub_category_id)
+				except SubCategory.DoesNotExist as e:
+					return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
 			
 			else:
 				data_list[i][temp_data[j]] = str(mcq_data)	
@@ -125,7 +129,8 @@ def create_mcq(request, xls_read_data = None):
 		data['level'] = request.data['data[level]']
 		data['sub_category'] = request.data['data[sub_category]']
 		data['que_type'] = request.data['data[que_type]']
-		data['answer_order'] = request.data['data[answer_order]']		
+		data['answer_order'] = request.data['data[answer_order]']
+		data['ideal_time'] = request.data['data[ideal_time]']		
 		data['figure'] = request.data.get('figure', None)
 		data['options_data'] = {}
 		for i in '123456789':
