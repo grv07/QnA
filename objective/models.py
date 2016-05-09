@@ -5,6 +5,7 @@ from django.db import models
 from quiz.models import Question
 
 
+
 class ObjectiveQuestion(Question):
     correct = models.CharField(blank=False,default="", max_length = 100,
                                   help_text=_("Tick this if the question "
@@ -40,4 +41,3 @@ class ObjectiveQuestion(Question):
     class Meta:
         verbose_name = _("Objective Question")
         verbose_name_plural = _("Objective Questions")
-        # ordering = ['category']

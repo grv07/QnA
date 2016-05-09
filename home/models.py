@@ -42,7 +42,7 @@ class TestUser(models.Model):
 
 
     def __str__(self):
-        return self.user.username, self.user.email,self.test_key
+        return self.user.username
             
     class Meta:
         verbose_name = _("TestUser")

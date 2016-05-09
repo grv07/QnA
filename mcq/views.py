@@ -1,14 +1,19 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-
 from rest_framework import status
 
 from QnA.services import answer_engine
+from QnA.services.constants import BLANK_HTML
+
 from quiz.models import Quiz
 from models import MCQuestion
+from quiz.models import Category, SubCategory
+
 from serializer import MCQuestionSerializer
-from QnA.services.constants import BLANK_HTML
+
+from pyexcel_xls import get_data
+import collections
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
@@ -19,10 +24,6 @@ def save_XLS_to_MCQ(request):
 	 u'level': u'easy', u'correctoption': u'1', u'content': u'eeeeeeeeee', 
 	 u'optioncontent': {u'1': u'eeeeeeeeee', u'2': u'eeeeeeeeeee'}}
 	'''
-	from pyexcel_xls import get_data
-	import collections
-	from quiz.models import Category, SubCategory
-
 	# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
 	f = request.data['figure']
 
@@ -56,7 +57,9 @@ def save_XLS_to_MCQ(request):
 				data_list[i][temp_data[j]] = str(mcq_data)
 	
 			# Check if row is for option then create a dict_ of options and add it on optioncontent ....
+			# Options need to convert in str.
 			elif temp_data[j] in option_check:
+				mcq_data = str(mcq_data)
 				if mcq_data:
 					optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
 					data_list[i]['optioncontent'] =  optioncontent
@@ -91,7 +94,6 @@ def save_XLS_to_MCQ(request):
 			else:
 				data_list[i][temp_data[j]] = str(mcq_data)	
 	# DONE ........
-	 
 	return create_mcq(request, data_list)
 	# return Response({'msg' : data_list}, status = status.HTTP_200_OK)
 

@@ -91,10 +91,14 @@ def logout_user(request, format=None):
 @api_view(['GET'])
 @permission_classes((AllowAny,))
 def get_user_result(request, test_user_id, quiz_key, attempt_no):
-	test_user = TestUser.objects.get(id = test_user_id)
-	get_order_by = '-current_score'
-	quiz = Quiz.objects.get(quiz_key = quiz_key)
-	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = quiz, attempt_no = attempt_no)
+	try:
+		test_user = TestUser.objects.get(pk = test_user_id)
+		get_order_by = '-current_score'
+		quiz = Quiz.objects.get(quiz_key = quiz_key)
+		sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = quiz, attempt_no = attempt_no)
+	except Exception as e:
+		return Response({'errors':'Incorrect data'}, status = status.HTTP_400_BAD_REQUEST)
+			
 	# unanswered_questions_list = sitting.unanswered_questions.keys()
 	# incorrect_question_list = sitting.get_incorrect_questions()
 	_filter_by_category = filter_by_category(sitting)
@@ -116,6 +120,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	data['analysis']['section_wise_results'] = data_for_analysis['section_wise']
 	data['questions_stats'] = data_for_analysis['selected_questions']
 	# html = t.render(Context({'data': data }))
+	print data
 	if data['view_format'] == 'pdf':
 		return
 		# return generate_PDF(request, html)
@@ -372,21 +377,19 @@ def get_bookmark_questions(request):
 	if username and email:
 		try:
 			user = User.objects.get(username = username, email = email)
+			bookmark = BookMarks.objects.get(user = user)
 		except User.DoesNotExist:
 			return Response({ 'errors': 'User not found.'}, status = status.HTTP_400_BAD_REQUEST)
-		try:
-			bookmark = BookMarks.objects.get(user = user)
 		except BookMarks.DoesNotExist:
 			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
 		
 		bookmarked_questions_list = bookmark.fetch_bookmarks()
 		if bookmarked_questions_list:
 			questionserializer = QuestionSerializer( [Question.objects.get(id = q) for q in bookmarked_questions_list], many = True)
-			return Response({ 'data': { questionserializer.data } }, status = status.HTTP_200_OK)
+			return Response({ 'bookmark_questions': questionserializer.data }, status = status.HTTP_200_OK)
 		else:
 			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
 	return Response({ 'errors': 'Username or email not provided.'}, status = status.HTTP_400_BAD_REQUEST)
-
 
 
 @api_view(['GET'])
