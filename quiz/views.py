@@ -385,6 +385,7 @@ def answers_operations(request, userid, question_id):
 	Get answers to a question or update.
 	"""
 	try:
+		result = {}
 		question = Question.objects.get(pk = question_id)
 		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
 			answers = Answer.objects.filter(question = question)
@@ -393,7 +394,6 @@ def answers_operations(request, userid, question_id):
 	except Question.DoesNotExist:
 		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
 	if request.method == 'GET':
-		result = {}
 		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
 			answerserializer = AnswerSerializer(answers, many = True)
 			result['options'] = answerserializer.data
@@ -407,6 +407,8 @@ def answers_operations(request, userid, question_id):
 	elif request.method == 'PUT':
 		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
 			optionsContent = dict(request.data.get('optionsContent'))
+			result['options'] = []
+			result['content'] = question.content
 			for answer in answers:
 				d = { 'correct' : False, 'content' : optionsContent[str(answer.id)], 'question' : question.id }
 				if request.data.get('correctOption') == str(answer.id):
@@ -414,13 +416,15 @@ def answers_operations(request, userid, question_id):
 				serializer = AnswerSerializer(answer,data=d)
 				if serializer.is_valid():
 					serializer.save()
+					result['options'].append(serializer.data)
 		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
 			serializer = ObjectiveQuestionSerializer(answer, request.data)
 			if serializer.is_valid():
 				serializer.save()
+				result['options'].append(serializer.data)
 			else:
-				print serializer.errors
-		return Response({}, status = status.HTTP_200_OK)
+				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+		return Response(result, status = status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))

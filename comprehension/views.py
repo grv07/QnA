@@ -168,6 +168,8 @@ def comprehension_answers_operations(request, comprehension_question_id):
 			if serializer.is_valid():
 				serializer.save()
 				data['options'].append(serializer.data)
+			else:
+				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		return Response(data, status = status.HTTP_200_OK)
 
 
