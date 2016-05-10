@@ -8,7 +8,7 @@ from QnA.services import answer_engine
 from quiz.models import Quiz
 from models import MCQuestion
 from serializer import MCQuestionSerializer
-from QnA.services.constants import BLANK_HTML
+from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
 #>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
@@ -97,7 +97,6 @@ def save_XLS_to_MCQ(request):
 
 
 @api_view(['POST'])
-@permission_classes((AllowAny,))
 def create_mcq(request, xls_read_data = None):
 	"""
 	Create a MCQuestion. 
@@ -125,19 +124,22 @@ def create_mcq(request, xls_read_data = None):
 		data = {}
 		data['content'] = request.data['data[content]']
 		data['explanation'] = request.data['data[explanation]']
-		data['correctoption'] = request.data['data[correctoption]']
-		data['level'] = request.data['data[level]']
-		data['sub_category'] = request.data['data[sub_category]']
-		data['que_type'] = request.data['data[que_type]']
-		data['answer_order'] = request.data['data[answer_order]']
-		data['ideal_time'] = request.data['data[ideal_time]']		
-		data['figure'] = request.data.get('figure', None)
-		data['options_data'] = {}
-		for i in '123456789':
-			if request.data.get('data[optioncontent]['+i+']', None):
-				data['options_data'][i] = request.data.get('data[optioncontent]['+str(i)+']')
-		serializer = MCQuestionSerializer(data = data)
-		return save_mcq_question(request, serializer, data['options_data'], data['correctoption'])
+		data['correctoption'] = request.data.get('data[correctoption]', None)
+		if data['correctoption']:
+			data['level'] = request.data['data[level]']
+			data['sub_category'] = request.data['data[sub_category]']
+			data['que_type'] = request.data['data[que_type]']
+			data['answer_order'] = request.data['data[answer_order]']
+			data['ideal_time'] = request.data['data[ideal_time]']		
+			data['figure'] = request.data.get('figure', None)
+			data['options_data'] = {}
+			for i in range(1,MAX_OPTIONS+1):
+				if request.data.get('data[optioncontent]['+str(i)+']', None):
+					data['options_data'][str(i)] = request.data.get('data[optioncontent]['+str(i)+']')
+			serializer = MCQuestionSerializer(data = data)
+			return save_mcq_question(request, serializer, data['options_data'], data['correctoption'])
+		else:
+			return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -151,7 +153,7 @@ def save_mcq_question(request, serializer, options_data, correct_option):
 					c['correct'] = True
 				options.append(c)
 			mcq = serializer.save()			
-			isAnswerSaved, errors = answer_engine.create_answer(mcq, options)
+			isAnswerSaved, errors = answer_engine.create_mcq_answer(mcq, options)
 			if not isAnswerSaved:
 				return Response(errors, status = status.HTTP_400_BAD_REQUEST)
 			else:

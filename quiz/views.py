@@ -12,6 +12,8 @@ from mcq.models import Answer
 from mcq.serializer import AnswerSerializer
 from objective.serializer import ObjectiveQuestionSerializer
 from objective.models import ObjectiveQuestion
+from comprehension.models import Comprehension, ComprehensionQuestion
+from comprehension.serializer import ComprehensionSerializer, ComprehensionQuestionSerializer
 from serializer import QuizSerializer, CategorySerializer, SubCategorySerializer, QuestionSerializer
 from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
 
@@ -19,6 +21,7 @@ from QnA.services.xls_operations import save_test_private_access_from_xls
 from QnA.services.constants import QUIZ_ACCESS_FILE_COLS, MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
 from pyexcel_xls import save_data
 from collections import OrderedDict
+import os
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 @api_view(['GET'])
@@ -72,7 +75,7 @@ def update_quiz(request, userid, quizid ,format = None):
 	serializer = QuizSerializer(quiz, data = request.data)
 	if serializer.is_valid():
 		serializer.save()
-		return Response({}, status = status.HTTP_200_OK)
+		return Response({ 'updatedQuiz' : serializer.data }, status = status.HTTP_200_OK)
 	else:
 		print serializer.errors
 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -103,14 +106,15 @@ def create_quiz(request, format = None):
 @api_view(['DELETE'])
 def delete_quiz(request, user_id, quiz_id, format = None):
 	"""
-	Delete a quiz or GET a quiz details.
+	Delete a quiz.
 	"""
 	try:
+		print user_id, quiz_id, '---------'
 		quiz = Quiz.objects.get(id = quiz_id, user = user_id)
 	except Quiz.DoesNotExist as e:
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 	quiz.delete()
-	return Response(status = status.HTTP_204_NO_CONTENT)
+	return Response({}, status = status.HTTP_200_OK)
 
 
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
@@ -311,27 +315,27 @@ def all_questions_under_subcategory(request, user_id, subcategory_id):
 		return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET', 'PUT', 'DELETE'])
-def question_operations(request, userid, questionid):
+def question_operations(request, userid, question_id):
 	"""
-	Get a single question or update.
+	Get a single question, delete or update
 	"""
-	import os
 	try:
-		# print request.data
-		question = Question.objects.get(id = questionid)
+		question = Question.objects.get(id = question_id)
 	except Question.DoesNotExist:
-		return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
+		return Response({'errors': 'Question not found.'}, status=status.HTTP_404_NOT_FOUND)
 	if request.method == 'GET':
 		questionserializer = QuestionSerializer(question, many = False)
 		answers = Answer.objects.filter(question = question)
 		answerserializer = AnswerSerializer(answers, many = True)
 		result = dict(questionserializer.data)
+		if question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+			result['heading'] = Comprehension.objects.get(question = question).heading
 		result.update( { 'options' : answerserializer.data } )
 		result['sub_category'] = question.sub_category.sub_category_name
 		return Response({ 'question' : result }, status = status.HTTP_200_OK)
-
 	elif request.method == 'PUT':
 		data = {}
+		result = None
 		data['explanation'] = request.data['data[explanation]']
 		data['level'] = request.data['data[level]']
 		data['ideal_time'] = request.data['data[ideal_time]']
@@ -340,39 +344,48 @@ def question_operations(request, userid, questionid):
 			if question.figure:
 				os.remove(str(question.figure))
 		data['sub_category'] = question.sub_category.id
-		if request.data.get('data[que_type]') == QUESTION_TYPE_OPTIONS[0][0]:
-			data['content'] = request.data['data[content]']
-			serializer = QuestionSerializer(question, data = data)
-		elif request.data.get('data[que_type]') == QUESTION_TYPE_OPTIONS[1][0]:
+		if question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 			if BLANK_HTML in request.data['data[content]']:
 				data['content'] = request.data['data[content]'].replace(BLANK_HTML,' <> ').replace('&nbsp;', ' ')
 				serializer = ObjectiveQuestionSerializer(question, data = data)
 			else:
 				return Response({ "content" : ["No blank field present.Please add one."] } , status = status.HTTP_400_BAD_REQUEST)
+		else:
+			data['content'] = request.data['data[content]']
+			serializer = QuestionSerializer(question, data = data)
+			if question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+				d = { 'heading': request.data['data[heading]'], 'question': question.id }
+				comprehension_serializer = ComprehensionSerializer(Comprehension.objects.get(question = question), data = d)
+				if comprehension_serializer.is_valid():
+					comprehension_serializer.save()
+					result = comprehension_serializer.data
+				else:
+					return Response(comprehension_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		if serializer.is_valid():
 			serializer.save()
-			return Response(serializer.data, status = status.HTTP_200_OK)
+			if result:
+				result.update(serializer.data)
+			else:
+				result = serializer.data
+			return Response(result, status = status.HTTP_200_OK)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 	elif request.method == 'DELETE':
-		try:
-			if question.figure:
-				os.remove(str(question.figure))
-			question.delete()
-			return Response(status=status.HTTP_204_NO_CONTENT)
-		except Exception as e:
-			print e.args
-			return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
+		if question.figure:
+			os.remove(str(question.figure))
+		question.delete()
+		return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 
 @api_view(['GET', 'PUT'])
-def answers_operations(request, userid, questionid):
+def answers_operations(request, userid, question_id):
 	"""
 	Get answers to a question or update.
 	"""
 	try:
-		question = Question.objects.get(pk = questionid)
+		question = Question.objects.get(pk = question_id)
 		if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
 			answers = Answer.objects.filter(question = question)
 		elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:

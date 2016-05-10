@@ -9,6 +9,7 @@ QUESTION_DIFFICULTY_OPTIONS = (
 QUESTION_TYPE_OPTIONS = (
 	('mcq', _('MCQ')),
 	('objective', _('OBJECTIVE')),
+	('comprehension', _('COMPREHENSION')),
 )
 
 ANSWER_ORDER_OPTIONS = (
@@ -29,3 +30,7 @@ BLANK_HTML = "<<Answer>>"
 CACHE_TIMEOUT = 18000
 
 REGISTRATION_HTML = "<p><p>Hello <b>{name}</b>,</p><br><p>Thanks for registering on <b>QnA</b>.</p><p>You username is <b>{username}</b>.</p></p>"
+
+RESULT_HTML = "<p><p>Hello <b>{username}</b>,</p><br><p>You attempted a test for Quiz <b>{quiz_name}</b>.</p><br>You can view your test report here <a href='{report_link}'>report link.</a></p>"
+
+MAX_OPTIONS = 6

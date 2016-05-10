@@ -95,32 +95,36 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	get_order_by = '-current_score'
 	quiz = Quiz.objects.get(quiz_key = quiz_key)
 	sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = quiz, attempt_no = attempt_no)
-	# unanswered_questions_list = sitting.unanswered_questions.keys()
-	# incorrect_question_list = sitting.get_incorrect_questions()
-	_filter_by_category = filter_by_category(sitting)
-	data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
-	topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
-	data['sitting_id'] = sitting.id
-	data['rank'] = find_and_save_rank(test_user_id, quiz_key, sitting.quiz.id, sitting.current_score, sitting.time_spent)
-	data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
-	data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
-	data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.user_answers, topper_sitting_obj.unanswered_questions) }
-	if topper_sitting_obj.id != sitting.id:
-		data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.user_answers, sitting.unanswered_questions)
-	data['analysis']['filter_by_category'] = _filter_by_category[0]
-	data['view_format'] = request.GET.get('view_format',None)
-	# fp = open('QnA/services/result.html')
-	# t = Template(fp.read())
-	# fp.close()
-	data_for_analysis = get_data_for_analysis(quiz, sitting.unanswered_questions.keys(), sitting.get_incorrect_questions())
-	data['analysis']['section_wise_results'] = data_for_analysis['section_wise']
-	data['questions_stats'] = data_for_analysis['selected_questions']
-	# html = t.render(Context({'data': data }))
-	if data['view_format'] == 'pdf':
-		return
-		# return generate_PDF(request, html)
+	if sitting.complete:
+		# unanswered_questions_list = sitting.unanswered_questions.keys()
+		# incorrect_question_list = sitting.get_incorrect_questions()
+		_filter_by_category = filter_by_category(sitting)
+		data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
+		data['sitting_id'] = sitting.id
+		data['rank'] = find_and_save_rank(test_user_id, quiz_key, sitting.quiz.id, sitting.current_score, sitting.time_spent)
+		topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
+		data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
+		data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
+		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.user_answers, topper_sitting_obj.unanswered_questions) }
+		if topper_sitting_obj.id != sitting.id:
+			data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.user_answers, sitting.unanswered_questions)
+		data['analysis']['filter_by_category'] = _filter_by_category[0]
+		data['view_format'] = request.GET.get('view_format',None)
+		# fp = open('QnA/services/result.html')
+		# t = Template(fp.read())
+		# fp.close()
+		data_for_analysis = get_data_for_analysis(quiz, sitting.unanswered_questions.keys(), sitting.get_incorrect_questions())
+		data['analysis']['section_wise_results'] = data_for_analysis['section_wise']
+		data['questions_stats'] = data_for_analysis['selected_questions']
+		# html = t.render(Context({'data': data }))
+		if data['view_format'] == 'pdf':
+			return
+			# return generate_PDF(request, html)
+		else:
+			return Response(data, status = status.HTTP_200_OK)
 	else:
-		return Response(data, status = status.HTTP_200_OK)
+		return Response({'errors':''}, status = status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['POST'])
@@ -178,7 +182,6 @@ def test_data_helper(test_key, test_user_id):
 
 @api_view(['POST', 'GET'])
 @permission_classes((AllowAny,))
-# @authentication_classes([TestAuthentication])
 def test_user_data(request):
 	data = { 'test': {} }
 	if request.method == 'GET':
@@ -245,7 +248,7 @@ def test_user_data(request):
 				return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
 				 status = status.HTTP_400_BAD_REQUEST)				
 			else:
-				data['test'].update({'remaining_attempts':quiz.no_of_attempt - test_user.no_attempt })
+				data['test'].update({'remaining_attempts':quiz.no_of_attempt - test_user.no_attempt })	
 			token = generate_token(user)
 			data['token'] = token
 			data['is_new'] = is_new
@@ -334,8 +337,7 @@ def save_test_data_to_db(request):
 	time_spent = request.data.get('time_spent')
 	time_spent_on_question = cache.get(test_key + "|" + str(test_user) + "qtime")
 	try:
-		host_name = request.META['HTTP_HOST']
-		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name, time_spent_on_question['qtime'])
+		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question['qtime'])
 		return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args

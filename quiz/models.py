@@ -554,7 +554,7 @@ class Question(models.Model):
 							   null=True,
 							   verbose_name=_("Figure"))
 
-	content = models.CharField(max_length=1000,
+	content = models.CharField(max_length=3000,
 							   blank=False,
 							   help_text=_("Enter the question text that "
 										   "you want displayed"),
@@ -569,7 +569,7 @@ class Question(models.Model):
 
 	points = models.IntegerField(verbose_name=_("Marks"), default=1, blank=True)
 	
-	que_type = models.CharField(max_length = 10,null= True,
+	que_type = models.CharField(max_length = 15,null= True,
 								choices=QUESTION_TYPE_OPTIONS,
 								help_text=_("Type of Question"),
 								verbose_name=_("Question Type"))

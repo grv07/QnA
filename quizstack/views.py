@@ -96,7 +96,7 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 			if quiz.total_questions > quizstack.no_questions:  
 				quiz.total_questions -= quizstack.no_questions
 				quiz.total_marks -= _remove_marks
-				quiz.total_duration -= int(quizstack.duration)*60
+				quiz.total_duration -= int(quizstack.duration)
 				quiz.total_sections = len(set([qs.section_name for qs in QuizStack.objects.filter(quiz = quiz) if qs.section_name!=quizstack.section_name]))
 			else:
 				quiz.total_questions = 0
@@ -194,7 +194,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 						d[count]['figure'] = str(question.figure)
 					data['questions'].append(d)
 				added_questions.append(question.id)
-		data['total_questions'] = count
+		# data['total_questions'] = count
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args

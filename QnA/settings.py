@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'quiz',
     'mcq',
     'objective',
+    'comprehension',
     'home',
     'quizstack',
 ]
