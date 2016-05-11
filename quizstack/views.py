@@ -8,6 +8,7 @@ from .models import QuizStack
 from .serializer import QuizStackSerializer
 from mcq.models import Answer
 from objective.models import ObjectiveQuestion
+from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
 from QnA.services.constants import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS
 from QnA.services.utility import shuffleList
 from django.core.cache import cache
@@ -184,17 +185,31 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 			for question_id in questions:
 				question = Question.objects.get(id = int(question_id))
 				if question.id not in added_questions:
-					if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
-						options = [{ 'id' : answer.id, 'content' : answer.content, 'isSelected': False } for answer in Answer.objects.filter(question=question)]
-					elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
-						options = []
 					count += 1
-					d = { count : { 'id': int(question_id), 'content': question.content, 'options': options, 'que_type': question.que_type, 'figure': None, 'status': 'NV' } }
+					d = { count : { 'id': int(question_id), 'content': question.content, 'que_type': question.que_type, 'figure': None, 'status': 'NV' } }
 					if question.figure:
 						d[count]['figure'] = str(question.figure)
+					# Check for diff. types of questions
+					if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+						d[count]['options'] = [{ 'id' : answer.id, 'content' : answer.content } for answer in Answer.objects.filter(question = question)]
+					elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
+						d[count]['options'] = []
+					elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+						comprehension = Comprehension.objects.get(question = question)
+						d[count]['heading'] = comprehension.heading
+						d[count]['comprehension_questions'] = []
+						count1 = 0
+						for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
+							count1 += 1
+							d1 = { count1 : { 'id': cq.id, 'content': cq.content, 'figure': None, 'options': None } }
+							if cq.figure:
+								d1[count1]['figure'] = str(cq.figure)
+							d1[count1]['options'] = [{ 'id' : ca.id, 'content' : ca.content } for ca in ComprehensionAnswer.objects.filter(question = cq)]
+							d[count]['comprehension_questions'].append(d1)
 					data['questions'].append(d)
 				added_questions.append(question.id)
 		# data['total_questions'] = count
+		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args

@@ -86,7 +86,7 @@ def mark_quiz_public(request, userid, quizid):
 		quiz = Quiz.objects.get(id = quizid, user = userid)
 		quiz.allow_public_access = False if quiz.allow_public_access else True
 		quiz.save()
-		return Response({'title':quiz.title,"allow_public_access":quiz.allow_public_access}, status = status.HTTP_200_OK)
+		return Response({ 'title':quiz.title, "allow_public_access":quiz.allow_public_access, 'id':quiz.id }, status = status.HTTP_200_OK)
 	except Quiz.DoesNotExist as e:
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 
@@ -98,8 +98,18 @@ def create_quiz(request, format = None):
 	"""
 	serializer = QuizSerializer(data = request.data)
 	if serializer.is_valid():
-		serializer.save()
-		return Response(serializer.data, status = status.HTTP_200_OK)
+		quiz = serializer.save()
+		data = serializer.data
+		data['allow_public_access'] = quiz.allow_public_access
+		data['id'] = quiz.id 
+		data['quiz_key'] = quiz.quiz_key 
+		data['show_result_on_completion'] = quiz.show_result_on_completion 
+		data['total_duration'] = quiz.total_duration 
+		data['total_marks'] = quiz.total_marks 
+		data['total_questions'] = quiz.total_questions 
+		data['total_sections'] = quiz.total_sections 
+		data['url'] = quiz.url 
+		return Response(data, status = status.HTTP_200_OK)
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 
