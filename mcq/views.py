@@ -13,8 +13,7 @@ from quiz.models import Category, SubCategory
 from serializer import MCQuestionSerializer
 
 from pyexcel_xls import get_data
-import collections
-
+import collections, ast
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
@@ -120,14 +119,10 @@ def create_mcq(request, xls_read_data = None):
 			else:
 				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
 	else:
-		data = {}
 		if request.data.get('correctoption'):
-			data['options_data'] = {}
-			for i in range(1,MAX_OPTIONS+1):
-				if request.data.get('optioncontent['+str(i)+']', None):
-					data['options_data'][str(i)] = request.data.get('optioncontent['+str(i)+']')
-				else:
-					break
+			# {'id':'content'}
+			options_dict = ast.literal_eval((request.data.get('optioncontent')))
+			data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
 			serializer = MCQuestionSerializer(data = request.data)
 			return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
 		else:
@@ -168,7 +163,7 @@ def get_mcq_detail(request, pk):
 		return Response({'msg': 'Question does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		return Response({'msg': 'Something went terrible wrong'}, status = status.HTTP_400_BAD_REQUEST)
-	
+
 
 @api_view(['DELETE'])
 def del_mcq(request, pk):
@@ -204,9 +199,5 @@ def all_mcq(request):
 
 def generate_result(request):
 	print 'generate result here ... ...'
-
-
 #>>>>>>>>>>>>>> MCQ Answer<<<<<<<<<<<<<<<<<<<#
-
-
 # Create your views here.
