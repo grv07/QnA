@@ -6,7 +6,6 @@ from quiz.models import Question
 from QnA.services.constants import ANSWER_ORDER_OPTIONS
 
 
-
 class MCQuestion(Question):
     answer_order = models.CharField(
         max_length=30, null=True, blank=True,

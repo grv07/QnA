@@ -41,7 +41,6 @@ def save_comprehension_question(request, serializer, options_data, correct_optio
 @api_view(['POST'])
 def create_comprehension(request):
 	try:
-		p
 		question_serializer = QuestionSerializer(data = request.data)
 		if question_serializer.is_valid():
 			question_serializer.save()

@@ -63,9 +63,6 @@ def save_XLS_to_MCQ(request):
 				if mcq_data:
 					optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
 					data_list[i]['optioncontent'] =  optioncontent
-
-				# data_list[i]['optioncontent'] = optioncontent[option_check.index(temp_data[j])] = str(mcq_data)
-
 			#Check first for // key(category name) value(category id) // pair in dict. if not exist then call query.  
 			elif temp_data[j] == 'category':
 				if category_dict.has_key(mcq_data):
@@ -124,22 +121,15 @@ def create_mcq(request, xls_read_data = None):
 				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
 	else:
 		data = {}
-		data['content'] = request.data['data[content]']
-		data['explanation'] = request.data['data[explanation]']
-		data['correctoption'] = request.data.get('data[correctoption]', None)
-		if data['correctoption']:
-			data['level'] = request.data['data[level]']
-			data['sub_category'] = request.data['data[sub_category]']
-			data['que_type'] = request.data['data[que_type]']
-			data['answer_order'] = request.data['data[answer_order]']
-			data['ideal_time'] = request.data['data[ideal_time]']		
-			data['figure'] = request.data.get('figure', None)
+		if request.data.get('correctoption'):
 			data['options_data'] = {}
 			for i in range(1,MAX_OPTIONS+1):
-				if request.data.get('data[optioncontent]['+str(i)+']', None):
-					data['options_data'][str(i)] = request.data.get('data[optioncontent]['+str(i)+']')
-			serializer = MCQuestionSerializer(data = data)
-			return save_mcq_question(request, serializer, data['options_data'], data['correctoption'])
+				if request.data.get('optioncontent['+str(i)+']', None):
+					data['options_data'][str(i)] = request.data.get('optioncontent['+str(i)+']')
+				else:
+					break
+			serializer = MCQuestionSerializer(data = request.data)
+			return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
 		else:
 			return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
 
