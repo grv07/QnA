@@ -145,7 +145,8 @@ def validate_stack():
 
 def check_for_float(value):
 	if type(value) == float:
-		value = str(value).replace('.0','')
+		base, fraction = str(value).split('.')
+		value = base+'.'+fraction if float(fraction) > 0 else base
 	return value
 		
 

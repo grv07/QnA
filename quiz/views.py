@@ -221,6 +221,7 @@ def create_subcategory(request):
 @api_view(['GET'])
 def get_subcategory(request, userid, categoryid, format = None):
 	"""
+	If all_subcategories = True then return all else return subcategory not have any category.
 	Either get all subcategories under each quiz and category or get subcategories under specifc quiz and category.
 	"""
 	serializer = None

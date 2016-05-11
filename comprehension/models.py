@@ -7,20 +7,6 @@ from quiz.models import SubCategory, Question
 from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS
 
 
-
-
-
-
-# class ComprehensionManager(models.Manager):
-
-# 	def create_comprehension(question, heading):
-# 		try:
-# 			return Comprehension.objects.create(question = question, heading = heading)
-# 		except Exception as e:
-# 			print e.args
-# 			return False
-
-
 class Comprehension(models.Model):
 	question = models.OneToOneField(Question,blank=False, null=False, verbose_name=_("Question"))
 	heading = models.CharField(max_length=200,
@@ -28,8 +14,6 @@ class Comprehension(models.Model):
 							   help_text=_("Enter the heading text that "
 										   "you want displayed"),
 							   verbose_name=_('Comprehension'))
-	# objects = ComprehensionManager()
-
 
 def figure_directory_for_comprehension_question(instance, filename):
     return '/qna/media/comprehension/{0}/{1}/{2}'.format(instance.comprehension.question.sub_category.sub_category_name, instance.comprehension.question.id, filename)
