@@ -290,7 +290,7 @@ def save_test_data_to_cache(request):
 		section_name = request.data.get('section_name')
 		cache_key = test_key+"|"+str(test_user)+"|"+section_name.replace('Section#','')
 		cache_value = cache.get(cache_key)
-		if not cache_value:			
+		if not cache_value:
 			cache.set(cache_key,{ 'answers': answer , 'time': timezone.now() }, timeout = CACHE_TIMEOUT)
 		else:
 			if question_id in cache_value['answers'].keys():
