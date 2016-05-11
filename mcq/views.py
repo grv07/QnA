@@ -1,20 +1,15 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+
 from rest_framework import status
 
 from QnA.services import answer_engine
-from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
-
 from quiz.models import Quiz
 from models import MCQuestion
-from quiz.models import Category, SubCategory
-
 from serializer import MCQuestionSerializer
-
-from pyexcel_xls import get_data
-import collections
-
+from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
+#>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
@@ -24,6 +19,10 @@ def save_XLS_to_MCQ(request):
 	 u'level': u'easy', u'correctoption': u'1', u'content': u'eeeeeeeeee', 
 	 u'optioncontent': {u'1': u'eeeeeeeeee', u'2': u'eeeeeeeeeee'}}
 	'''
+	from pyexcel_xls import get_data
+	import collections
+	from quiz.models import Category, SubCategory
+
 	# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
 	f = request.data['figure']
 
@@ -57,12 +56,13 @@ def save_XLS_to_MCQ(request):
 				data_list[i][temp_data[j]] = str(mcq_data)
 	
 			# Check if row is for option then create a dict_ of options and add it on optioncontent ....
-			# Options need to convert in str.
 			elif temp_data[j] in option_check:
-				mcq_data = str(mcq_data)
 				if mcq_data:
 					optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
 					data_list[i]['optioncontent'] =  optioncontent
+
+				# data_list[i]['optioncontent'] = optioncontent[option_check.index(temp_data[j])] = str(mcq_data)
+
 			#Check first for // key(category name) value(category id) // pair in dict. if not exist then call query.  
 			elif temp_data[j] == 'category':
 				if category_dict.has_key(mcq_data):
@@ -91,6 +91,7 @@ def save_XLS_to_MCQ(request):
 			else:
 				data_list[i][temp_data[j]] = str(mcq_data)	
 	# DONE ........
+	 
 	return create_mcq(request, data_list)
 	# return Response({'msg' : data_list}, status = status.HTTP_200_OK)
 
@@ -121,15 +122,22 @@ def create_mcq(request, xls_read_data = None):
 				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
 	else:
 		data = {}
-		if request.data.get('correctoption'):
+		data['content'] = request.data['data[content]']
+		data['explanation'] = request.data['data[explanation]']
+		data['correctoption'] = request.data.get('data[correctoption]', None)
+		if data['correctoption']:
+			data['level'] = request.data['data[level]']
+			data['sub_category'] = request.data['data[sub_category]']
+			data['que_type'] = request.data['data[que_type]']
+			data['answer_order'] = request.data['data[answer_order]']
+			data['ideal_time'] = request.data['data[ideal_time]']		
+			data['figure'] = request.data.get('figure', None)
 			data['options_data'] = {}
 			for i in range(1,MAX_OPTIONS+1):
-				if request.data.get('optioncontent['+str(i)+']', None):
-					data['options_data'][str(i)] = request.data.get('optioncontent['+str(i)+']')
-				else:
-					break
-			serializer = MCQuestionSerializer(data = request.data)
-			return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
+				if request.data.get('data[optioncontent]['+str(i)+']', None):
+					data['options_data'][str(i)] = request.data.get('data[optioncontent]['+str(i)+']')
+			serializer = MCQuestionSerializer(data = data)
+			return save_mcq_question(request, serializer, data['options_data'], data['correctoption'])
 		else:
 			return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
 
