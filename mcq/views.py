@@ -9,7 +9,8 @@ from quiz.models import Quiz
 from models import MCQuestion
 from serializer import MCQuestionSerializer
 from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
-#>>>>>>>>>>>>>> MCQ question <<<<<<<<<<<<<<<<<<<#
+from pyexcel_xls import get_data
+import collections, ast
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
@@ -121,23 +122,12 @@ def create_mcq(request, xls_read_data = None):
 			else:
 				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
 	else:
-		data = {}
-		data['content'] = request.data['data[content]']
-		data['explanation'] = request.data['data[explanation]']
-		data['correctoption'] = request.data.get('data[correctoption]', None)
-		if data['correctoption']:
-			data['level'] = request.data['data[level]']
-			data['sub_category'] = request.data['data[sub_category]']
-			data['que_type'] = request.data['data[que_type]']
-			data['answer_order'] = request.data['data[answer_order]']
-			data['ideal_time'] = request.data['data[ideal_time]']		
-			data['figure'] = request.data.get('figure', None)
-			data['options_data'] = {}
-			for i in range(1,MAX_OPTIONS+1):
-				if request.data.get('data[optioncontent]['+str(i)+']', None):
-					data['options_data'][str(i)] = request.data.get('data[optioncontent]['+str(i)+']')
-			serializer = MCQuestionSerializer(data = data)
-			return save_mcq_question(request, serializer, data['options_data'], data['correctoption'])
+		if request.data.get('correctoption'):
+			# {'id':'content'}
+			options_dict = ast.literal_eval((request.data.get('optioncontent')))
+			data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
+			serializer = MCQuestionSerializer(data = request.data)
+			return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
 		else:
 			return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
 
@@ -176,7 +166,7 @@ def get_mcq_detail(request, pk):
 		return Response({'msg': 'Question does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		return Response({'msg': 'Something went terrible wrong'}, status = status.HTTP_400_BAD_REQUEST)
-	
+
 
 @api_view(['DELETE'])
 def del_mcq(request, pk):
@@ -212,9 +202,3 @@ def all_mcq(request):
 
 def generate_result(request):
 	print 'generate result here ... ...'
-
-
-#>>>>>>>>>>>>>> MCQ Answer<<<<<<<<<<<<<<<<<<<#
-
-
-# Create your views here.
