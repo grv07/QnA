@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^quiz/', include('quiz.urls')),
     url(r'^question/mcq/', include('mcq.urls')),
     url(r'^question/objective/', include('objective.urls')),
+    url(r'^question/comprehension/', include('comprehension.urls')),
     url(r'^stack/', include('quizstack.urls')),
     url(r'^api-token-auth/', obtain_jwt_token),
     url(r'^api-token-verify/', verify_jwt_token),

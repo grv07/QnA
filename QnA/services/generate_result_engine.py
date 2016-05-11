@@ -122,33 +122,44 @@ def get_data_for_analysis(quiz, unanswered_questions_list, incorrect_questions_l
 	return data
 
 # Calculate the rank
-def get_rank(quiz_key, quiz_id, current_score, time_spent):
-	all_test_users = TestUser.objects.filter(test_key = quiz_key)
+def get_rank(real_test_user_id, quiz_key, quiz_id, current_score, time_spent):
+	all_test_users = TestUser.objects.filter(test_key =  quiz_key)
 	# all_sitting_objs = Sitting.objects.filter(quiz = quiz_id)
-	total = len(all_test_users)
-	rank = total
-	for test_user in all_test_users:
-		max_sitting_obj = get_max_sitting_obj(test_user, quiz_id)
-		# print max_sitting_obj.time_spent, time_spent, max_sitting_obj.current_score, current_score
-		if current_score > max_sitting_obj.current_score:
-			rank -= 1
-			if test_user.rank+1 <= total:
-				test_user.rank += 1
+	total = all_test_users.count()
+	if total == 0:
+		return 1
+	else:
+		total = all_test_users.exclude(rank = 0).count()
+		rank = total
+		for test_user in all_test_users.exclude(id = real_test_user_id):
+			max_sitting_obj = get_max_sitting_obj(test_user, quiz_id)
+			if max_sitting_obj:
+				# print max_sitting_obj.time_spent, time_spent, max_sitting_obj.current_score, current_score
+				if current_score > max_sitting_obj.current_score:
+					rank -= 1
+					if test_user.rank+1 <= total:
+						test_user.rank += 1
+				elif current_score == max_sitting_obj.current_score:
+					if time_spent < max_sitting_obj.time_spent:
+						rank -= 1
+						if test_user.rank+1 <= total:
+							test_user.rank += 1
+					elif time_spent == max_sitting_obj.time_spent:
+						if int(real_test_user_id) < int(test_user.id):
+							rank -= 1
+							if test_user.rank <= total:
+								test_user.rank += 1
 				test_user.save()
-		elif current_score == max_sitting_obj.current_score:
-			if time_spent < max_sitting_obj.time_spent:
-				rank -= 1
-				if test_user.rank+1 <= total:
-					test_user.rank += 1
-					test_user.save()
-	return rank
+			else:
+				pass
+		return rank
 
 # Save rank if rank == 0 (at first attempt) otherwise check if existing rank is better or newly calculated is. Use the minimum rank and save.
 def find_and_save_rank(test_user_id, quiz_key, quiz_id, current_score, time_spent):
 	try:
 		test_user = TestUser.objects.get(id = test_user_id)
 		current_rank = test_user.rank
-		calculated_rank = get_rank(quiz_key, quiz_id, current_score, time_spent)
+		calculated_rank = get_rank(test_user_id, quiz_key, quiz_id, current_score, time_spent)
 		if (current_rank == 0) or (current_rank > calculated_rank):
 			test_user.rank = calculated_rank
 			test_user.save()
@@ -159,20 +170,25 @@ def find_and_save_rank(test_user_id, quiz_key, quiz_id, current_score, time_spen
 
 
 def get_max_sitting_obj(test_user, quiz_id):
-	sitting_objs = Sitting.objects.filter(user = test_user.user, quiz = quiz_id)
-	sitting_obj_topper = sitting_objs[0]
-	if(len(sitting_objs) == 1):
-		return sitting_obj_topper
-	else:
-		for sitting in sitting_objs[1:]:
-			if sitting.current_score > sitting_obj_topper.current_score:
-				sitting_obj_topper = sitting
-			elif sitting.current_score == sitting_obj_topper.current_score:
-				if sitting.time_spent > sitting_obj_topper.time_spent:
+	sitting_objs = Sitting.objects.filter(user = test_user.user, quiz = quiz_id, complete = True)
+	if sitting_objs:
+		sitting_obj_topper = sitting_objs[0]
+		if(sitting_objs.count() == 1):
+			return sitting_obj_topper
+		else:
+			for sitting in sitting_objs[1:]:
+				if sitting.current_score > sitting_obj_topper.current_score:
 					sitting_obj_topper = sitting
-		return sitting_obj_topper
+				elif sitting.current_score == sitting_obj_topper.current_score:
+					if sitting.time_spent > sitting_obj_topper.time_spent:
+						sitting_obj_topper = sitting
+			return sitting_obj_topper
+	return None
 
 
 def get_topper_data(quiz_key, quiz_id):
-	test_user = TestUser.objects.get(test_key = quiz_key, rank = 1)
+	try:
+		test_user = TestUser.objects.get(test_key = quiz_key, rank = 1)
+	except TestUser.DoesNotExist:
+		test_user = TestUser.objects.get(test_key = quiz_key, rank = 0)
 	return get_max_sitting_obj(test_user, quiz_id)

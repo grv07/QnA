@@ -48,6 +48,8 @@ class TestUser(models.Model):
         verbose_name = _("TestUser")
 
 
+
+
 class BookMarks(models.Model):
     user = models.ForeignKey(User)
     questions_list = models.CommaSeparatedIntegerField(

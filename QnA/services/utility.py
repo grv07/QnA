@@ -5,12 +5,16 @@ import requests
 import json
 from random import shuffle
 
+from QnA.settings import TEST_REPORT_URL
+
 from quiz.models import Question, SubCategory, Sitting, Quiz
 from mcq.models import Answer
 from quizstack.models import QuizStack
 from objective.models import ObjectiveQuestion
-from constants import QUESTION_TYPE_OPTIONS
+from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
+from constants import QUESTION_TYPE_OPTIONS, RESULT_HTML
 from generate_result_engine import generate_result, filter_by_category, find_and_save_rank
+from mail_handling import send_mail
 
 
 # UPLOAD_LOCATION = '/qna/media/'
@@ -85,6 +89,8 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 				} for answer in Answer.objects.filter(question = question)] })
 			elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 				d.update({ 'correct': ObjectiveQuestion.objects.get(pk = question).get_answer()  })
+			elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+				d['comprehensionId'] = Comprehension.objects.get(question=question).id
 			
 			if question.level == 'easy':
 				questions_level_info[0] = questions_level_info[0] + 1
@@ -101,6 +107,24 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 	questions_level_info[3] = sum(questions_level_info[:3])
 	sca['questions_level_info'] = questions_level_info
 	return sca
+
+
+
+def get_comprehension_questions_format(comprehension):
+	data = { 'questions':[] }
+	for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
+		d = {
+			'id' : cq.id,
+			'level' : cq.level,
+			'content' : cq.content,
+			}
+		d.update({ 'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct 
+				} for answer in ComprehensionAnswer.objects.filter(question = cq)] })
+
+		data['questions'].append(d)
+	return data
+
+
 
 def validate_stack():
 	'''
@@ -148,7 +172,7 @@ def postNotifications(data = None, url = None):
 			return False
 	return False
 
-def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, host_name, time_spent_on_question):
+def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question):
 	if sitting_id and test_user and test_key and time_spent:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
@@ -191,9 +215,11 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, hos
 			print 'finish notification not sent'
 		_filter_by_category = filter_by_category(sitting_obj)
 		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
-		data['htmlReport'] = 'http://'+str(host_name)+'/api/user/result/'+str(test_user)+'/'+test_key+'/'+str(sitting_obj.attempt_no)
+		data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
+			# html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
+			# send_mail(html, sitting_obj.user.email)
 		# Clean my cache ...
 		cache.delete('sitting_id'+str(test_user))
 		cache.delete(test_key + "|" + str(test_user) + "time")

@@ -37,8 +37,8 @@ def save_XLS_to_OBJECTIVE(request):
 							return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
 
 					temp_dict = { 'sub_category':d[i[0]].id, 'level':i[1], 'explanation':'', 'correct':'', 'content':i[4], 'que_type': 'objective' }
-					temp_dict['explanation'] = check_for_float(i[2])
-					temp_dict['correct'] = check_for_float(i[3])
+					temp_dict['explanation'] = str(i[2])
+					temp_dict['correct'] = str(i[3])
 					serializer = ObjectiveQuestionSerializer(data = temp_dict)
 					if serializer.is_valid():
 						correct_serializers_list.append(serializer)

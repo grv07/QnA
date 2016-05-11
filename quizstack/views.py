@@ -96,7 +96,7 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 			if quiz.total_questions > quizstack.no_questions:  
 				quiz.total_questions -= quizstack.no_questions
 				quiz.total_marks -= _remove_marks
-				quiz.total_duration -= int(quizstack.duration)*60
+				quiz.total_duration -= int(quizstack.duration)
 				quiz.total_sections = len(set([qs.section_name for qs in QuizStack.objects.filter(quiz = quiz) if qs.section_name!=quizstack.section_name]))
 			else:
 				quiz.total_questions = 0
