@@ -123,7 +123,7 @@ def create_mcq(request, xls_read_data = None):
 				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
 	else:
 		if request.data.get('correctoption'):
-			# {'id':'content'}
+			data = {}
 			options_dict = ast.literal_eval((request.data.get('optioncontent')))
 			data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
 			serializer = MCQuestionSerializer(data = request.data)
