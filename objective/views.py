@@ -58,16 +58,8 @@ def save_XLS_to_OBJECTIVE(request):
 @api_view(['POST'])
 def create_objective(request):
 	try:
-		if BLANK_HTML in request.data['data[content]']:
-			data = {}
-			data['content'] = request.data['data[content]']
-			data['explanation'] = request.data['data[explanation]']
-			data['correct'] = request.data['data[correct]']
-			data['level'] = request.data['data[level]']
-			data['sub_category'] = request.data['data[sub_category]']
-			data['que_type'] = request.data['data[que_type]']
-			data['figure'] = request.data.get('figure', None)
-			serializer = ObjectiveQuestionSerializer(data = data)
+		if BLANK_HTML in request.data['content']:
+			serializer = ObjectiveQuestionSerializer(data = request.data)
 			if serializer.is_valid():
 				serializer.save()
 				return Response(serializer.data, status = status.HTTP_200_OK)

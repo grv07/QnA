@@ -12,7 +12,7 @@ from quiz.serializer import QuestionSerializer
 from .serializer import ComprehensionSerializer, ComprehensionQuestionSerializer, ComprehensionAnswerSerializer
 from .models import Comprehension, ComprehensionAnswer, ComprehensionQuestion
 
-import os
+import os, ast
 # Create your views here.
 
 
@@ -63,7 +63,7 @@ def create_comprehension(request):
 def get_comprehension(request, comprehension_id):
 	try:
 		comprehension = Comprehension.objects.get(id = comprehension_id)
-		return Response({ 'content': comprehension.question.content, 'sub_category': comprehension.question.sub_category.sub_category_name, 'heading': comprehension.heading, 'figure':str(comprehension.question.figure) }, status = status.HTTP_200_OK)
+		return Response({ 'id': comprehension.id, 'content': comprehension.question.content, 'sub_category': comprehension.question.sub_category.sub_category_name, 'heading': comprehension.heading, 'figure':str(comprehension.question.figure) }, status = status.HTTP_200_OK)
 	except Comprehension.DoesNotExist as e:
 		return Response({ 'errors' : "Unable to find comprehension."}, status = status.HTTP_400_BAD_REQUEST)
 
@@ -71,19 +71,15 @@ def get_comprehension(request, comprehension_id):
 @api_view(['POST'])
 def create_comprehension_question(request):
 	data = {}
-	print request.data
 	correctoption= request.data.get('correctoption', None)
 	if correctoption:
-		data['options_data'] = {}
-		for i in range(1,MAX_OPTIONS+1):
-			if request.data.get('optioncontent['+str(i)+']', None):
-				data['options_data'][str(i)] = request.data.get('optioncontent['+str(i)+']')
-			else:
-				break
+		options_dict = ast.literal_eval((request.data.get('optioncontent')))
+		data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
 		serializer = ComprehensionQuestionSerializer(data = request.data)
 		if serializer.is_valid():
 			return save_comprehension_question(request, serializer, data['options_data'], request.data['correctoption'])
 		else:
+			print serializer.errors
 			return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 	else:
 		return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
@@ -107,15 +103,17 @@ def comprehension_question_operations(request, comprehension_question_id):
 	
 	if request.method == 'GET':
 		comprehension_question_serializer = ComprehensionQuestionSerializer(comprehension_question, many = False)
+		print comprehension_question_serializer.data
 		return Response(dict(comprehension_question_serializer.data), status = status.HTTP_200_OK)
 	
 	elif request.method == 'DELETE':
 		if comprehension_question.figure:
 			os.remove(str(comprehension_question.figure))
-		# comprehension_question.delete()
+		comprehension_question.delete()
 		return Response({'deletedComprehensionQuestionsId': comprehension_question_id}, status = status.HTTP_200_OK)
 	
 	elif request.method == 'PUT':
+		print request.data
 		if request.data.get('figure', None):
 			if comprehension_question.figure:
 				os.remove(str(comprehension_question.figure))
@@ -123,6 +121,7 @@ def comprehension_question_operations(request, comprehension_question_id):
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status = status.HTTP_200_OK)
+		print serializer.errors
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
