@@ -557,7 +557,8 @@ def create_live_test(request, live_key):
 			print quiz_serializer.errors
 	print '>>>>>>>',quiz_obj
 	if quiz_obj and is_quiz_new:
-		InvitedUser.objects.create(quiz = quiz_obj, user_name = user.username, user_email = user.email)
+		invited_user, is_new = InvitedUser.objects.get_or_create(user_name = user.username, user_email = user.email, defaults={})
+		invited_user.add_inviteduser(quiz_obj.id)
 		for category_details in LIVE_TEST_CREATION_DATA['section_details']:
 			for sub_category_name,sub_category_questions_details in category_details['included_sub_category_list'].items():
 				
