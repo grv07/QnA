@@ -86,7 +86,7 @@ class InvitedUser(models.Model):
     quiz = models.ForeignKey(Quiz)
     
     user_name = models.CharField(max_length=50)
-    user_email = models.EmailField(max_length=50, unique=True)
+    user_email = models.EmailField(max_length=50)
     
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)

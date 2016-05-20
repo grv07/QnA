@@ -9,8 +9,13 @@ from QnA.services.utility import get_questions_format, checkIfTrue
 from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
 from mcq.models import Answer
+from home.models import InvitedUser
+
 from mcq.serializer import AnswerSerializer
 from objective.serializer import ObjectiveQuestionSerializer
+from quizstack.serializer import QuizStackSerializer
+from QnA.settings import LIVE_TEST_URL
+
 from objective.models import ObjectiveQuestion
 from comprehension.models import Comprehension, ComprehensionQuestion
 from comprehension.serializer import ComprehensionSerializer, ComprehensionQuestionSerializer
@@ -468,6 +473,7 @@ def download_xls_file(request):
 		pass
 	return response
 
+
 @api_view(['GET','POST'])
 @permission_classes((AllowAny,))
 def download_access_xls_file(request):
@@ -488,6 +494,7 @@ def download_access_xls_file(request):
 		pass
 	return response
 
+
 @api_view(['POST'])
 def upload_private_access_xls(request):
 	try:
@@ -498,3 +505,81 @@ def upload_private_access_xls(request):
 	except Exception as e:
 		print e
 		return Response({'errors': 'Invalid data here.'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes((AllowAny,))
+def create_live_test(request, live_key):
+	print request.data
+	quiz_obj = None
+	is_quiz_new = False
+	# Temp data
+	LIVE_TEST_CREATION_DATA = request.data['LIVE_TEST_CREATION_DATA']
+	#Live test number should be start with 0 index. 
+	def create_quiz_stack(quiz_stack_data, quiz_obj, sub_category_obj, live_test_number):
+		questions_list = Question.objects.filter(sub_category = sub_category_obj, que_type = quiz_stack_data['que_type'])
+		
+		if len(questions_list)>=30*(live_test_number+1):
+			questions_list = questions_list[30*live_test_number:30*(live_test_number+1)]
+		else:
+			questions_list = questions_list.order_by('?')[:30]
+
+		qs = QuizStackSerializer(data = quiz_stack_data)
+		if qs.is_valid():
+			print quiz_stack_data['que_type'],len(questions_list)
+			qs = qs.save()
+			qs.add_selected_questions([que.id for que in questions_list])
+			return qs
+		else:
+			print qs.errors
+			return None
+	try:
+		user = User.objects.get(username = LIVE_TEST_CREATION_DATA['user_name'], email = LIVE_TEST_CREATION_DATA['user_email'])
+		quiz_obj = Quiz.objects.get(user = user, title = LIVE_TEST_CREATION_DATA['title'], quiz_key = LIVE_TEST_CREATION_DATA['live_test_key'])		
+	except User.DoesNotExist as e:
+		print e.args
+		user = User.objects.create_user(username = LIVE_TEST_CREATION_DATA['user_name'], email = LIVE_TEST_CREATION_DATA['user_email'], password = 'livetester')
+		quiz_obj = Quiz.objects.get(user = user, quiz_key = LIVE_TEST_CREATION_DATA['live_test_key'], title = LIVE_TEST_CREATION_DATA['title'])
+		
+	except Quiz.DoesNotExist as e:
+		is_quiz_new = True
+		print 'Create a new quiz here'	
+		quiz_serializer = QuizSerializer(data =
+								{
+								'user':user.id,'quiz_key':LIVE_TEST_CREATION_DATA['live_test_key'],'title':LIVE_TEST_CREATION_DATA['title'],
+								'no_of_attempt': LIVE_TEST_CREATION_DATA['allow_attempt'],
+								'passing_percent':LIVE_TEST_CREATION_DATA['passing_percent'],'success_text':'','fail_text':'',
+								# 'total_marks':78,
+								'total_questions':LIVE_TEST_CREATION_DATA['total_questions'],
+								'total_sections':2
+								})
+		if quiz_serializer.is_valid():
+			'''Add some quiz stacks of 30'''
+			quiz_obj = quiz_serializer.save()
+		else:
+			print quiz_serializer.errors
+	print '>>>>>>>',quiz_obj
+	if quiz_obj and is_quiz_new:
+		InvitedUser.objects.create(quiz = quiz_obj, user_name = user.username, user_email = user.email)
+		for category_details in LIVE_TEST_CREATION_DATA['section_details']:
+			for sub_category_name,sub_category_questions_details in category_details['included_sub_category_list'].items():
+				
+				sub_category_data_list = sub_category_name.split(':#:')
+				sub_category_obj = SubCategory.objects.get(sub_category_name = sub_category_data_list[0])
+
+				data = {'quiz':quiz_obj.id,'subcategory':'','section_name': category_details['section_name'],
+						'level':'', 'que_type':'',
+						# 'duration':category_details['duration'],
+						'no_questions':0,'question_order':'random'
+						}
+				data['subcategory'] = sub_category_obj.id
+				data['que_type'] = sub_category_data_list[1]
+				for question_level, no_of_questions in sub_category_questions_details.items():
+					data['level'] = question_level
+					data['no_questions'] = no_of_questions
+					create_quiz_stack(data, quiz_obj, sub_category_obj, LIVE_TEST_CREATION_DATA['test_no'])					
+		return Response({'msg': 'Live quiz created successfully.', 'access_url':LIVE_TEST_URL.format(live_key = LIVE_TEST_CREATION_DATA['live_test_key']), 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
+	else:
+		print 'Quiz is pre existed'
+		return Response({'msg': 'Live quiz pre-created', 'access_url':LIVE_TEST_URL.format(live_key = LIVE_TEST_CREATION_DATA['live_test_key']), 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
+
+
