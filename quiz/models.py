@@ -392,10 +392,9 @@ class Sitting(models.Model):
 
 	quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"))
 
-	unanswered_questions = JSONField(verbose_name=_("Question List"), null=True, blank=True)
+	unanswered_questions = JSONField(verbose_name=_("Unanswered Questions"), null=True, blank=True)
 
-	incorrect_questions_list = models.CommaSeparatedIntegerField(
-		max_length=1024, verbose_name=_("Incorrect Question List"), null=True, blank=True, default = '')
+	incorrect_questions = JSONField(verbose_name=_("Incorrect Questions"), null=True, blank=True, default = '')
 
 	current_score = models.IntegerField(verbose_name=_("Current Score"), default = 0)
 
@@ -417,29 +416,53 @@ class Sitting(models.Model):
 
 	class Meta:
 		permissions = (("view_sittings", _("Can see completed exams.")),)
+	
+	def intialize(self):
+		self.unanswered_questions = { 'mcq': {}, 'comprehension': {} }
+		self.user_answers = { 'mcq': {}, 'comprehension': {} }
+		self.incorrect_questions = { 'mcq': [], 'comprehension': {} }
 
 	def add_to_score(self, points):
 		self.current_score += int(points)
 		self.save()
 
-	def add_user_answer(self, question_id, data):
-		if self.user_answers:
-			self.user_answers[question_id] = data
-		else:
-			self.user_answers = { question_id: data }
+	# data = [correct_answer_id, time_spent]
+	def add_user_mcq_answer(self, question_id, data):
+		self.user_answers['mcq'][question_id] = data
 		self.save()
 
-	def add_unanswered_question(self, question_id, data):
-		if self.unanswered_questions:
-			self.unanswered_questions[question_id] = data
+	# data = { comprehension_question_id : comprehension_answer_id, comprehension_question_id : comprehension_answer_id, ... }
+	def add_user_comprehension_answer(self, question_id, data, time_spent):
+		if self.user_answers['comprehension'].has_key(question_id):
+			self.user_answers['comprehension'][question_id].update(data)
 		else:
-			self.unanswered_questions = { question_id: data }
+			self.user_answers['comprehension'][question_id] = data
+			self.user_answers['comprehension'][question_id]['time_spent'] = time_spent
 		self.save()
 
-	def add_incorrect_question(self, question_id, incorrect_point):
-		if len(self.incorrect_questions_list) > 0:
-			self.incorrect_questions_list += ','
-		self.incorrect_questions_list += str(question_id)
+	def add_unanswered_mcq_question(self, question_id, time_spent):
+		self.unanswered_questions['mcq'][question_id] = time_spent
+		print self.unanswered_questions,'unanswered_questions'
+		self.save()
+
+	def add_unanswered_comprehension_question(self, question_id, comprehension_question_id, time_spent):
+		if self.unanswered_questions['comprehension'].has_key(question_id):
+			self.unanswered_questions['comprehension'][question_id].update({ comprehension_question_id: time_spent })
+		else:
+			self.unanswered_questions['comprehension'][question_id] = { comprehension_question_id: time_spent }
+			print self.unanswered_questions['comprehension'][question_id], 'comprehension-unanswered-1'
+		self.save()
+
+	def add_incorrect_mcq_question(self, question_id, incorrect_point):
+		self.incorrect_questions['mcq'].append(question_id)
+		self.add_to_score(incorrect_point)
+		self.save()
+
+	def add_incorrect_comprehension_question(self, question_id, comprehension_question_id, incorrect_point):
+		if self.incorrect_questions['comprehension'].has_key(question_id):
+			self.incorrect_questions['comprehension'][question_id].append(comprehension_question_id)
+		else:
+			self.incorrect_questions['comprehension'][question_id] = [ comprehension_question_id ]
 		self.add_to_score(incorrect_point)
 		self.save()
 
@@ -473,23 +496,79 @@ class Sitting(models.Model):
 		self.save()
 
 	def clear_all_unanswered_questions(self):
-		self.unanswered_questions = {}
+		self.unanswered_questions = { 'mcq': {}, 'comprehension': {} }
 		self.save()
 
-	def get_incorrect_questions(self):
-		if self.incorrect_questions_list:
-			return map(int, self.incorrect_questions_list.strip().split(','))
-		return []
 
-	def get_unanswered_questions(self):
-		return self.unanswered_questions
+	# This excludes comprehension question keys.
+	def get_all_incorrect_questions_keys(self):
+		return self.incorrect_questions['mcq'] + self.incorrect_questions['comprehension'].keys()
 
-	def remove_incorrect_question(self, question_id, question_marks = 1):
-		current = self.get_incorrect_questions()
-		current.remove(question_id)
-		self.incorrect_questions_list = ','.join(map(str, current))
-		self.add_to_score(question_marks)
-		self.save()
+	# This excludes comprehension question keys.
+	def get_all_unanswered_questions_keys(self):
+		return self.incorrect_questions['mcq'] + self.incorrect_questions['comprehension'].keys()
+
+	def get_timed_analysis_for_answered_questions(self):
+		d = self.user_answers['mcq']
+		for question_id, values in self.user_answers['comprehension'].items():
+			d[question_id] = values['time_spent']
+		return d
+		
+	def get_timed_analysis_for_unanswered_questions(self):
+		d = self.unanswered_questions['mcq']
+		for question_id, values in self.user_answers['comprehension'].items():
+			d[question_id] = values['time_spent']
+		return d
+
+	def merge_user_answers_and_unanswered_questions(self):
+		d = { 'mcq': {}, 'comprehension': {} }
+		for question_id, values in self.user_answers['mcq'].items():
+			d['mcq'][question_id] = values
+		
+		for question_id, values in self.unanswered_questions['mcq'].items():
+			d['mcq'][question_id] = values
+
+		for question_id, values in self.user_answers['comprehension'].items():
+			d['comprehension'][question_id] = {}
+			for cq_id,value in values.items():
+				if cq_id!='time_spent':
+					d['comprehension'][question_id][cq_id] = value
+
+		for question_id, values in self.unanswered_questions['comprehension'].items():
+			if not d['comprehension'].has_key(question_id):
+				d['comprehension'][question_id] = {}
+			for cq_id,value in values.items():
+				d['comprehension'][question_id][cq_id] = value
+		return d
+		
+
+
+
+	# def get_incorrect_comprehension_questions_list(self):
+	# 	l = []
+	# 	for question_id in self.incorrect_questions['comprehension'].keys():
+	# 		for cq_id in self.incorrect_questions['comprehension'][question_id]:
+	# 			l.append(cq_id)
+	# 	return l
+
+	# def get_incorrect_mcq_questions_list(self):
+	# 	return self.incorrect_questions['mcq']
+
+	# def get_incorrect_questions_all(self):
+	# 	return self.get_incorrect_mcq_questions_list() + self.get_incorrect_comprehension_questions_list()
+
+	# def get_unanswered_mcq_questions_list(self):
+	# 	return self.unanswered_questions['mcq'].keys()
+
+	# def get_unanswered_comprehension_questions_list(self):
+	# 	l = []
+	# 	for question_id in self.unanswered_questions['comprehension'].keys():
+	# 		for cq_id in self.unanswered_questions['comprehension'][question_id]:
+	# 			l.append(cq_id)
+	# 	return l
+
+	# def get_unanswered_questions_all(self):
+	# 	return self.get_unanswered_mcq_questions_list() + self.get_unanswered_comprehension_questions_list()
 
 	@property
 	def check_if_passed(self):
@@ -583,7 +662,7 @@ class Question(models.Model):
 								help_text=_("The difficulty level of a MCQQuestion"),
 								verbose_name=_("Difficulty Level"))
 
-	ideal_time = models.PositiveSmallIntegerField(default = 7,blank = True, validators=[MaxValueValidator(300)])
+	ideal_time = models.PositiveSmallIntegerField(default = 0,blank = True, validators=[MaxValueValidator(300)])
 
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)

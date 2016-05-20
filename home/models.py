@@ -6,6 +6,7 @@ import string, random
 
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
+from django.contrib.postgres.fields import JSONField
 
 
 
@@ -52,8 +53,7 @@ class TestUser(models.Model):
 
 class BookMarks(models.Model):
     user = models.ForeignKey(User)
-    questions_list = models.CommaSeparatedIntegerField(
-        max_length=1024, blank=True, verbose_name =_("Bookmarked questions"), default = '')
+    questions = JSONField(verbose_name=_("Question List"), null=True, blank=True, default={ 'mcq':[], 'comprehension':[] })
 
     created_date = models.DateTimeField(auto_now_add = True)
     updated_date = models.DateTimeField(auto_now = True)
@@ -64,26 +64,22 @@ class BookMarks(models.Model):
     class Meta:
         verbose_name = _("BookMarks")
 
-    def add_bookmark(self, question_id):
-        if len(self.questions_list) > 0:
-            self.questions_list += ','
-        self.questions_list += str(question_id)
+    def add_bookmark(self, que_type, question_id):
+        self.questions[que_type].append(question_id)
         self.save()
 
     def fetch_bookmarks(self):
-        if self.questions_list:
-            return map(int, self.questions_list.split(','))
-        return []
+        return self.questions
 
-    def remove_bookmark(self, question_id):
+    def remove_bookmark(self, que_type, question_id):
         current = self.fetch_bookmarks()
-        current.remove(question_id)
-        self.questions_list = ','.join(map(str, current))
+        del current[que_type][question_id]
+        self.questions = current
         self.save()
 
 
 class InvitedUser(models.Model):
-    quiz = models.ForeignKey(Quiz)
+    quiz_list = models.CommaSeparatedIntegerField(max_length=1024, verbose_name=_("InvitedUserQuiz"), blank=True)
     
     user_name = models.CharField(max_length=50)
     user_email = models.EmailField(max_length=50)
@@ -96,4 +92,25 @@ class InvitedUser(models.Model):
         
     class Meta:
         verbose_name = _("InvitedUser")  
-        unique_together = ("quiz", "user_email",)
+
+    def fetch_quiz_list_for_inviteduser(self):
+        if self.quiz_list:
+            return [ int(quiz_id) for quiz_id in self.quiz_list.strip().split(',') ]
+        return []
+
+    def check_if_invited(self, quiz_id):
+        quiz_list = self.fetch_quiz_list_for_inviteduser()
+        if int(quiz_id) in quiz_list:
+            return [ True, quiz_list ]
+        return [ False, quiz_list ]
+
+    def add_inviteduser(self, quiz_id):
+        already_present, quiz_list = self.check_if_invited(quiz_id)
+        print already_present, quiz_list
+        if not already_present:
+            if quiz_list:
+                self.quiz_list += "," + str(quiz_id)
+            else:
+                self.quiz_list = str(quiz_id)
+            self.save()
+        return already_present

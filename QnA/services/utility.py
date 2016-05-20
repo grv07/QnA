@@ -25,11 +25,12 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 	if not get_order == 'acending':
 		_get_order_by = 'current_score'
 	
-	incorrect_questions_length = len(sitting.get_incorrect_questions())
-	in_correct_pt  = float((incorrect_questions_length*100)/quiz.total_questions) if incorrect_questions_length > 0 else 0 
+	# incorrect_questions_length = len(sitting.get_incorrect_questions())
+	# in_correct_pt  = float((incorrect_questions_length*100)/quiz.total_questions) if incorrect_questions_length > 0 else 0 
 
-	correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
-	
+	# correct_que_pt = int(filter_by_category[1]*100)/quiz.total_questions
+	correct_que_pt = 0
+	in_correct_pt = 0	
 	_result_status = 'Pass' if int(int(sitting.current_score)*100/int(quiz.total_marks)) > quiz.passing_percent else 'Fail'
 
 	return {
@@ -57,8 +58,7 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 
 
 def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
-	questions_level_info = [0 , 0, 0, 0, 0] # [Easy, Medium ,Hard, Total, IdealTime]
-	sca = {'subcategory' : None, 'id' : None, 'question' : None, 'questions_level_info' : None}
+	sca = {'subcategory' : None, 'id' : None, 'question' : None, 'questions_type_info': { 'mcq': [0, 0, 0, 0], 'comprehension': [0, 0, 0, 0] } }
 
 	if subcategory_id:
 		try:
@@ -85,27 +85,30 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 				'que_type' : question.que_type,
 				}
 			if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
-				d.update({ 'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct 
-				} for answer in Answer.objects.filter(question = question)] })
+				if not is_have_sub_category:
+					d.update({ 'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct 
+					} for answer in Answer.objects.filter(question = question)] })
+				sca['questions_type_info']['mcq'][3] += 1
+
 			elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
-				d.update({ 'correct': ObjectiveQuestion.objects.get(pk = question).get_answer()  })
+				if not is_have_sub_category:
+					d.update({ 'correct': ObjectiveQuestion.objects.get(pk = question).get_answer()  })
 			elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
-				d['comprehensionId'] = Comprehension.objects.get(question=question).id
+				if not is_have_sub_category:
+					d['comprehensionId'] = Comprehension.objects.get(question=question).id
+				sca['questions_type_info']['comprehension'][3] += 1
 			
 			if question.level == 'easy':
-				questions_level_info[0] = questions_level_info[0] + 1
+				sca['questions_type_info'][question.que_type][0] += 1
 			elif question.level == 'medium':
-				questions_level_info[1] = questions_level_info[1] + 1
+				sca['questions_type_info'][question.que_type][1] += 1
 			else:
-				questions_level_info[2] = questions_level_info[2] + 1
-			questions_level_info[4] += question.ideal_time
+				sca['questions_type_info'][question.que_type][2] += 1
 			
 			if not is_have_sub_category:
 				sca['questions'].append(d)
 	else:
 		print 'Not have questions <<<<<<<<<<<>>>>>>>>>>>>'
-	questions_level_info[3] = sum(questions_level_info[:3])
-	sca['questions_level_info'] = questions_level_info
 	return sca
 
 
@@ -176,17 +179,29 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, tim
 	if sitting_id and test_user and test_key and time_spent:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
-		un_ans_que_list = sitting_obj.unanswered_questions.keys()
-
-		unanswered_questions_list = map(int, un_ans_que_list) if len(un_ans_que_list) > 0 else []
+		print sitting_obj,'sitting_obj'
+		unanswered_questions = sitting_obj.unanswered_questions
+		print unanswered_questions, 'unanswered_questions'
+		comprehension_unanswered_questions = unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
+		print comprehension_unanswered_questions, 'comprehension_unanswered_questions'
+		mcq_unanswered_questions_list = unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]].keys()
 		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
 		quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
 		for key in list(cache.iter_keys(cache_keys_pattern)):
-			answered_questions_list = generate_result(cache.get(key), sitting_obj, key, quizstack, time_spent_on_question)
-			if answered_questions_list:
-				for question_id in answered_questions_list:
-					if question_id in unanswered_questions_list: 
-						unanswered_questions_list.remove(question_id) 
+			print key,'key'
+			answered_questions = generate_result(cache.get(key), sitting_obj, key, quizstack, time_spent_on_question)
+
+			if answered_questions:
+				print comprehension_unanswered_questions,'comprehension_unanswered_questions'
+				print mcq_unanswered_questions_list, 'mcq_unanswered_questions_list'
+				for question_id in answered_questions[QUESTION_TYPE_OPTIONS[0][0]]:
+					print question_id,'mcq'
+					if question_id in mcq_unanswered_questions_list: 
+						mcq_unanswered_questions_list.remove(question_id)
+				for question_id in answered_questions[QUESTION_TYPE_OPTIONS[2][0]].keys():
+					for cq_id in answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]:
+						print cq_id, 'cq', comprehension_unanswered_questions[str(question_id)]
+						del comprehension_unanswered_questions[str(question_id)][cq_id]
 				cache.delete(key)
 				print cache.get(key), '-----------------'
 
@@ -194,13 +209,15 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, tim
 
 		# Clear all unanswered_questions_list so as to modify it.
 		sitting_obj.clear_all_unanswered_questions()
-		for question_id in unanswered_questions_list:
-			qtime = time_spent_on_question.get(str(question_id), None)
-			if qtime:
-				if qtime < 100.00:
-					sitting_obj.add_unanswered_question(question_id, round(qtime, 2))
-			else:
-				sitting_obj.add_unanswered_question(question_id, 0)
+		print time_spent_on_question, mcq_unanswered_questions_list
+		for question_id in mcq_unanswered_questions_list:
+			qtime = time_spent_on_question.get(str(question_id), 0)
+			sitting_obj.add_unanswered_mcq_question(question_id, round(qtime, 2))
+
+		for question_id, value in comprehension_unanswered_questions.items():
+			# qtime = time_spent_on_question.get(str(question_id), 0)
+			for cq_id, time_spent in value.items():
+				sitting_obj.add_unanswered_comprehension_question(question_id, cq_id, time_spent)
 		sitting_obj.save()
 
 		# test is set to complete must come after sitting_obj.add_unanswered_question()
@@ -213,8 +230,9 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, tim
 		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
 		if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
 			print 'finish notification not sent'
-		_filter_by_category = filter_by_category(sitting_obj)
-		data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+		# _filter_by_category = filter_by_category(sitting_obj)
+		data = {}
+		# data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
 		data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
 		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 			print 'grade notification not sent'
