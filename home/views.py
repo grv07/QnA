@@ -227,7 +227,6 @@ def test_user_data(request):
 					invited_user = InvitedUser.objects.get(user_name = name, user_email = email)
 					if not invited_user.check_if_invited(quiz.id)[0]:
 						return Response({'status':'NOT-ALLOW', 'errors': 'Unable to access this test.'}, status=status.HTTP_400_BAD_REQUEST)
-
 				except InvitedUser.DoesNotExist as e:
 					# User can't access this test.
 					print e.args
