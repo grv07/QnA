@@ -18,6 +18,11 @@ ANSWER_ORDER_OPTIONS = (
     ('none', _('NONE'))
 )
 
+QUIZ_TYPE_OPTIONS = (
+    ('DEFAULT', _('DEFAULT')),
+    ('LIVE', _('LIVE'))
+)
+
 MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
 'option4', 'option5', 'option6', 'correctoption', 'content', 'ideal_time']
 

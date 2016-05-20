@@ -25,7 +25,7 @@ class QuizStack(models.Model):
 	duration = models.CharField(max_length = 3, default = 0)
 	no_questions = models.IntegerField()
 	question_order = models.CharField(max_length=7, choices = ANSWER_ORDER_OPTIONS, default='random')
-	# END
+
 	correct_grade = models.IntegerField(default = 1)
 	incorrect_grade = models.IntegerField(default = 0)
 	istimed = models.BooleanField(default = True)

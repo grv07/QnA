@@ -15,7 +15,7 @@ from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 
 
-from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS
+from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS, QUIZ_TYPE_OPTIONS
 
 @python_2_unicode_compatible
 class Quiz(models.Model):
@@ -24,7 +24,7 @@ class Quiz(models.Model):
 
 	quiz_key = models.CharField(
 		verbose_name=_("Quiz Key"),
-		max_length = 15, blank = True)
+		max_length = 20, blank = True, unique = True)
 
 	title = models.CharField(
 		verbose_name=_("Title"),
@@ -37,6 +37,10 @@ class Quiz(models.Model):
 	url = models.URLField(
 		blank=True, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
+
+	quiz_type = models.CharField(default=QUIZ_TYPE_OPTIONS[0],
+		choices = QUIZ_TYPE_OPTIONS,
+		max_length = 60, blank = False)
 
 	start_notification_url = models.URLField(blank=True, null=True)
 	finish_notification_url = models.URLField(blank=True, null=True)
