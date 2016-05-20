@@ -18,20 +18,25 @@ def create_quizstack(request):
 	try:
 		quiz = Quiz.objects.get(id = request.data.get('quiz'))
 		quizstack_list = QuizStack.objects.filter(quiz = quiz)
-		if not quizstack_list.filter(subcategory = request.data.get('subcategory'), level = request.data.get('level')):
+		if not quizstack_list.filter(subcategory = request.data.get('subcategory'), level = request.data.get('level'), que_type = request.data.get('que_type')):
 			serializer = QuizStackSerializer(data = request.data)
 			if serializer.is_valid():
-				selected_questions = [ question.id for question in Question.objects.filter(sub_category = request.data.get('subcategory'), level = request.data.get('level')).order_by('id')[:int(request.data.get('no_questions'))] ]				
+				selected_questions = [ question.id for question in Question.objects.filter(sub_category = request.data.get('subcategory'), level = request.data.get('level'), que_type = request.data.get('que_type') ).order_by('id')[:int(request.data.get('no_questions'))] ]
+				if request.data.get('que_type') == QUESTION_TYPE_OPTIONS[0][0]:
+					quiz.total_marks += int(request.data.get('correct_grade'))*int(request.data.get('no_questions'))
+				elif request.data.get('que_type') == QUESTION_TYPE_OPTIONS[2][0]:
+					for q in selected_questions:
+						comprehension = Comprehension.objects.get(question = q)
+						quiz.total_marks += int(request.data.get('correct_grade'))*ComprehensionQuestion.objects.filter(comprehension = comprehension).count()
 				quizstack_obj = serializer.save()
 				quizstack_obj.add_selected_questions(selected_questions)
 				quiz.total_questions += int(request.data.get('no_questions'))
-				quiz.total_marks += int(request.data.get('correct_grade'))*int(request.data.get('no_questions'))
 				quiz.total_duration += int(request.data.get('duration'))
 				quiz.total_sections = len(set([qs.section_name for qs in quizstack_list]))
 				quiz.save()
 			else:
 				print serializer.errors
-				return Response({ 'errors' : 'Unable to add the stack.' }, status = status.HTTP_400_BAD_REQUEST)
+				return Response({ 'errors' : 'Unable to add to stack.' }, status = status.HTTP_400_BAD_REQUEST)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
 			return Response({ 'errors' :'Duplicate questions set is not allowed.' }, status = status.HTTP_400_BAD_REQUEST)
@@ -46,6 +51,7 @@ def get_quizstack(request, quiz_id, quizstack_id):
 		try:
 			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('section_name')
 			serializer = QuizStackSerializer(quizstack_list, many = True)
+			print serializer.data
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			print e.args

@@ -18,7 +18,7 @@ import os, ast
 
 # ////////// CONSTANT FUNCTIONS //////////////
 
-def save_comprehension_question(request, serializer, options_data, correct_option):
+def save_comprehension_question(request, serializer, options_data, correct_option, comprehension_id):
 	options = []
 	if options_data:
 		for optionid, content in options_data.items():
@@ -31,6 +31,9 @@ def save_comprehension_question(request, serializer, options_data, correct_optio
 		if not isAnswerSaved:
 			return Response(errors, status = status.HTTP_400_BAD_REQUEST)
 		else:
+			question = Comprehension.objects.get(id = int(comprehension_id)).question
+			question.ideal_time += serializer.data.get('ideal_time')
+			question.save()
 			return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({'optionerrors' : 'Options must be provided with correct answer.'}, status = status.HTTP_400_BAD_REQUEST)
@@ -77,7 +80,7 @@ def create_comprehension_question(request):
 		data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
 		serializer = ComprehensionQuestionSerializer(data = request.data)
 		if serializer.is_valid():
-			return save_comprehension_question(request, serializer, data['options_data'], request.data['correctoption'])
+			return save_comprehension_question(request, serializer, data['options_data'], request.data['correctoption'], request.data.get('comprehension'))
 		else:
 			print serializer.errors
 			return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
@@ -109,11 +112,18 @@ def comprehension_question_operations(request, comprehension_question_id):
 	elif request.method == 'DELETE':
 		if comprehension_question.figure:
 			os.remove(str(comprehension_question.figure))
+		question = comprehension_question.comprehension.question
+		question.ideal_time -= old_ideal_time + comprehension_question.ideal_time
+		question.save()
 		comprehension_question.delete()
 		return Response({'deletedComprehensionQuestionsId': comprehension_question_id}, status = status.HTTP_200_OK)
 	
 	elif request.method == 'PUT':
-		print request.data
+		# print request.data
+		question = comprehension_question.comprehension.question
+		old_ideal_time = question.ideal_time - comprehension_question.ideal_time
+		question.ideal_time = old_ideal_time + int(request.data.get('ideal_time'))
+		question.save()
 		if request.data.get('figure', None):
 			if comprehension_question.figure:
 				os.remove(str(comprehension_question.figure))

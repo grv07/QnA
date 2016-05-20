@@ -261,17 +261,15 @@ def all_questions(request, user_id):
 		if request.query_params.get('questionFormat'):
 			result = get_questions_format(user_id, subcategory_id, True)
 			result['level'] = []
-			if result['questions_level_info'][0] != 0:
-				result['level'] += ['easy']
-			if result['questions_level_info'][1] != 0:
-				result['level'] += ['medium']
-			if result['questions_level_info'][2] != 0:
-				result['level'] += ['hard']
-			result['duration'] = result['questions_level_info'][4]
-			result['no_questions'] = result['questions_level_info'][3]
+			result['que_type'] = []
+			result['duration'] = 0
+			result['no_questions'] = 0
 			result['correct_grade'] = 1
 			result['incorrect_grade'] = 0
-			result['que_type'] = 'mcq'
+			if result['questions_type_info']['mcq'][3] != 0:
+				result['que_type'].append('mcq')
+			if result['questions_type_info']['comprehension'][3] != 0:
+				result['que_type'].append('comprehension')
 			result['section_name'] = '1'
 			result['subcategory_id'] = subcategory_id
 			result = [result]		# Must be a list
@@ -492,8 +490,8 @@ def download_access_xls_file(request):
 def upload_private_access_xls(request):
 	try:
 		file = request.data['file_data']
-		quiz = Quiz.objects.get(pk = request.data['quiz_id'])
-		if save_test_private_access_from_xls(file, quiz):
+		quiz_id = request.data['quiz_id']
+		if file and quiz_id and save_test_private_access_from_xls(file, quiz_id):
 			return Response({'msg': 'Private access user create successfully'}, status=status.HTTP_200_OK)
 	except Exception as e:
 		print e

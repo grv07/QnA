@@ -11,14 +11,14 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from quiz.serializer import SittingSerializer, QuestionSerializer
+from quiz.serializer import SittingSerializer
 from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
 
 from token_key import generate_token
 from QnA.settings import TEST_URL_THIRD_PARTY, TEST_BASE_URL, TEST_REPORT_URL
 
 from QnA.services.utility import checkIfTrue, postNotifications, get_user_result_helper, save_test_data_to_db_helper, merge_two_dicts
-from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT
+from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT, QUESTION_TYPE_OPTIONS, BLANK_HTML
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
 from QnA.services.generate_result_engine import generate_result, filter_by_category, get_data_for_analysis, find_and_save_rank, get_topper_data
@@ -27,7 +27,8 @@ from quiz.models import Sitting, Quiz, Question
 from home.models import TestUser, BookMarks, InvitedUser
 from quizstack.models import QuizStack
 from mcq.models import Answer
-
+from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
+import ast
 # Generate pdf from html
 def generate_PDF(request, html):
 	import xhtml2pdf.pisa as pisa
@@ -101,21 +102,24 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 	
 	if sitting.complete:
 		# unanswered_questions_list = sitting.unanswered_questions.keys()
-		# incorrect_question_list = sitting.get_incorrect_questions()
-		_filter_by_category = filter_by_category(sitting)
-		data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
+		# incorrect_question_list = sitting.get_all_incorrect_questions_keys()
+		# _filter_by_category = filter_by_category(sitting)
+		# print _filter_by_category
+		# data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), _filter_by_category, get_order_by)
+		data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), None, get_order_by)
 		data['sitting_id'] = sitting.id
 		data['rank'] = find_and_save_rank(test_user_id, quiz_key, sitting.quiz.id, sitting.current_score, sitting.time_spent)
 		topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
+		print topper_sitting_obj
 		data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
 		data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
-		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.user_answers, topper_sitting_obj.unanswered_questions) }
+		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.get_timed_analysis_for_answered_questions(), topper_sitting_obj.get_timed_analysis_for_unanswered_questions()) }
 		if topper_sitting_obj.id != sitting.id:
-			data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.user_answers, sitting.unanswered_questions)
-		data['analysis']['filter_by_category'] = _filter_by_category[0]
-		data['view_format'] = request.GET.get('view_format',None)
+			data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.get_timed_analysis_for_answered_questions(), sitting.get_timed_analysis_for_unanswered_questions())
+		# data['analysis']['filter_by_category'] = _filter_by_category[0]
+		data['view_format'] = request.GET.get('view_format', None)
 
-		data_for_analysis = get_data_for_analysis(quiz, sitting.unanswered_questions.keys(), sitting.get_incorrect_questions())
+		data_for_analysis = get_data_for_analysis(quiz, sitting.unanswered_questions, sitting.incorrect_questions)
 		data['analysis']['section_wise_results'] = data_for_analysis['section_wise']
 		data['questions_stats'] = data_for_analysis['selected_questions']
 		if data['view_format'] == 'pdf':
@@ -140,13 +144,22 @@ def save_sitting_user(request):
 			test_user_obj.no_attempt += 1
 			test_user_obj.save()
 
-			sitting_obj.attempt_no = test_user_obj.no_attempt 
+			sitting_obj.attempt_no = test_user_obj.no_attempt
+			sitting_obj.intialize()
 			sitting_obj.save()
 
-			if not sitting_obj.unanswered_questions:
+			if not sitting_obj.complete:
 				for quizstack in QuizStack.objects.filter(quiz = quiz):
 					for question_id in quizstack.fetch_selected_questions():
-						sitting_obj.add_unanswered_question(question_id, '')
+						print question_id,'question_id'
+						if quizstack.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+							sitting_obj.add_unanswered_mcq_question(question_id, [])
+						elif quizstack.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+							comprehension = Comprehension.objects.get(question = question_id)
+							for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
+								sitting_obj.add_unanswered_comprehension_question(question_id, cq.id, 0)
+			print sitting_obj.unanswered_questions
+
 			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
 			
 			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
@@ -178,6 +191,7 @@ def test_data_helper(test_key, test_user_id):
 			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]		
 	else:
 		test_data['status'] = 'ToBeTaken'
+	print test_data
 	return test_data
 
 @api_view(['POST', 'GET'])
@@ -210,7 +224,10 @@ def test_user_data(request):
 			if not quiz.allow_public_access:
 				try:
 					# Is user invited check.
-					invited_user = InvitedUser.objects.get(quiz = quiz, user_name = name, user_email = email)
+					invited_user = InvitedUser.objects.get(user_name = name, user_email = email)
+					if not invited_user.check_if_invited(quiz.id)[0]:
+						return Response({'status':'NOT-ALLOW', 'errors': 'Unable to access this test.'}, status=status.HTTP_400_BAD_REQUEST)
+
 				except InvitedUser.DoesNotExist as e:
 					# User can't access this test.
 					print e.args
@@ -281,6 +298,7 @@ def save_time_remaining_to_cache(request):
 
 @api_view(['POST'])
 def save_test_data_to_cache(request):
+	answer = request.data.get('answer')
 	test_user = request.data.get('test_user')
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	if sitting_id:
@@ -294,7 +312,10 @@ def save_test_data_to_cache(request):
 			cache.set(cache_key,{ 'answers': answer , 'time': timezone.now() }, timeout = CACHE_TIMEOUT)
 		else:
 			if question_id in cache_value['answers'].keys():
-				cache_value['answers'][question_id] = answer[question_id]
+				if request.data.get('que_type') == QUESTION_TYPE_OPTIONS[0][0]:
+					cache_value['answers'][question_id] = answer[question_id]
+				elif request.data.get('que_type') == QUESTION_TYPE_OPTIONS[2][0]:
+					cache_value['answers'][question_id].update(answer[question_id])
 			else:
 				cache_value['answers'].update(answer)
 			cache.set(cache_key, cache_value, timeout = CACHE_TIMEOUT)
@@ -302,6 +323,7 @@ def save_test_data_to_cache(request):
 		return Response({}, status = status.HTTP_200_OK)
 	else:
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+	return Response({}, status = status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -328,7 +350,6 @@ def save_question_time(request):
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 
-
 @api_view(['POST'])
 def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
@@ -336,6 +357,7 @@ def save_test_data_to_db(request):
 	test_key = request.data.get('test_key')
 	time_spent = request.data.get('time_spent')
 	time_spent_on_question = cache.get(test_key + "|" + str(test_user) + "qtime")
+	print time_spent_on_question,'time_spent_on_question'
 	try:
 		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question['qtime'])
 		return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
@@ -350,15 +372,17 @@ def save_test_bookmarks(request):
 	sitting_id = cache.get('sitting_id'+str(test_user))
 	try:
 		if sitting_id:
-			bookmarked_questions_list = request.data.get('bookmarked_questions')
-			existing_bookmarks = []
-			if bookmarked_questions_list:
+			bookmarked_questions = request.data.get('bookmarked_questions')
+			print bookmarked_questions,'bookmarks'
+			existing_bookmarks = {}
+			if bookmarked_questions['mcq'] or bookmarked_questions['comprehension']:
 				bookmark, created = BookMarks.objects.get_or_create(user = TestUser.objects.get(id = test_user).user)
 				if not created:
 					existing_bookmarks = bookmark.fetch_bookmarks()
-				for question_id in bookmarked_questions_list:
-					if question_id not in existing_bookmarks:
-						bookmark.add_bookmark(question_id)
+				for que_type in bookmarked_questions.keys():
+					for question_id in bookmarked_questions[que_type]:
+						if question_id not in existing_bookmarks.get(que_type, []):
+							bookmark.add_bookmark(que_type, question_id)
 			return Response({}, status = status.HTTP_200_OK)
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
@@ -372,6 +396,14 @@ def get_bookmark_questions(request):
 	username = request.data.get('username')
 	email = request.data.get('email')
 	if username and email:
+		data = []
+		format_dict = lambda values : {
+									'figure': values[0],
+									"content": values[1].replace(BLANK_HTML, '_'*10),
+						            "explanation": values[2],
+						            "level":values[3],
+						            "sub_category_name": values[4]
+									}
 		try:
 			user = User.objects.get(username = username, email = email)
 			bookmark = BookMarks.objects.get(user = user)
@@ -379,46 +411,85 @@ def get_bookmark_questions(request):
 			return Response({ 'errors': 'User not found.'}, status = status.HTTP_400_BAD_REQUEST)
 		except BookMarks.DoesNotExist:
 			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
-		
-		bookmarked_questions_list = bookmark.fetch_bookmarks()
-		if bookmarked_questions_list:
-			questionserializer = QuestionSerializer( [Question.objects.get(id = q) for q in bookmarked_questions_list], many = True)
-			return Response({ 'bookmark_questions': questionserializer.data }, status = status.HTTP_200_OK)
+
+		bookmarked_questions = bookmark.fetch_bookmarks()
+		if bookmarked_questions[QUESTION_TYPE_OPTIONS[0][0]]:
+			for q in bookmarked_questions[QUESTION_TYPE_OPTIONS[0][0]]:
+				mcq = Question.objects.get(id = q)
+				data.append(format_dict([str(mcq.figure), mcq.content, mcq.explanation, mcq.level, mcq.sub_category.sub_category_name]))
+		if bookmarked_questions[QUESTION_TYPE_OPTIONS[2][0]]:
+			for q in bookmarked_questions[QUESTION_TYPE_OPTIONS[2][0]]:
+				cq = ComprehensionQuestion.objects.get(id = q)
+				data.append(format_dict([str(cq.figure), cq.content, cq.explanation, cq.level, cq.comprehension.question.sub_category.sub_category_name]))
+		if data:
+			return Response({ 'bookmark_questions': data }, status = status.HTTP_200_OK)
 		else:
 			return Response({ 'errors': 'Bookmarks not found.' }, status = status.HTTP_400_BAD_REQUEST)
 	return Response({ 'errors': 'Username or email not provided.'}, status = status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_classes((AllowAny,))
 def question_stats(request, sitting_id):
-	count = int(request.query_params.get('count'))
+	count = request.data.get('count')
 	try:
-		data = { 'questionStats': [], 'stop': False }
+		data = { 'questionStats': { QUESTION_TYPE_OPTIONS[0][0]: [], QUESTION_TYPE_OPTIONS[2][0]: [] }, 'stop': False }
 		sitting = Sitting.objects.get(id = sitting_id)
-		all_question_ids = merge_two_dicts(sitting.user_answers, sitting.unanswered_questions)
-		all_question_ids_keys = all_question_ids.keys()
-		if len(all_question_ids_keys) == (count+1)*5:
-			data['stop'] = True
+		if count == 0:
+			all_questions = sitting.merge_user_answers_and_unanswered_questions()
+			print all_questions,'---'
+			all_question_ids_keys = all_questions[QUESTION_TYPE_OPTIONS[0][0]].keys() + all_questions[QUESTION_TYPE_OPTIONS[2][0]].keys()
+			data['allQuestions'] = all_questions
+		else:
+			all_questions = request.data.get('allQuestions')
+			all_question_ids_keys = request.data.get('allQuestionIds')
+		data['allQuestionIds'] = all_question_ids_keys
+
+		# 5 is the slicing factor
 		question_ids = all_question_ids_keys[count*5:(count+1)*5]
+		if len(all_question_ids_keys) <= (count+1)*5:
+			data['stop'] = True
 		for question_id in question_ids:
 			question = Question.objects.get(id = question_id)
-			correct_answer_id = 0
-			answer_status = 'Unattempted'
-			for answer in Answer.objects.filter(question = question):
-				if answer.correct == True:
-					correct_answer_id = answer.id
-					break
-			if isinstance(all_question_ids[question_id], list):
-				if all_question_ids[question_id][0] == correct_answer_id:
-					answer_status = 'Correct'
-				else:
+			if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+				correct_answer_id = 0
+				answer_status = 'Unattempted'
+				for answer in Answer.objects.filter(question = question):
+					if answer.correct == True:
+						correct_answer_id = answer.id
+						break
+				if isinstance(all_questions[QUESTION_TYPE_OPTIONS[0][0]][str(question_id)], list):
+					if all_questions[QUESTION_TYPE_OPTIONS[0][0]][str(question_id)][0] == correct_answer_id:
+						answer_status = 'Correct'
+					else:
+						answer_status = 'Incorrect'
+				data['questionStats'][QUESTION_TYPE_OPTIONS[0][0]].append({
+					'content': question.content,
+					'hint': question.explanation,
+					'status': answer_status
+					})
+
+			elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+				comprehension = Comprehension.objects.get(question = question)
+				temp = { 'comprehension_questions': [], 'heading': comprehension.heading }
+				for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
+					correct_answer_id = 0
 					answer_status = 'Incorrect'
-			data['questionStats'].append({
-				'content': question.content,
-				'hint': question.explanation,
-				'status': answer_status
-				})
+					for cqa in ComprehensionAnswer.objects.filter(question = cq):
+						if cqa.correct == True:
+							correct_answer_id = cqa.id
+							break
+					if all_questions[QUESTION_TYPE_OPTIONS[2][0]][str(question_id)][str(cq.id)] == correct_answer_id:
+						answer_status = 'Correct'
+					elif all_questions[QUESTION_TYPE_OPTIONS[2][0]][str(question_id)][str(cq.id)] == 0:
+						answer_status = 'Unattempted'
+
+					temp['comprehension_questions'].append({
+						'content': cq.content,
+						'hint': cq.explanation,
+						'status': answer_status
+						})
+				data['questionStats'][QUESTION_TYPE_OPTIONS[2][0]].append(temp)
 		return Response(data, status = status.HTTP_200_OK)
 	except Sitting.DoesNotExist as e:
 		print e.args
