@@ -14,7 +14,7 @@ from home.models import InvitedUser
 from mcq.serializer import AnswerSerializer
 from objective.serializer import ObjectiveQuestionSerializer
 from quizstack.serializer import QuizStackSerializer
-from QnA.settings import LIVE_TEST_URL
+from QnA.settings import TEST_URL
 
 from objective.models import ObjectiveQuestion
 from comprehension.models import Comprehension, ComprehensionQuestion
@@ -576,9 +576,9 @@ def create_live_test(request, live_key):
 					data['level'] = question_level
 					data['no_questions'] = no_of_questions
 					create_quiz_stack(data, quiz_obj, sub_category_obj, LIVE_TEST_CREATION_DATA['test_no'])					
-		return Response({'msg': 'Live quiz created successfully.', 'access_url':LIVE_TEST_URL.format(live_key = LIVE_TEST_CREATION_DATA['live_test_key']), 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
+		return Response({'msg': 'Live quiz created successfully.', 'access_url':TEST_URL+LIVE_TEST_CREATION_DATA['live_test_key'], 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
 	else:
 		print 'Quiz is pre existed'
-		return Response({'msg': 'Live quiz pre-created', 'access_url':LIVE_TEST_URL.format(live_key = LIVE_TEST_CREATION_DATA['live_test_key']), 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
+		return Response({'msg': 'Live quiz pre-created', 'access_url':TEST_URL+LIVE_TEST_CREATION_DATA['live_test_key'], 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
 
 
