@@ -17,7 +17,7 @@ from serializer import MerchantSerializer, TestUserSerializer, UserSerializer
 from token_key import generate_token
 from QnA.settings import TEST_URL_THIRD_PARTY, TEST_BASE_URL, TEST_REPORT_URL
 
-from QnA.services.utility import checkIfTrue, postNotifications, get_user_result_helper, save_test_data_to_db_helper, merge_two_dicts
+from QnA.services.utility import checkIfTrue, postNotifications, get_user_result_helper, save_test_data_to_db_helper, merge_two_dicts, make_user_hash
 from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT, QUESTION_TYPE_OPTIONS, BLANK_HTML
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
@@ -75,7 +75,7 @@ def login_user(request):
 			isPasswordCorrect = user.check_password(user_pass)
 			if isPasswordCorrect:
 				token = generate_token(user)
-				return Response({'username':user_name,'email': user.email,'token':token, 'userID':user.id}, status = status.HTTP_200_OK)
+				return Response({'username':user_name,'email': user.email,'token':token, '_rest': str(user.id)+","+make_user_hash(user.id)  }, status = status.HTTP_200_OK)
 			else:
 				return Response({'errors':'Incorrect credentials. Password is incorrect.'}, status = status.HTTP_400_BAD_REQUEST)
 	except User.DoesNotExist as e:

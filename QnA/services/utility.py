@@ -2,7 +2,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 import requests
-import json
+import json, hashlib
 from random import shuffle
 
 from QnA.settings import TEST_REPORT_URL
@@ -12,7 +12,7 @@ from mcq.models import Answer
 from quizstack.models import QuizStack
 from objective.models import ObjectiveQuestion
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
-from constants import QUESTION_TYPE_OPTIONS, RESULT_HTML
+from constants import QUESTION_TYPE_OPTIONS, RESULT_HTML, USER_COOKIE_SALT
 from generate_result_engine import generate_result, filter_by_category, find_and_save_rank
 from mail_handling import send_mail
 
@@ -105,7 +105,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 			else:
 				sca['questions_type_info'][question.que_type][2] += 1
 			
-			if not is_have_sub_category:
+			if is_have_sub_category:
 				sca['questions'].append(d)
 	else:
 		print 'Not have questions <<<<<<<<<<<>>>>>>>>>>>>'
@@ -252,3 +252,14 @@ def merge_two_dicts(d1, d2):
     d = d1.copy()
     d.update(d2)
     return d
+
+
+
+# Make a hash and check for correct hash for user ID.
+def make_user_hash(user_id):
+	return hashlib.md5(str(user_id)+USER_COOKIE_SALT).hexdigest()
+
+def verify_user_hash(user_id, cookie_hash):
+	if cookie_hash == make_user_hash(user_id):
+		return True
+	return False

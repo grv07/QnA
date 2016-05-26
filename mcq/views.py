@@ -9,92 +9,96 @@ from quiz.models import Quiz
 from models import MCQuestion
 from serializer import MCQuestionSerializer
 from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
+from QnA.services.utility import verify_user_hash
 from pyexcel_xls import get_data
 import collections, ast
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
-	# Touch on your risk ...
-	'''
-	{u'sub_category': u'5', u'answer_order': u'random', u'explanation': u'eeeeeeeeee',
-	 u'level': u'easy', u'correctoption': u'1', u'content': u'eeeeeeeeee', 
-	 u'optioncontent': {u'1': u'eeeeeeeeee', u'2': u'eeeeeeeeeee'}}
-	'''
-	from pyexcel_xls import get_data
-	import collections
-	from quiz.models import Category, SubCategory
+	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		# Touch on your risk ...
+		'''
+		{u'sub_category': u'5', u'answer_order': u'random', u'explanation': u'eeeeeeeeee',
+		 u'level': u'easy', u'correctoption': u'1', u'content': u'eeeeeeeeee', 
+		 u'optioncontent': {u'1': u'eeeeeeeeee', u'2': u'eeeeeeeeeee'}}
+		'''
+		from pyexcel_xls import get_data
+		import collections
+		from quiz.models import Category, SubCategory
 
-	# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
-	f = request.data['figure']
+		# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
+		f = request.data['figure']
 
-	with open('mcq_read_now.xls', 'wb+') as destination:
-		for chunk in f.chunks():
-			destination.write(chunk)
+		with open('mcq_read_now.xls', 'wb+') as destination:
+			for chunk in f.chunks():
+				destination.write(chunk)
 
-	data = get_data("mcq_read_now.xls")
-	total_entries = len(data)
+		data = get_data("mcq_read_now.xls")
+		total_entries = len(data)
 
-	temp_data = data[0]
-	_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content', 'ideal_time']
-	# This dict contains raw-way data with specified keys from temp_data or xls keys
-	data_dict = collections.OrderedDict({})
-	# _quiz_id = None
-	category_dict = {}
-	sub_category_dict = {}
-	option_check = ['option1', 'option2', 'option3', 'option4', 'option5', 'option6']
-	
+		temp_data = data[0]
+		_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content', 'ideal_time']
+		# This dict contains raw-way data with specified keys from temp_data or xls keys
+		data_dict = collections.OrderedDict({})
+		# _quiz_id = None
+		category_dict = {}
+		sub_category_dict = {}
+		option_check = ['option1', 'option2', 'option3', 'option4', 'option5', 'option6']
+		
 
-	data_list = []
-	for row_name in _dict_mcq_keys:
-		data_dict.update({row_name : ''})
-	
-	# Create empty value dict. for each mcq entry ..
-	for i, list_data in enumerate(data[1:]):
-		data_list.append(data_dict.copy())
-		optioncontent = {}
-		for j, mcq_data in enumerate(list_data):
-			if temp_data[j] == 'correctoption':
-				data_list[i][temp_data[j]] = str(mcq_data)
-	
-			# Check if row is for option then create a dict_ of options and add it on optioncontent ....
-			elif temp_data[j] in option_check:
-				if mcq_data:
-					optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
-					data_list[i]['optioncontent'] =  optioncontent
+		data_list = []
+		for row_name in _dict_mcq_keys:
+			data_dict.update({row_name : ''})
+		
+		# Create empty value dict. for each mcq entry ..
+		for i, list_data in enumerate(data[1:]):
+			data_list.append(data_dict.copy())
+			optioncontent = {}
+			for j, mcq_data in enumerate(list_data):
+				if temp_data[j] == 'correctoption':
+					data_list[i][temp_data[j]] = str(mcq_data)
+		
+				# Check if row is for option then create a dict_ of options and add it on optioncontent ....
+				elif temp_data[j] in option_check:
+					if mcq_data:
+						optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
+						data_list[i]['optioncontent'] =  optioncontent
 
-				# data_list[i]['optioncontent'] = optioncontent[option_check.index(temp_data[j])] = str(mcq_data)
+					# data_list[i]['optioncontent'] = optioncontent[option_check.index(temp_data[j])] = str(mcq_data)
 
-			#Check first for // key(category name) value(category id) // pair in dict. if not exist then call query.  
-			elif temp_data[j] == 'category':
-				if category_dict.has_key(mcq_data):
-					category_id = category_dict.get(mcq_data)
-				else:
-					try:
-						category_id = Category.objects.get(category_name = mcq_data).id
-					except Exception as e:
-						print e.args
-						category_id = None
-					category_dict[mcq_data] = category_id
-				data_list[i][temp_data[j]] = str(category_id)
-
-			#Check first for // key(sub_category name) value(sub_category id) // pair in dict. if not exist then call query.
-			elif temp_data[j] == 'sub_category':
-				try:
-					if sub_category_dict.has_key(mcq_data):
-						sub_category_id = sub_category_dict.get(mcq_data)
+				#Check first for // key(category name) value(category id) // pair in dict. if not exist then call query.  
+				elif temp_data[j] == 'category':
+					if category_dict.has_key(mcq_data):
+						category_id = category_dict.get(mcq_data)
 					else:
-						sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
-						sub_category_dict[mcq_data] = sub_category_id
-					data_list[i][temp_data[j]] = str(sub_category_id)
-				except SubCategory.DoesNotExist as e:
-					return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
-			
-			else:
-				data_list[i][temp_data[j]] = str(mcq_data)	
-	# DONE ........
-	 
-	return create_mcq(request, data_list)
-	# return Response({'msg' : data_list}, status = status.HTTP_200_OK)
+						try:
+							category_id = Category.objects.get(category_name = mcq_data).id
+						except Exception as e:
+							print e.args
+							category_id = None
+						category_dict[mcq_data] = category_id
+					data_list[i][temp_data[j]] = str(category_id)
+
+				#Check first for // key(sub_category name) value(sub_category id) // pair in dict. if not exist then call query.
+				elif temp_data[j] == 'sub_category':
+					try:
+						if sub_category_dict.has_key(mcq_data):
+							sub_category_id = sub_category_dict.get(mcq_data)
+						else:
+							sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
+							sub_category_dict[mcq_data] = sub_category_id
+						data_list[i][temp_data[j]] = str(sub_category_id)
+					except SubCategory.DoesNotExist as e:
+						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
+				
+				else:
+					data_list[i][temp_data[j]] = str(mcq_data)	
+		# DONE ........
+		 
+		return create_mcq(request, data_list)
+		# return Response({'msg' : data_list}, status = status.HTTP_200_OK)
+	else:
+		return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
@@ -118,18 +122,20 @@ def create_mcq(request, xls_read_data = None):
 					os.remove('mcq_read_now.xls')
 				except OSError:
 					pass
-				return Response( {'msg': 'All questions upload successfully .',} ,status = last_resp[::-1][0].status_code)	
+				return Response( {'msg': 'All questions upload successfully.',} ,status = last_resp[::-1][0].status_code)	
 			else:
-				return Response( {'msg': 'All questions not uploaded successfully .',} ,status = last_resp[::-1][0].status_code)
+				return Response( {'msg': 'All questions not uploaded successfully.',} ,status = last_resp[::-1][0].status_code)
 	else:
-		if request.data.get('correctoption'):
-			data = {}
-			options_dict = ast.literal_eval((request.data.get('optioncontent')))
-			data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
-			serializer = MCQuestionSerializer(data = request.data)
-			return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
-		else:
-			return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
+		if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+			if request.data.get('correctoption'):
+				data = {}
+				options_dict = ast.literal_eval((request.data.get('optioncontent')))
+				data['options_data'] = options_dict if len(options_dict) <= MAX_OPTIONS else options_dict[:MAX_OPTIONS]
+				serializer = MCQuestionSerializer(data = request.data)
+				return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
+			else:
+				return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
+		return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])

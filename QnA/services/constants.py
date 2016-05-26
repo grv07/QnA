@@ -39,3 +39,5 @@ REGISTRATION_HTML = "<p><p>Hello <b>{name}</b>,</p><br><p>Thanks for registering
 RESULT_HTML = "<p><p>Hello <b>{username}</b>,</p><br><p>You attempted a test for Quiz <b>{quiz_name}</b>.</p><br>You can view your test report here <a href='{report_link}'>report link.</a></p>"
 
 MAX_OPTIONS = 6
+
+USER_COOKIE_SALT = "QnAssessment"
