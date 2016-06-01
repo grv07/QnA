@@ -131,16 +131,16 @@ def get_comprehension_questions_format(comprehension):
 
 def validate_stack():
 	'''
-        {'section_name':'',
-         'sub_category_name':'',
-         'level':'',
-         'q_type':'',
-         '#qs':'',
-         'time_duration':'',
-         'is_timed':'',
-         'correct_grade':'',
-         'incorrect_grade':'',
-         }
+		{'section_name':'',
+		 'sub_category_name':'',
+		 'level':'',
+		 'q_type':'',
+		 '#qs':'',
+		 'time_duration':'',
+		 'is_timed':'',
+		 'correct_grade':'',
+		 'incorrect_grade':'',
+		 }
 	'''
 	pass
 
@@ -175,83 +175,90 @@ def postNotifications(data = None, url = None):
 			return False
 	return False
 
-def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question):
-	if sitting_id and test_user and test_key and time_spent:
+def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question, comprehension_answers, answers):
+	if sitting_id:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
-		sitting_obj = Sitting.objects.get(id = cache.get('sitting_id'+str(test_user)))
+		sitting_obj = Sitting.objects.get(id = sitting_id)
 		print sitting_obj,'sitting_obj'
-		unanswered_questions = sitting_obj.unanswered_questions
-		print unanswered_questions, 'unanswered_questions'
-		comprehension_unanswered_questions = unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
-		print comprehension_unanswered_questions, 'comprehension_unanswered_questions'
-		mcq_unanswered_questions_list = unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]].keys()
-		cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
-		quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
-		for key in list(cache.iter_keys(cache_keys_pattern)):
-			print key,'key'
-			answered_questions = generate_result(cache.get(key), sitting_obj, key, quizstack, time_spent_on_question)
+		if not sitting_obj.complete:
+			# unanswered_questions = sitting_obj.unanswered_questions
+			# print unanswered_questions, 'unanswered_questions'
+			# comprehension_unanswered_questions = unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
+			# print comprehension_unanswered_questions, 'comprehension_unanswered_questions'
+			# mcq_unanswered_questions_list = unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]].keys()
+			# cache_keys_pattern = test_key+"|"+str(test_user)+"|**"
+			quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
+			# for key in list(cache.iter_keys(cache_keys_pattern)):
+			# 	print key,'key'
+			is_saved_correctly = generate_result(sitting_obj.unanswered_questions, answers, comprehension_answers, sitting_obj, quizstack, time_spent_on_question, time_spent)
 
-			if answered_questions:
-				print comprehension_unanswered_questions,'comprehension_unanswered_questions'
-				print mcq_unanswered_questions_list, 'mcq_unanswered_questions_list'
-				for question_id in answered_questions[QUESTION_TYPE_OPTIONS[0][0]]:
-					print question_id,'mcq'
-					if question_id in mcq_unanswered_questions_list: 
-						mcq_unanswered_questions_list.remove(question_id)
-				for question_id in answered_questions[QUESTION_TYPE_OPTIONS[2][0]].keys():
-					for cq_id in answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]:
-						print cq_id, 'cq', comprehension_unanswered_questions[str(question_id)]
-						del comprehension_unanswered_questions[str(question_id)][cq_id]
-				cache.delete(key)
-				print cache.get(key), '-----------------'
+			# if answered_questions:
+			# 	print comprehension_unanswered_questions,'comprehension_unanswered_questions'
+			# 	print mcq_unanswered_questions_list, 'mcq_unanswered_questions_list'
+			# 	for question_id in answered_questions[QUESTION_TYPE_OPTIONS[0][0]]:
+			# 		print question_id,'mcq'
+			# 		if question_id in mcq_unanswered_questions_list: 
+			# 			mcq_unanswered_questions_list.remove(question_id)
+			# 	for question_id in answered_questions[QUESTION_TYPE_OPTIONS[2][0]].keys():
+			# 		for cq_id in answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]:
+			# 			print cq_id, 'cq', comprehension_unanswered_questions[str(question_id)]
+			# 			del comprehension_unanswered_questions[str(question_id)][cq_id]
+			# 	cache.delete(key)
+			# 	print cache.get(key), '-----------------'
 
-		sitting_obj.save_time_spent(time_spent)
+			# sitting_obj.save_time_spent(time_spent)
 
-		# Clear all unanswered_questions_list so as to modify it.
-		sitting_obj.clear_all_unanswered_questions()
-		print time_spent_on_question, mcq_unanswered_questions_list
-		for question_id in mcq_unanswered_questions_list:
-			qtime = time_spent_on_question.get(str(question_id), 0)
-			sitting_obj.add_unanswered_mcq_question(question_id, round(qtime, 2))
+			# Clear all unanswered_questions_list so as to modify it.
+			# sitting_obj.clear_all_unanswered_questions()
+			# print time_spent_on_question, mcq_unanswered_questions_list
+			# for question_id in mcq_unanswered_questions_list:
+			# 	qtime = time_spent_on_question.get(str(question_id), 0)
+			# 	sitting_obj.add_unanswered_mcq_question(question_id, round(qtime, 2))
 
-		for question_id, value in comprehension_unanswered_questions.items():
-			# qtime = time_spent_on_question.get(str(question_id), 0)
-			for cq_id, time_spent in value.items():
-				sitting_obj.add_unanswered_comprehension_question(question_id, cq_id, time_spent)
-		sitting_obj.save()
+			# for question_id, value in comprehension_unanswered_questions.items():
+			# 	# qtime = time_spent_on_question.get(str(question_id), 0)
+			# 	for cq_id, time_spent in value.items():
+			# 		sitting_obj.add_unanswered_comprehension_question(question_id, cq_id, time_spent)
+			# sitting_obj.save()
 
-		# test is set to complete must come after sitting_obj.add_unanswered_question()
-		sitting_obj.mark_quiz_complete()
+			# test is set to complete must come after sitting_obj.add_unanswered_question()
+			# sitting_obj.mark_quiz_complete()
 
-		# find and save the rank
-		if not find_and_save_rank(test_user, test_key, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
-			print 'Cannot be saved'
+			# find and save the rank
+			if is_saved_correctly:
+				if not find_and_save_rank(test_user, test_key, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
+					print 'Cannot be saved'
 
-		data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
-		if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
-			print 'finish notification not sent'
-		# _filter_by_category = filter_by_category(sitting_obj)
-		data = {}
-		# data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
-		data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
-		if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
-			print 'grade notification not sent'
-			# html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
-			# send_mail(html, sitting_obj.user.email)
-		# Clean my cache ...
-		cache.delete('sitting_id'+str(test_user))
-		cache.delete(test_key + "|" + str(test_user) + "time")
-		cache.delete(test_key + "|" + str(test_user) + "qtime")
-		# End ...
-		return { 'attempt_no': sitting_obj.attempt_no }
+				data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
+				if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
+					print 'finish notification not sent'
+				# _filter_by_category = filter_by_category(sitting_obj)
+				data = {}
+				# data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+				data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
+				if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
+					print 'grade notification not sent'
+					# html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
+					# send_mail(html, sitting_obj.user.email)
+				# Clean my cache ...
+				# cache.delete('sitting_id'+str(test_user))
+				# cache.delete(test_key + "|" + str(test_user) + "time")
+				# cache.delete(test_key + "|" + str(test_user) + "qtime")
+				# End ...
+				return { 'attempt_no': sitting_obj.attempt_no }
+			else:
+				return False
+		else:
+			return { 'attempt_no': sitting_obj.attempt_no }
+
 	else:
 		raise ValueError('Any None not accepted ::: test_user: {0}, sitting_id: {1}, test_key: {2}, time_spent: {3}'.format(test_user, sitting_id, test_key, time_spent))
 
 
 def merge_two_dicts(d1, d2):
-    d = d1.copy()
-    d.update(d2)
-    return d
+	d = d1.copy()
+	d.update(d2)
+	return d
 
 
 

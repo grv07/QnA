@@ -38,7 +38,7 @@ class Quiz(models.Model):
 		blank=True, help_text=_("a user friendly url"),
 		verbose_name=_("user friendly url"))
 
-	quiz_type = models.CharField(default=QUIZ_TYPE_OPTIONS[0],
+	quiz_type = models.CharField(default = QUIZ_TYPE_OPTIONS[0][0],
 		choices = QUIZ_TYPE_OPTIONS,
 		max_length = 60, blank = False)
 
@@ -423,7 +423,7 @@ class Sitting(models.Model):
 		self.incorrect_questions = { 'mcq': [], 'comprehension': {} }
 
 	def add_to_score(self, points):
-		self.current_score += int(points)
+		self.current_score = int(points)
 		self.save()
 
 	# data = [correct_answer_id, time_spent]
@@ -453,18 +453,18 @@ class Sitting(models.Model):
 			print self.unanswered_questions['comprehension'][question_id], 'comprehension-unanswered-1'
 		self.save()
 
-	def add_incorrect_mcq_question(self, question_id, incorrect_point):
+	def add_incorrect_mcq_question(self, question_id):
 		self.incorrect_questions['mcq'].append(question_id)
-		self.add_to_score(incorrect_point)
+		# self.add_to_score(incorrect_point)
 		self.save()
 
-	def add_incorrect_comprehension_question(self, question_id, comprehension_question_id, incorrect_point):
+	def add_incorrect_comprehension_question(self, question_id, comprehension_question_id):
 		if self.incorrect_questions['comprehension'].has_key(question_id):
 			self.incorrect_questions['comprehension'][question_id].append(comprehension_question_id)
 		else:
 			self.incorrect_questions['comprehension'][question_id] = [ comprehension_question_id ]
-		self.add_to_score(incorrect_point)
-		self.save()
+		# self.add_to_score(incorrect_point)
+		self.save()		
 
 	@property
 	def get_current_score(self):
@@ -499,6 +499,9 @@ class Sitting(models.Model):
 		self.unanswered_questions = { 'mcq': {}, 'comprehension': {} }
 		self.save()
 
+	def save_all_unanswered_questions(self, unanswered_questions):
+		self.unanswered_questions = unanswered_questions
+		self.save()
 
 	# This excludes comprehension question keys.
 	def get_all_incorrect_questions_keys(self):
@@ -516,8 +519,8 @@ class Sitting(models.Model):
 		
 	def get_timed_analysis_for_unanswered_questions(self):
 		d = self.unanswered_questions['mcq']
-		for question_id, values in self.user_answers['comprehension'].items():
-			d[question_id] = values['time_spent']
+		for question_id, values in self.unanswered_questions['comprehension'].items():
+			d[question_id] = values.get('time_spent', 0)
 		return d
 
 	def merge_user_answers_and_unanswered_questions(self):

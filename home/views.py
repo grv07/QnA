@@ -135,41 +135,39 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 def save_sitting_user(request):
 	try:
 		test_user_id = request.data.get('test_user')
-		sitting_id = cache.get('sitting_id'+str(test_user_id), None)
-		if not sitting_id:
-			quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
-			test_user_obj = TestUser.objects.get(pk = test_user_id)
-			sitting_obj = Sitting.objects.create(user = test_user_obj.user,  quiz = quiz)
-			
-			test_user_obj.no_attempt += 1
-			test_user_obj.save()
+		# sitting_id = cache.get('sitting_id'+str(test_user_id), None)
+		# if not sitting_id:
+		quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
+		test_user_obj = TestUser.objects.get(pk = test_user_id)
+		sitting_obj = Sitting.objects.create(user = test_user_obj.user, quiz = quiz)
+		
+		test_user_obj.no_attempt += 1
+		test_user_obj.save()
 
-			sitting_obj.attempt_no = test_user_obj.no_attempt
-			sitting_obj.intialize()
-			sitting_obj.save()
+		sitting_obj.attempt_no = test_user_obj.no_attempt
+		sitting_obj.intialize()
+		sitting_obj.save()
 
-			if not sitting_obj.complete:
-				for quizstack in QuizStack.objects.filter(quiz = quiz):
-					for question_id in quizstack.fetch_selected_questions():
-						print question_id,'question_id'
-						if quizstack.que_type == QUESTION_TYPE_OPTIONS[0][0]:
-							sitting_obj.add_unanswered_mcq_question(question_id, [])
-						elif quizstack.que_type == QUESTION_TYPE_OPTIONS[2][0]:
-							comprehension = Comprehension.objects.get(question = question_id)
-							for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
-								sitting_obj.add_unanswered_comprehension_question(question_id, cq.id, 0)
-			print sitting_obj.unanswered_questions
+		if not sitting_obj.complete:
+			for quizstack in QuizStack.objects.filter(quiz = quiz):
+				for question_id in quizstack.fetch_selected_questions():
+					print question_id,'question_id'
+					if quizstack.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+						sitting_obj.add_unanswered_mcq_question(question_id, [])
+					elif quizstack.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+						comprehension = Comprehension.objects.get(question = question_id)
+						for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
+							sitting_obj.add_unanswered_comprehension_question(question_id, cq.id, 0)
 
-			cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
-			
-			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
-					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
-					  'email': sitting_obj.user.email }
-			
-			if not postNotifications(data, sitting_obj.quiz.start_notification_url):
-				print 'start notification not sent'
-			return Response({}, status = status.HTTP_200_OK)
-		return Response({}, status = status.HTTP_200_OK)
+		# cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
+		
+		data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
+				 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
+				  'email': sitting_obj.user.email }
+		
+		if not postNotifications(data, sitting_obj.quiz.start_notification_url):
+			print 'start notification not sent'
+		return Response({ 'sitting': sitting_obj.id }, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args,'----'
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
@@ -352,14 +350,18 @@ def save_question_time(request):
 @api_view(['POST'])
 def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
-	sitting_id = cache.get('sitting_id'+str(test_user))
+	sitting_id = request.data.get('sitting')
 	test_key = request.data.get('test_key')
 	time_spent = request.data.get('time_spent')
-	time_spent_on_question = cache.get(test_key + "|" + str(test_user) + "qtime")
-	print time_spent_on_question,'time_spent_on_question'
+	time_spent_on_question = request.data.get('time_spent_on_question')
+	comprehension_answers = request.data.get('comprehension_answers')
+	answers = request.data.get('answers')
 	try:
-		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question['qtime'])
-		return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
+		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question, comprehension_answers, answers)
+		if data:
+			return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
+		else:
+			return Response({}, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
 		print e.args
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
@@ -368,25 +370,22 @@ def save_test_data_to_db(request):
 @api_view(['POST'])
 def save_test_bookmarks(request):
 	test_user = request.data.get('test_user')
-	sitting_id = cache.get('sitting_id'+str(test_user))
 	try:
-		if sitting_id:
-			bookmarked_questions = request.data.get('bookmarked_questions')
-			print bookmarked_questions,'bookmarks'
-			existing_bookmarks = {}
-			if bookmarked_questions['mcq'] or bookmarked_questions['comprehension']:
-				bookmark, created = BookMarks.objects.get_or_create(user = TestUser.objects.get(id = test_user).user)
-				if not created:
-					existing_bookmarks = bookmark.fetch_bookmarks()
-				for que_type in bookmarked_questions.keys():
-					for question_id in bookmarked_questions[que_type]:
-						if question_id not in existing_bookmarks.get(que_type, []):
-							bookmark.add_bookmark(que_type, question_id)
-			return Response({}, status = status.HTTP_200_OK)
-		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+		bookmarked_questions = request.data.get('bookmarked_questions')
+		print bookmarked_questions,'bookmarks'
+		existing_bookmarks = {}
+		if bookmarked_questions['mcq'] or bookmarked_questions['comprehension']:
+			bookmark, created = BookMarks.objects.get_or_create(user = TestUser.objects.get(id = test_user).user)
+			if not created:
+				existing_bookmarks = bookmark.fetch_bookmarks()
+			for que_type in bookmarked_questions.keys():
+				for question_id in bookmarked_questions[que_type]:
+					if question_id not in existing_bookmarks.get(que_type, []):
+						bookmark.add_bookmark(que_type, question_id)
+		return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
-		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+	return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -399,9 +398,9 @@ def get_bookmark_questions(request):
 		format_dict = lambda values : {
 									'figure': values[0],
 									"content": values[1].replace(BLANK_HTML, '_'*10),
-						            "explanation": values[2],
-						            "level":values[3],
-						            "sub_category_name": values[4]
+									"explanation": values[2],
+									"level":values[3],
+									"sub_category_name": values[4]
 									}
 		try:
 			user = User.objects.get(username = username, email = email)
@@ -499,3 +498,12 @@ def question_stats(request, sitting_id):
 @permission_classes((AllowAny,))
 def ping(request):
 	return Response({}, status = status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes((AllowAny,))
+def post(request):
+	print request.data
+	return Response({}, status = status.HTTP_200_OK)
+
+

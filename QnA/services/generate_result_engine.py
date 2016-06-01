@@ -6,60 +6,116 @@ from home.models import TestUser
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
 from .constants import QUESTION_TYPE_OPTIONS
 
-def generate_result(section_result, sitting_obj, cache_key, quizstack, time_spent_on_question):
-	'''{u'answers': {
-		u'47': {u'status': u'NA', u'value': None},
-		u'20': {u'status': u'NA', u'value': None}, 
-		u'21': {u'status': u'NA', u'value': None},
-		u'22': {u'status': u'A',u'value': 74}, 
-		u'48': {u'status': u'A',u'value': u'6'}
-		}
-	 }'''
+def generate_result(initial_unanswered_questions, answers, comprehension_answers, sitting_obj, quizstack, time_spent_on_question, time_spent):
+	'''
+	initial_unanswered_questions = {"mcq": {"11": [], "12": [], "13": [], "32": [], "33": [], "48": []}, "comprehension": {"46": {"4": 0, "6": 0}, "53": {"7": 0, "8": 0}}} 
 
-	answered_questions = { QUESTION_TYPE_OPTIONS[0][0]:[], QUESTION_TYPE_OPTIONS[2][0]:{} }
-	# quiz_key,user_ro_no,section_id, = tuple(cache_key.strip().split("|"))
-	print section_result, 'section_result', cache_key
-	if section_result:
-		_progress_list = section_result['answers']
-		print _progress_list.keys(),'_progress_list.keys()'
-		for question_id in _progress_list.keys():
-			_dict_data = _progress_list.get(str(question_id))
+	{u'test_key': u'93h1m9mimu', u'test_user': 142, 
+	u'comprehension_answers': {u'8': {u'value': u'18'}, u'4': {u'value': u'3'}, u'7': {u'value': u'14'}, u'6': {u'value': None}}, 
+	u'time_spent_on_question': {u'11': {u'time': 1}, u'13': {u'time': 84}, u'12': {u'time': 3}, u'48': {u'time': 2}, u'33': {u'time': 5}, u'32': {u'time': 2}, u'53': {u'time': 4}, u'46': {u'time': 6}}, 
+	u'answers': {u'11': {u'value': None}, u'13': {u'value': None}, u'12': {u'value': u'47'}, u'48': {u'value': u'127'}, u'33': {u'value': u'121'}, u'32': {u'value': u'116'}, u'53': {u'comprehension_questions': [], u'heading': u'Elephant', u'value': None}, u'46': {u'comprehension_questions': [], u'heading': u'Divide the sail', u'value': None}}, 
+	u'time_spent': 58, 
+	u'bookmarked_questions': {u'comprehension': [4], u'mcq': [33, 11, 13]}}
+
+	The data inside temp_unanswered_questions will be the final output for unanswered_questions in Sitting table.
+	The data inside temp_user_answered_questions will be the final output for user_answers in Sitting table.
+	The data inside temp_user_incorrect_questions will be the final output for incorrect_questions in Sitting table.
+	'''
+
+
+	temp_unanswered_questions = { QUESTION_TYPE_OPTIONS[0][0]:{}, QUESTION_TYPE_OPTIONS[2][0]:{} }
+	temp_user_answered_questions = { QUESTION_TYPE_OPTIONS[0][0]:{}, QUESTION_TYPE_OPTIONS[2][0]:{} }
+	temp_user_incorrect_questions = { QUESTION_TYPE_OPTIONS[0][0]:[], QUESTION_TYPE_OPTIONS[2][0]:{} }
+
+	comprehension_unanswered_questions = initial_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
+	mcq_unanswered_questions_list = initial_unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]].keys()
+	
+	question_ids_list = mcq_unanswered_questions_list + comprehension_unanswered_questions.keys()	
+	print question_ids_list,'question_ids_list'
+	print time_spent_on_question
+	print time_spent
+	print answers
+	print comprehension_answers
+	current_score = 0
+	try:
+		for question_id in question_ids_list:
 			is_correct = False
+			print question_id,'question_id'
 			# if not _dict_data.get('status') == 'NA' and not _dict_data.get('value') == None:
-			try:
-				question = Question.objects.get(pk = question_id)
-				quizstack_obj = quizstack.filter(subcategory = question.sub_category, que_type = question.que_type)[0]
-			except Question.DoesNotExist as e:
-				print e.args
-				return None
-			print question.que_type,'================='
+			question = Question.objects.get(id = question_id)
+			quizstack_obj = quizstack.filter(subcategory = question.sub_category, que_type = question.que_type)[0]
+			if time_spent_on_question.has_key(question_id):
+				time_spent = round(time_spent_on_question[question_id].get('time', 0), 2)
+			else:
+				time_spent = 0.0
 			if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
-				is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(_dict_data.get('value'))
-				sitting_obj.add_user_mcq_answer(question_id, [ int(_dict_data.get('value')), round(time_spent_on_question[str(question_id)], 2)] )
-				if is_correct:
-					sitting_obj.add_to_score(quizstack_obj.correct_grade)
+				print time_spent,'time_spent'
+				if answers.has_key(question_id) and answers.get(question_id).get('value') != None:
+					user_answer = int(answers.get(question_id).get('value'))
+					is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(user_answer)
+					temp_user_answered_questions[QUESTION_TYPE_OPTIONS[0][0]][question_id] = [ user_answer, time_spent ]
+					# sitting_obj.add_user_mcq_answer(question_id, [ int(user_answer), time_spent ] )
+					if is_correct:
+						# sitting_obj.add_to_score(quizstack_obj.correct_grade)
+						current_score += int(quizstack_obj.correct_grade)
+					else:
+						temp_user_incorrect_questions[QUESTION_TYPE_OPTIONS[0][0]].append(question_id)
+						# sitting_obj.add_incorrect_mcq_question(question_id)
+						current_score -= int(quizstack_obj.incorrect_grade)
 				else:
-					sitting_obj.add_incorrect_mcq_question(question_id, quizstack_obj.incorrect_grade)
-				answered_questions[QUESTION_TYPE_OPTIONS[0][0]].append(question_id)
+					temp_unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]][question_id] = time_spent
+				# answered_questions[QUESTION_TYPE_OPTIONS[0][0]].append(question_id)
 
 			elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
-				answered_questions[QUESTION_TYPE_OPTIONS[2][0]] = { question_id: [] }
-				for cq in _dict_data.keys():
-					print cq, '^^^^^^^^^^'
-					comprehension_answer_id = int(_dict_data[str(cq)]['value'])
-					print comprehension_answer_id
-					sitting_obj.add_user_comprehension_answer(question_id, { cq: comprehension_answer_id }, round(time_spent_on_question[str(question_id)], 2))
-					is_comprehension_correct = ComprehensionQuestion.objects.get(id = cq).check_if_correct(comprehension_answer_id)
-					print cq,'cq'
-					if is_comprehension_correct:
-						print 'score', sitting_obj.current_score
-						sitting_obj.add_to_score(quizstack_obj.correct_grade)
+
+				# answered_questions[QUESTION_TYPE_OPTIONS[2][0]] = { question_id: [] }
+				for cq in comprehension_unanswered_questions.get(question_id).keys():
+					print cq, 'cq'
+					if comprehension_answers.has_key(cq) and comprehension_answers.get(cq).get('value') != None:
+						user_comprehension_answer = int(comprehension_answers.get(cq).get('value'))
+						if temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]].has_key(question_id):
+							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].update({ cq: user_comprehension_answer })
+						else:
+							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id] = { cq: user_comprehension_answer }
+							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]['time_spent'] = time_spent
+						# sitting_obj.add_user_comprehension_answer(question_id, { cq: user_comprehension_answer }, time_spent)
+						is_comprehension_correct = ComprehensionQuestion.objects.get(id = cq).check_if_correct(user_comprehension_answer)
+						if is_comprehension_correct:
+							current_score += int(quizstack_obj.correct_grade)
+							# print 'score', sitting_obj.current_score
+							# sitting_obj.add_to_score(quizstack_obj.correct_grade)
+						else:
+							print question_id,cq
+							# sitting_obj.add_incorrect_comprehension_question(question_id, cq)
+							if temp_user_incorrect_questions[QUESTION_TYPE_OPTIONS[2][0]].has_key(question_id):
+								temp_user_incorrect_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].append(cq)
+							else:
+								temp_user_incorrect_questions['comprehension'][question_id] = [ cq ]
+							# self.add_to_score(incorrect_point)
+							current_score -= int(quizstack_obj.incorrect_grade)
 					else:
-						print question_id,cq
-						sitting_obj.add_incorrect_comprehension_question(question_id, cq, quizstack_obj.incorrect_grade)
-					answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].append(cq)
-		print answered_questions,'answered_questions'
-		return answered_questions	
+						if temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]].has_key(question_id):
+							temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].update({ cq: 0 })
+						else:
+							temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id] = { cq: 0 }
+
+					# answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].append(cq)
+		# print answered_questions,'answered_questions'
+
+		# Save all properties on a single save() call on database.
+		sitting_obj.unanswered_questions = temp_unanswered_questions
+		sitting_obj.incorrect_questions = temp_user_incorrect_questions
+		sitting_obj.user_answers = temp_user_answered_questions
+		sitting_obj.current_score = current_score
+		sitting_obj.complete = True
+		sitting_obj.time_spent = sitting_obj.quiz.total_duration - time_spent
+		sitting_obj.save()
+		return True
+	except Exception as e:
+		print e.args,'---------'
+		return False
+	
+
 				
 
 def filter_by_category(sitting):
