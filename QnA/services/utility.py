@@ -175,7 +175,8 @@ def postNotifications(data = None, url = None):
 			return False
 	return False
 
-def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question, comprehension_answers, answers):
+def save_test_data_to_db_helper(test_user, test_key, test_data):
+	sitting_id = test_data.get('sitting')
 	if sitting_id:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = sitting_id)
@@ -190,7 +191,7 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, tim
 			quizstack =  QuizStack.objects.filter(quiz = Quiz.objects.get(quiz_key = test_key))
 			# for key in list(cache.iter_keys(cache_keys_pattern)):
 			# 	print key,'key'
-			is_saved_correctly = generate_result(sitting_obj.unanswered_questions, answers, comprehension_answers, sitting_obj, quizstack, time_spent_on_question, time_spent)
+			is_saved_correctly = generate_result(sitting_obj, quizstack, test_data)
 
 			# if answered_questions:
 			# 	print comprehension_unanswered_questions,'comprehension_unanswered_questions'
@@ -225,7 +226,7 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, tim
 			# sitting_obj.mark_quiz_complete()
 
 			# find and save the rank
-			if is_saved_correctly:
+			if is_saved_correctly and test_data['is_normal_submission']:
 				if not find_and_save_rank(test_user, test_key, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
 					print 'Cannot be saved'
 
@@ -247,7 +248,7 @@ def save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, tim
 				# End ...
 				return { 'attempt_no': sitting_obj.attempt_no }
 			else:
-				return False
+				return {}
 		else:
 			return { 'attempt_no': sitting_obj.attempt_no }
 

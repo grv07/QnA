@@ -18,7 +18,7 @@ from token_key import generate_token
 from QnA.settings import TEST_URL_THIRD_PARTY, TEST_BASE_URL, TEST_REPORT_URL
 
 from QnA.services.utility import checkIfTrue, postNotifications, get_user_result_helper, save_test_data_to_db_helper, merge_two_dicts, make_user_hash
-from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT, QUESTION_TYPE_OPTIONS, BLANK_HTML
+from QnA.services.constants import REGISTRATION_HTML, CACHE_TIMEOUT, QUESTION_TYPE_OPTIONS, BLANK_HTML, TEST_STATUSES
 from QnA.services.test_authentication import TestAuthentication
 from QnA.services.mail_handling import send_mail
 from QnA.services.generate_result_engine import generate_result, filter_by_category, get_data_for_analysis, find_and_save_rank, get_topper_data
@@ -134,63 +134,86 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 @api_view(['POST'])
 def save_sitting_user(request):
 	try:
-		test_user_id = request.data.get('test_user')
-		# sitting_id = cache.get('sitting_id'+str(test_user_id), None)
-		# if not sitting_id:
-		quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
-		test_user_obj = TestUser.objects.get(pk = test_user_id)
-		sitting_obj = Sitting.objects.create(user = test_user_obj.user, quiz = quiz)
-		
-		test_user_obj.no_attempt += 1
-		test_user_obj.save()
+		sitting_id = request.data.get('existingSittingID')
+		print sitting_id,'sitting_id'
+		if not sitting_id:
+			print '------------------'
+			test_user_id = request.data.get('test_user')
+			# sitting_id = cache.get('sitting_id'+str(test_user_id), None)
+			# if not sitting_id:
+			quiz = Quiz.objects.get(pk = request.data.get('quiz_id'))
+			test_user_obj = TestUser.objects.get(pk = test_user_id)
+			test_user_obj.no_attempt += 1
+			test_user_obj.save()
 
-		sitting_obj.attempt_no = test_user_obj.no_attempt
-		sitting_obj.intialize()
-		sitting_obj.save()
+			sitting_obj = Sitting.objects.create(user = test_user_obj.user, quiz = quiz, attempt_no = test_user_obj.no_attempt)
+			sitting_id = sitting_obj.id
+			sitting_obj.intialize()
 
-		if not sitting_obj.complete:
-			for quizstack in QuizStack.objects.filter(quiz = quiz):
-				for question_id in quizstack.fetch_selected_questions():
-					print question_id,'question_id'
-					if quizstack.que_type == QUESTION_TYPE_OPTIONS[0][0]:
-						sitting_obj.add_unanswered_mcq_question(question_id, [])
-					elif quizstack.que_type == QUESTION_TYPE_OPTIONS[2][0]:
-						comprehension = Comprehension.objects.get(question = question_id)
-						for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
-							sitting_obj.add_unanswered_comprehension_question(question_id, cq.id, 0)
+			if not sitting_obj.complete:
+				for quizstack in QuizStack.objects.filter(quiz = quiz):
+					for question_id in quizstack.fetch_selected_questions():
+						print question_id,'question_id'
+						if quizstack.que_type == QUESTION_TYPE_OPTIONS[0][0]:
+							sitting_obj.add_unanswered_mcq_question(question_id, [])
+						elif quizstack.que_type == QUESTION_TYPE_OPTIONS[2][0]:
+							comprehension = Comprehension.objects.get(question = question_id)
+							for cq in ComprehensionQuestion.objects.filter(comprehension = comprehension):
+								sitting_obj.add_unanswered_comprehension_question(question_id, cq.id, 0)
 
-		# cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
-		
-		data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
-				 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
-				  'email': sitting_obj.user.email }
-		
-		if not postNotifications(data, sitting_obj.quiz.start_notification_url):
-			print 'start notification not sent'
-		return Response({ 'sitting': sitting_obj.id }, status = status.HTTP_200_OK)
+			# cache.set('sitting_id'+str(test_user_id), sitting_obj.id, timeout = CACHE_TIMEOUT)
+			
+			data = { 'EVENT_TYPE': 'startTest', 'test_key': quiz.quiz_key, 'sitting_id': sitting_obj.id,
+					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
+					  'email': sitting_obj.user.email }
+			
+			if not postNotifications(data, sitting_obj.quiz.start_notification_url):
+				print 'start notification not sent'
+		return Response({ 'sitting': sitting_id }, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args,'----'
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 # Helper function for get users cache data if exist in cache.
-def test_data_helper(test_key, test_user_id):
-	test_data = { 'isTestNotCompleted': False, 'existingAnswers': { 'answers': None } }
-	if cache.get('sitting_id'+str(test_user_id), None):	
-		test_data['status'] = 'INCOMPLETE'
+def test_data_helper(test_user):
+	'''
+	Cache data saved as -
+	{
+		u'sitting': 199, 
+		u'comprehension_answers': {u'4': {u'value': u'3'}, u'6': {u'value': u'8'}}, 
+		u'is_normal_submission': False, 
+		u'answers': {u'33': {u'value': u'121'}, u'32': {u'value': u'116'}, u'46': {u'comprehension_questions': {u'4': {u'value': None}, u'6': {u'value': None}}, u'heading': u'Divide the sail', u'value': None}, u'48': {u'value': u'127'}}, 
+		u'time_spent_on_questions': {u'33': {u'time': 8}, u'32': {u'time': 4}, u'46': {u'time': 13}, u'48': {u'time': 4}}, 
+		u'bookmarked_questions': {u'comprehension': [4], u'mcq': [48]}, 
+		u'section_no': u'1', 
+		u'time_remaining': 55 
+	}
+	'''
+	test_data = { 'isTestNotCompleted': False }
+	cache_key = "A|"+str(test_user.id)+"|"+str(test_user.test_key)
+	cache_value = cache.get(cache_key)
+	# sitting_obj = Sitting.objects.get(user = test_user.user, quiz__quiz_key = test_user.test_key, attempt_no = test_user.no_attempt)
+	if cache_value:
+		test_data['existingSittingID'] = cache_value.get('sitting')
+		test_data['status'] = TEST_STATUSES[0]
 		test_data['isTestNotCompleted'] = True
-		test_data['timeRemaining'] = cache.get(test_key + "|" + str(test_user_id) + "time")['remaining_duration']
-		test_data['sectionNoWhereLeft'] = 1
-		preExistingKeys = sorted(list(cache.iter_keys(test_key+"|"+str(test_user_id)+"|**")))
-		if preExistingKeys:
-			print preExistingKeys,'-------------'
-			test_data['existingAnswers']['answers'] = {}
-			for key in preExistingKeys:
-				test_data['existingAnswers']['answers']['Section#'+key.split('|')[2]] = cache.get(key)['answers']
-			test_data['sectionNoWhereLeft'] = preExistingKeys[len(preExistingKeys)-1].split('|')[2]		
+		test_data['timeRemaining'] = cache_value.get('time_remaining')
+		test_data['timeSpentOnQuestions'] = cache_value.get('time_spent_on_questions')
+		test_data['sectionNoWhereLeft'] = cache_value.get('section_no')
+		test_data['bookmarkedQuestions'] = cache_value.get('bookmarked_questions')
+		test_data['isNormalSubmission'] = cache_value.get('is_normal_submission')
+		existingAnswers = cache_value.get('answers')
+		for cq_id, cq_value_dict in cache_value.get('comprehension_answers').items():
+			for q_id, q_value_dict in existingAnswers.items():
+				if q_value_dict.has_key('comprehension_questions') and q_value_dict['comprehension_questions'].has_key(cq_id):
+					existingAnswers[q_id]['comprehension_questions'][cq_id] = cq_value_dict
+		test_data['existingAnswers'] = existingAnswers
+		print test_data,'------------------'
 	else:
-		test_data['status'] = 'ToBeTaken'
-	print test_data
+		test_data['status'] = TEST_STATUSES[1]
+		test_data['existingSittingID']  = None
 	return test_data
+
 
 @api_view(['POST', 'GET'])
 @permission_classes((AllowAny,))
@@ -206,7 +229,7 @@ def test_user_data(request):
 			data['test_key'] = test_user.test_key
 			data['token'] = token
 			data['testUser'] = test_user.id
-			data['test'].update(test_data_helper(test_user.test_key, test_user_id))
+			data['test'].update(test_data_helper(test_user))
 			return Response(data, status = status.HTTP_200_OK)
 		else:
 			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -267,7 +290,7 @@ def test_user_data(request):
 			data['token'] = token
 			data['is_new'] = is_new
 			data['testUser'] = test_user.id
-			data['test'].update(test_data_helper(test_key, test_user.id))				
+			data['test'].update(test_data_helper(test_user))				
 			data['test'].update({'testURL':TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)})
 			return Response(data, status = status.HTTP_200_OK)
 		else:
@@ -350,21 +373,37 @@ def save_question_time(request):
 @api_view(['POST'])
 def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
-	sitting_id = request.data.get('sitting')
 	test_key = request.data.get('test_key')
-	time_spent = request.data.get('time_spent')
-	time_spent_on_question = request.data.get('time_spent_on_question')
-	comprehension_answers = request.data.get('comprehension_answers')
-	answers = request.data.get('answers')
+	test_data = request.data.get('test_data')
+	cache_key = "A|"+str(test_user)+"|"+str(test_key)
+	cache_value = cache.get(cache_key)
 	try:
-		data = save_test_data_to_db_helper(test_user, sitting_id, test_key, time_spent, time_spent_on_question, comprehension_answers, answers)
-		if data:
-			return Response({ 'attempt_no': data['attempt_no'] }, status = status.HTTP_200_OK)
+		print test_data
+		data = {}
+		if test_data.get('is_normal_submission'):
+			if cache_value:
+				cache.delete(cache_key)
+				print cache.get("A|"+str(test_user)+"|"+str(test_key)),'cache deletion after test completion'
+				test_data['is_normal_submission'] = False
+			data = save_test_data_to_db_helper(test_user, test_key, test_data)
+			return Response({ 'attempt_no': data.get('attempt_no', {}) }, status = status.HTTP_200_OK)
 		else:
-			return Response({}, status = status.HTTP_400_BAD_REQUEST)
+			cache_value = cache.get(cache_key)
+			if not cache_value:
+				cache.set(cache_key, test_data, timeout = CACHE_TIMEOUT)
+			print cache.get(cache_key),'cache.get(cache_key)'
+			# print cache.delete(cache_key),'-----'
+			# print cache.get(cache_key),'cache.get(cache_key)'
+			return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes((AllowAny,))
+def post(request):
+	print request.data
+	return Response({}, status = status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -497,13 +536,6 @@ def question_stats(request, sitting_id):
 @api_view(['GET'])
 @permission_classes((AllowAny,))
 def ping(request):
-	return Response({}, status = status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-@permission_classes((AllowAny,))
-def post(request):
-	print request.data
 	return Response({}, status = status.HTTP_200_OK)
 
 

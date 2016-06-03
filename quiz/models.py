@@ -15,7 +15,7 @@ from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 
 
-from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS, QUIZ_TYPE_OPTIONS
+from QnA.services.constants import QUESTION_DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS, QUIZ_TYPE_OPTIONS, SUBMISSION_TYPE
 
 @python_2_unicode_compatible
 class Quiz(models.Model):
@@ -406,6 +406,8 @@ class Sitting(models.Model):
 	time_spent = models.IntegerField(default = 0)
 
 	attempt_no = models.IntegerField(default = 0)
+
+	submission_status = models.CharField(max_length = 15, default = SUBMISSION_TYPE[0])
 	
 	start_date = models.DateTimeField(auto_now_add=True,
 								 verbose_name=_("Start"))
@@ -421,6 +423,7 @@ class Sitting(models.Model):
 		self.unanswered_questions = { 'mcq': {}, 'comprehension': {} }
 		self.user_answers = { 'mcq': {}, 'comprehension': {} }
 		self.incorrect_questions = { 'mcq': [], 'comprehension': {} }
+		self.save()
 
 	def add_to_score(self, points):
 		self.current_score = int(points)
@@ -507,9 +510,9 @@ class Sitting(models.Model):
 	def get_all_incorrect_questions_keys(self):
 		return self.incorrect_questions['mcq'] + self.incorrect_questions['comprehension'].keys()
 
-	# This excludes comprehension question keys.
-	def get_all_unanswered_questions_keys(self):
-		return self.incorrect_questions['mcq'] + self.incorrect_questions['comprehension'].keys()
+	# This includes comprehension questions.
+	def get_all_unanswered_questions(self):
+		return self.unanswered_questions['mcq'].update(self.unanswered_questions['comprehension'])
 
 	def get_timed_analysis_for_answered_questions(self):
 		d = self.user_answers['mcq']

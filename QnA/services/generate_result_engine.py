@@ -4,18 +4,17 @@ from quiz.models import Sitting, Quiz, Question
 from quizstack.models import QuizStack
 from home.models import TestUser
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
-from .constants import QUESTION_TYPE_OPTIONS
+from .constants import QUESTION_TYPE_OPTIONS, SUBMISSION_TYPE
 
-def generate_result(initial_unanswered_questions, answers, comprehension_answers, sitting_obj, quizstack, time_spent_on_question, time_spent):
+def generate_result(sitting_obj, quizstack, test_data):
 	'''
-	initial_unanswered_questions = {"mcq": {"11": [], "12": [], "13": [], "32": [], "33": [], "48": []}, "comprehension": {"46": {"4": 0, "6": 0}, "53": {"7": 0, "8": 0}}} 
+	sitting_obj.unanswered_questions = {"mcq": {"11": [], "12": [], "13": [], "32": [], "33": [], "48": []}, "comprehension": {"46": {"4": 0, "6": 0}, "53": {"7": 0, "8": 0}}} 
 
-	{u'test_key': u'93h1m9mimu', u'test_user': 142, 
+	{ u'test_key': u'93h1m9mimu', u'test_user': 142, 
 	u'comprehension_answers': {u'8': {u'value': u'18'}, u'4': {u'value': u'3'}, u'7': {u'value': u'14'}, u'6': {u'value': None}}, 
-	u'time_spent_on_question': {u'11': {u'time': 1}, u'13': {u'time': 84}, u'12': {u'time': 3}, u'48': {u'time': 2}, u'33': {u'time': 5}, u'32': {u'time': 2}, u'53': {u'time': 4}, u'46': {u'time': 6}}, 
+	u'time_spent_on_questions': {u'11': {u'time': 1}, u'13': {u'time': 84}, u'12': {u'time': 3}, u'48': {u'time': 2}, u'33': {u'time': 5}, u'32': {u'time': 2}, u'53': {u'time': 4}, u'46': {u'time': 6}}, 
 	u'answers': {u'11': {u'value': None}, u'13': {u'value': None}, u'12': {u'value': u'47'}, u'48': {u'value': u'127'}, u'33': {u'value': u'121'}, u'32': {u'value': u'116'}, u'53': {u'comprehension_questions': [], u'heading': u'Elephant', u'value': None}, u'46': {u'comprehension_questions': [], u'heading': u'Divide the sail', u'value': None}}, 
-	u'time_spent': 58, 
-	u'bookmarked_questions': {u'comprehension': [4], u'mcq': [33, 11, 13]}}
+	u'time_remaining': 58 }
 
 	The data inside temp_unanswered_questions will be the final output for unanswered_questions in Sitting table.
 	The data inside temp_user_answered_questions will be the final output for user_answers in Sitting table.
@@ -27,15 +26,15 @@ def generate_result(initial_unanswered_questions, answers, comprehension_answers
 	temp_user_answered_questions = { QUESTION_TYPE_OPTIONS[0][0]:{}, QUESTION_TYPE_OPTIONS[2][0]:{} }
 	temp_user_incorrect_questions = { QUESTION_TYPE_OPTIONS[0][0]:[], QUESTION_TYPE_OPTIONS[2][0]:{} }
 
-	comprehension_unanswered_questions = initial_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
-	mcq_unanswered_questions_list = initial_unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]].keys()
+	comprehension_unanswered_questions = sitting_obj.unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
+	mcq_unanswered_questions_list = sitting_obj.unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]].keys()
 	
 	question_ids_list = mcq_unanswered_questions_list + comprehension_unanswered_questions.keys()	
 	print question_ids_list,'question_ids_list'
-	print time_spent_on_question
-	print time_spent
-	print answers
-	print comprehension_answers
+	time_spent_on_questions = test_data.get('time_spent_on_questions', {})
+	time_remaining = test_data.get('time_remaining', 0)
+	answers = test_data.get('answers', {})
+	comprehension_answers = test_data.get('comprehension_answers', {})
 	current_score = 0
 	try:
 		for question_id in question_ids_list:
@@ -44,17 +43,17 @@ def generate_result(initial_unanswered_questions, answers, comprehension_answers
 			# if not _dict_data.get('status') == 'NA' and not _dict_data.get('value') == None:
 			question = Question.objects.get(id = question_id)
 			quizstack_obj = quizstack.filter(subcategory = question.sub_category, que_type = question.que_type)[0]
-			if time_spent_on_question.has_key(question_id):
-				time_spent = round(time_spent_on_question[question_id].get('time', 0), 2)
+			if time_spent_on_questions.has_key(question_id):
+				qtime_spent = round(time_spent_on_questions[question_id].get('time', 0), 2)
 			else:
-				time_spent = 0.0
+				qtime_spent = 0.0
 			if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
-				print time_spent,'time_spent'
+				print qtime_spent,'qtime_spent'
 				if answers.has_key(question_id) and answers.get(question_id).get('value') != None:
 					user_answer = int(answers.get(question_id).get('value'))
 					is_correct = MCQuestion.objects.get(pk = question_id).check_if_correct(user_answer)
-					temp_user_answered_questions[QUESTION_TYPE_OPTIONS[0][0]][question_id] = [ user_answer, time_spent ]
-					# sitting_obj.add_user_mcq_answer(question_id, [ int(user_answer), time_spent ] )
+					temp_user_answered_questions[QUESTION_TYPE_OPTIONS[0][0]][question_id] = [ user_answer, qtime_spent ]
+					# sitting_obj.add_user_mcq_answer(question_id, [ int(user_answer), qtime_spent ] )
 					if is_correct:
 						# sitting_obj.add_to_score(quizstack_obj.correct_grade)
 						current_score += int(quizstack_obj.correct_grade)
@@ -63,7 +62,7 @@ def generate_result(initial_unanswered_questions, answers, comprehension_answers
 						# sitting_obj.add_incorrect_mcq_question(question_id)
 						current_score -= int(quizstack_obj.incorrect_grade)
 				else:
-					temp_unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]][question_id] = time_spent
+					temp_unanswered_questions[QUESTION_TYPE_OPTIONS[0][0]][question_id] = qtime_spent
 				# answered_questions[QUESTION_TYPE_OPTIONS[0][0]].append(question_id)
 
 			elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
@@ -77,8 +76,8 @@ def generate_result(initial_unanswered_questions, answers, comprehension_answers
 							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].update({ cq: user_comprehension_answer })
 						else:
 							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id] = { cq: user_comprehension_answer }
-							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]['time_spent'] = time_spent
-						# sitting_obj.add_user_comprehension_answer(question_id, { cq: user_comprehension_answer }, time_spent)
+							temp_user_answered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]['time_spent'] = qtime_spent
+						# sitting_obj.add_user_comprehension_answer(question_id, { cq: user_comprehension_answer }, qtime_spent)
 						is_comprehension_correct = ComprehensionQuestion.objects.get(id = cq).check_if_correct(user_comprehension_answer)
 						if is_comprehension_correct:
 							current_score += int(quizstack_obj.correct_grade)
@@ -96,6 +95,7 @@ def generate_result(initial_unanswered_questions, answers, comprehension_answers
 					else:
 						if temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]].has_key(question_id):
 							temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id].update({ cq: 0 })
+							temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id]['time_spent'] = qtime_spent
 						else:
 							temp_unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]][question_id] = { cq: 0 }
 
@@ -108,7 +108,12 @@ def generate_result(initial_unanswered_questions, answers, comprehension_answers
 		sitting_obj.user_answers = temp_user_answered_questions
 		sitting_obj.current_score = current_score
 		sitting_obj.complete = True
-		sitting_obj.time_spent = sitting_obj.quiz.total_duration - time_spent
+		if time_remaining == 0:
+			sitting_obj.submission_status = SUBMISSION_TYPE[1]
+		else:
+			if not test_data['is_normal_submission']:
+				sitting_obj.submission_status = SUBMISSION_TYPE[2]
+		sitting_obj.time_spent = sitting_obj.quiz.total_duration - time_remaining
 		sitting_obj.save()
 		return True
 	except Exception as e:
