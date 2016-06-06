@@ -517,13 +517,17 @@ class Sitting(models.Model):
 	def get_timed_analysis_for_answered_questions(self):
 		d = self.user_answers['mcq']
 		for question_id, values in self.user_answers['comprehension'].items():
-			d[question_id] = values['time_spent']
+			d[question_id] = values.get('time_spent', 0)
 		return d
 		
 	def get_timed_analysis_for_unanswered_questions(self):
 		d = self.unanswered_questions['mcq']
 		for question_id, values in self.unanswered_questions['comprehension'].items():
-			d[question_id] = values.get('time_spent', 0)
+			if self.user_answers['comprehension'].has_key(question_id):
+				if not self.user_answers['comprehension'][question_id].get('time_spent'):
+					d[question_id] = values.get('time_spent', 0)
+			else:
+				d[question_id] = values.get('time_spent', 0)
 		return d
 
 	def merge_user_answers_and_unanswered_questions(self):

@@ -388,9 +388,7 @@ def save_test_data_to_db(request):
 			data = save_test_data_to_db_helper(test_user, test_key, test_data)
 			return Response({ 'attempt_no': data.get('attempt_no', {}) }, status = status.HTTP_200_OK)
 		else:
-			cache_value = cache.get(cache_key)
-			if not cache_value:
-				cache.set(cache_key, test_data, timeout = CACHE_TIMEOUT)
+			cache.set(cache_key, test_data, timeout = CACHE_TIMEOUT)
 			print cache.get(cache_key),'cache.get(cache_key)'
 			# print cache.delete(cache_key),'-----'
 			# print cache.get(cache_key),'cache.get(cache_key)'
