@@ -88,7 +88,7 @@ class InvitedUser(models.Model):
     updated_date = models.DateTimeField(auto_now = True)
 
     def __str__(self):
-        return self.test_user.user.email, self.test_user.test_key
+        return self.user_name, self.user_email
         
     class Meta:
         verbose_name = _("InvitedUser")  
