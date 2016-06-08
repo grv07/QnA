@@ -76,7 +76,6 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 	sca['subcategory'] = sc.sub_category_name
 	sca['id'] = sc.id
 	sca['questions'] = []
-	print is_have_sub_category,'is_have_sub_category'
 	if questions:
 		for question in questions:
 			d = {
