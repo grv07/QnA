@@ -17,4 +17,5 @@ urlpatterns = [
 	url(r'^get/bookmarks/$', views.get_bookmark_questions),
 	url(r'^question/stats/(?P<sitting_id>\d+)/$', views.question_stats),
 	url(r'^ping/$', views.ping),
+	url(r'^post/$', views.post),
 ]

@@ -16,7 +16,7 @@ class Comprehension(models.Model):
 							   verbose_name=_('Comprehension'))
 
 def figure_directory_for_comprehension_question(instance, filename):
-    return '/qna/media/comprehension/{0}/{1}/{2}'.format(instance.comprehension.question.sub_category.sub_category_name, instance.comprehension.question.id, filename)
+	return '/qna/media/comprehension/{0}/{1}/{2}'.format(instance.comprehension.question.sub_category.sub_category_name, instance.comprehension.question.id, filename)
 
 
 class ComprehensionQuestion(models.Model):
@@ -59,27 +59,34 @@ class ComprehensionQuestion(models.Model):
 
 	def __str__(self):
 		return self.content
+
+	def check_if_correct(self, guess):
+		answer = ComprehensionAnswer.objects.get(id = guess)
+		if answer.correct is True:
+			return True
+		else:
+			return False
 		
 
 
 class ComprehensionAnswer(models.Model):
-    question = models.ForeignKey(ComprehensionQuestion, verbose_name=_("ComprehensionQuestion"))
+	question = models.ForeignKey(ComprehensionQuestion, verbose_name=_("ComprehensionQuestion"))
 
-    content = models.CharField(max_length=500,
-                               blank=False,
-                               help_text=_("Enter the answer text that "
-                                           "you want displayed"),
-                               verbose_name=_("Content"))
+	content = models.CharField(max_length=500,
+							   blank=False,
+							   help_text=_("Enter the answer text that "
+										   "you want displayed"),
+							   verbose_name=_("Content"))
 
-    correct = models.BooleanField(blank=False,
-                                  default=False,
-                                  help_text=_("Is this a correct answer?"),
-                                  verbose_name=_("Correct"))
+	correct = models.BooleanField(blank=False,
+								  default=False,
+								  help_text=_("Is this a correct answer?"),
+								  verbose_name=_("Correct"))
 
-    def __str__(self):
-        return self.content
+	def __str__(self):
+		return self.content
 
-    class Meta:
-        verbose_name = _("ComprehensionAnswer")
-        verbose_name_plural = _("ComprehensionAnswers")
+	class Meta:
+		verbose_name = _("ComprehensionAnswer")
+		verbose_name_plural = _("ComprehensionAnswers")
 
