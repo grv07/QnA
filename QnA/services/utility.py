@@ -245,7 +245,6 @@ def save_test_data_to_db_helper(test_user, test_key, test_data):
 				# cache.delete('sitting_id'+str(test_user))
 				# cache.delete(test_key + "|" + str(test_user) + "time")
 				# cache.delete(test_key + "|" + str(test_user) + "qtime")
-				# End ...
 				return { 'attempt_no': sitting_obj.attempt_no }
 			else:
 				return {}
