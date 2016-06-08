@@ -68,6 +68,7 @@ def create_comprehension(request):
 def get_comprehension(request, comprehension_id):
 	if verify_user_hash(request.query_params.get('user'), request.query_params.get('hash')):
 		try:
+			print '------', comprehension_id
 			comprehension = Comprehension.objects.get(id = comprehension_id)
 			return Response({ 'id': comprehension.id, 'content': comprehension.question.content, 'sub_category': comprehension.question.sub_category.sub_category_name, 'heading': comprehension.heading, 'figure':str(comprehension.question.figure) }, status = status.HTTP_200_OK)
 		except Comprehension.DoesNotExist as e:

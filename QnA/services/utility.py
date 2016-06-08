@@ -76,6 +76,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 	sca['subcategory'] = sc.sub_category_name
 	sca['id'] = sc.id
 	sca['questions'] = []
+	print is_have_sub_category,'is_have_sub_category'
 	if questions:
 		for question in questions:
 			d = {
@@ -105,7 +106,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 			else:
 				sca['questions_type_info'][question.que_type][2] += 1
 			
-			if is_have_sub_category:
+			if not is_have_sub_category:
 				sca['questions'].append(d)
 	else:
 		print 'Not have questions <<<<<<<<<<<>>>>>>>>>>>>'
