@@ -328,7 +328,9 @@ def all_questions_under_category(request, userid, quizid, categoryid):
 @api_view(['GET'])
 def all_questions_under_subcategory(request, user_id, subcategory_id):
 	"""
-	Either get all questions under specifc subcategory.
+	Either get all questions under specific subcategory.
+	If questionFormat is True --> Then we also uses answers and options for each question in JSON.
+	Otherwise, we ignore them.
 	"""
 	if verify_user_hash(user_id, request.query_params.get('hash')):
 		try:
