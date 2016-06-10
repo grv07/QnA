@@ -64,8 +64,9 @@ class BookMarks(models.Model):
     class Meta:
         verbose_name = _("BookMarks")
 
-    def add_bookmark(self, que_type, question_id):
-        self.questions[que_type].append(question_id)
+
+    def add_bookmark(self, bookmarked_questions):
+        self.questions = bookmarked_questions
         self.save()
 
     def fetch_bookmarks(self):

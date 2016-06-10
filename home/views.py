@@ -415,10 +415,15 @@ def save_test_bookmarks(request):
 			bookmark, created = BookMarks.objects.get_or_create(user = TestUser.objects.get(id = test_user).user)
 			if not created:
 				existing_bookmarks = bookmark.fetch_bookmarks()
-			for que_type in bookmarked_questions.keys():
-				for question_id in bookmarked_questions[que_type]:
-					if question_id not in existing_bookmarks.get(que_type, []):
-						bookmark.add_bookmark(que_type, question_id)
+				print existing_bookmarks,'existing_bookmarks'
+				for que_type in bookmarked_questions.keys():
+					for question_id in bookmarked_questions[que_type]:
+						if question_id not in existing_bookmarks.get(que_type, []):
+							existing_bookmarks[que_type].append(question_id)
+				bookmark.add_bookmark(existing_bookmarks)
+			else:
+				print 'created'
+				bookmark.add_bookmark(bookmarked_questions)
 		return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
