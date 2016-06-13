@@ -109,13 +109,15 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 		data = get_user_result_helper(sitting, test_user_id, quiz_key, request.GET.get('order', None), None, get_order_by)
 		data['sitting_id'] = sitting.id
 		data['rank'] = find_and_save_rank(test_user_id, quiz_key, sitting.quiz.id, sitting.current_score, sitting.time_spent)
-		topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
-		print topper_sitting_obj
+		# topper_sitting_obj = get_topper_data(quiz_key, sitting.quiz.id)
+		# print topper_sitting_obj
 		data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
 		data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
-		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.get_timed_analysis_for_answered_questions(), topper_sitting_obj.get_timed_analysis_for_unanswered_questions()) }
-		if topper_sitting_obj.id != sitting.id:
-			data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.get_timed_analysis_for_answered_questions(), sitting.get_timed_analysis_for_unanswered_questions())
+		# data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.get_timed_analysis_for_answered_questions(), topper_sitting_obj.get_timed_analysis_for_unanswered_questions()) }
+		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{} }
+		
+		# if topper_sitting_obj.id != sitting.id:
+		data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.get_timed_analysis_for_answered_questions(), sitting.get_timed_analysis_for_unanswered_questions())
 		# data['analysis']['filter_by_category'] = _filter_by_category[0]
 		data['view_format'] = request.GET.get('view_format', None)
 
