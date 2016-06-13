@@ -114,7 +114,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 		data['start_time_IST'] = parse_datetime(data['start_time_IST']).strftime('%s')
 		data['end_time_IST'] = parse_datetime(data['end_time_IST']).strftime('%s')
 		# data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': merge_two_dicts(topper_sitting_obj.get_timed_analysis_for_answered_questions(), topper_sitting_obj.get_timed_analysis_for_unanswered_questions()) }
-		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{} }
+		data['analysis'] = { 'filter_by_category':{}, 'section_wise_results' :{}, 'question_vs_time_result_topper': {} }
 		
 		# if topper_sitting_obj.id != sitting.id:
 		data['analysis']['question_vs_time_result_user'] = merge_two_dicts(sitting.get_timed_analysis_for_answered_questions(), sitting.get_timed_analysis_for_unanswered_questions())
