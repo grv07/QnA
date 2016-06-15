@@ -210,7 +210,6 @@ def test_data_helper(test_user):
 				if q_value_dict.has_key('comprehension_questions') and q_value_dict['comprehension_questions'].has_key(cq_id):
 					existingAnswers[q_id]['comprehension_questions'][cq_id] = cq_value_dict
 		test_data['existingAnswers'] = existingAnswers
-		print test_data,'------------------'
 	else:
 		test_data['status'] = TEST_STATUSES[1]
 		test_data['existingSittingID']  = None
@@ -380,7 +379,6 @@ def save_test_data_to_db(request):
 	cache_key = "A|"+str(test_user)+"|"+str(test_key)
 	cache_value = cache.get(cache_key)
 	try:
-		print test_data
 		data = {}
 		if test_data.get('is_normal_submission'):
 			if cache_value:
@@ -398,12 +396,6 @@ def save_test_data_to_db(request):
 	except Exception as e:
 		print e.args
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-@permission_classes((AllowAny,))
-def post(request):
-	print request.data
-	return Response({}, status = status.HTTP_200_OK)
 
 
 @api_view(['POST'])

@@ -115,8 +115,7 @@ DATABASES = {
 # AUTH_USER_MODEL = 'home.UserProfile'
 
 # Hosts that are allowed to do cross-site requests 
-#CORS_ORIGIN_WHITELIST = ('localhost:5000/',)
-CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_ALLOW_ALL = True
 APPEND_SLASH = False
 
 # Password validation
