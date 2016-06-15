@@ -164,7 +164,6 @@ def comprehension_answers_operations(request, comprehension_question_id):
 		if request.method == 'GET':
 			comprehension_answers_serializer = ComprehensionAnswerSerializer(comprehension_answers, many = True)
 			data['options'] = comprehension_answers_serializer.data
-			print comprehension_answers_serializer.data
 			return Response(data, status = status.HTTP_200_OK)
 		elif request.method == 'PUT':
 			optionsContent = dict(request.data.get('optionsContent'))
