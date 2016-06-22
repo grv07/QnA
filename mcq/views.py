@@ -13,6 +13,7 @@ from QnA.services.utility import verify_user_hash
 from pyexcel_xls import get_data
 import ast
 from collections import defaultdict, OrderedDict
+from unidecode import unidecode
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
@@ -52,8 +53,13 @@ def save_XLS_to_MCQ(request):
 			data_list.append(data_dict.copy())
 			optioncontent = {}
 			for j, mcq_data in enumerate(list_data):
+				# print list_data[i], temp_data[j]
 				if temp_data[j] == 'correctoption':
-					data_list[i][temp_data[j]] = str(mcq_data)
+					try:
+						data_list[i][temp_data[j]] = str(mcq_data)
+					except UnicodeEncodeError as uee:
+						print uee.args, '===='
+						data_list[i][temp_data[j]] = unidecode(mcq_data)
 		
 				# Check if row is for option then create a dict_ of options and add it on optioncontent ....
 				elif temp_data[j] in option_check:
@@ -86,10 +92,14 @@ def save_XLS_to_MCQ(request):
 							sub_category_dict[mcq_data] = sub_category_id
 						data_list[i][temp_data[j]] = str(sub_category_id)
 					except SubCategory.DoesNotExist as e:
-						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
-				
+						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)				
 				else:
-					data_list[i][temp_data[j]] = str(mcq_data)	
+					try:
+						data_list[i][temp_data[j]] = str(mcq_data)
+					except UnicodeEncodeError as uee:
+						print uee.args
+						data_list[i][temp_data[j]] = unidecode(mcq_data)
+
 		# DONE ........
 		 
 		return create_mcq(request, data_list)
