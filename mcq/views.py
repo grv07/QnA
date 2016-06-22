@@ -84,15 +84,18 @@ def save_XLS_to_MCQ(request):
 
 				#Check first for // key(sub_category name) value(sub_category id) // pair in dict. if not exist then call query.
 				elif temp_data[j] == 'sub_category':
-					try:
-						if sub_category_dict.has_key(mcq_data):
-							sub_category_id = sub_category_dict.get(mcq_data)
-						else:
-							sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
-							sub_category_dict[mcq_data] = sub_category_id
-						data_list[i][temp_data[j]] = str(sub_category_id)
-					except SubCategory.DoesNotExist as e:
-						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)				
+					if mcq_data:
+						try:
+							if sub_category_dict.has_key(mcq_data):
+								sub_category_id = sub_category_dict.get(mcq_data)
+							else:
+								sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
+								sub_category_dict[mcq_data] = sub_category_id
+							data_list[i][temp_data[j]] = str(sub_category_id)
+						except SubCategory.DoesNotExist as e:
+							return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
+					else:
+						continue				
 				else:
 					try:
 						data_list[i][temp_data[j]] = str(mcq_data)
