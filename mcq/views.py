@@ -54,13 +54,22 @@ def save_XLS_to_MCQ(request):
 			optioncontent = {}
 			for j, mcq_data in enumerate(list_data):
 				if temp_data[j] == 'correctoption':
-					data_list[i][temp_data[j]] = str(mcq_data)
+					try:
+						data_list[i][temp_data[j]] = str(mcq_data)
+					except UnicodeEncodeError as uee:
+						print uee.args,'+++'
+						data_list[i][temp_data[j]] = unidecode(mcq_data)
 		
 				# Check if row is for option then create a dict_ of options and add it on optioncontent ....
 				elif temp_data[j] in option_check:
 					if mcq_data:
-						optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
+						try:
+							optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
+						except UnicodeEncodeError as uee:
+							print uee.args,'---'
+							optioncontent[option_check.index(temp_data[j])+1] = unidecode(mcq_data)
 						data_list[i]['optioncontent'] =  optioncontent
+
 
 					# data_list[i]['optioncontent'] = optioncontent[option_check.index(temp_data[j])] = str(mcq_data)
 
