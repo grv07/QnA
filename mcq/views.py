@@ -53,13 +53,8 @@ def save_XLS_to_MCQ(request):
 			data_list.append(data_dict.copy())
 			optioncontent = {}
 			for j, mcq_data in enumerate(list_data):
-				# print list_data[i], temp_data[j]
 				if temp_data[j] == 'correctoption':
-					try:
-						data_list[i][temp_data[j]] = str(mcq_data)
-					except UnicodeEncodeError as uee:
-						print uee.args, '===='
-						data_list[i][temp_data[j]] = unidecode(mcq_data)
+					data_list[i][temp_data[j]] = str(mcq_data)
 		
 				# Check if row is for option then create a dict_ of options and add it on optioncontent ....
 				elif temp_data[j] in option_check:
@@ -84,18 +79,15 @@ def save_XLS_to_MCQ(request):
 
 				#Check first for // key(sub_category name) value(sub_category id) // pair in dict. if not exist then call query.
 				elif temp_data[j] == 'sub_category':
-					if mcq_data:
-						try:
-							if sub_category_dict.has_key(mcq_data):
-								sub_category_id = sub_category_dict.get(mcq_data)
-							else:
-								sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
-								sub_category_dict[mcq_data] = sub_category_id
-							data_list[i][temp_data[j]] = str(sub_category_id)
-						except SubCategory.DoesNotExist as e:
-							return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)
-					else:
-						continue				
+					try:
+						if sub_category_dict.has_key(mcq_data):
+							sub_category_id = sub_category_dict.get(mcq_data)
+						else:
+							sub_category_id = SubCategory.objects.get(sub_category_name = mcq_data).id
+							sub_category_dict[mcq_data] = sub_category_id
+						data_list[i][temp_data[j]] = str(sub_category_id)
+					except SubCategory.DoesNotExist as e:
+						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)				
 				else:
 					try:
 						data_list[i][temp_data[j]] = str(mcq_data)
