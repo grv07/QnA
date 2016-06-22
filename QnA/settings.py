@@ -27,7 +27,7 @@ MERCHANT_KEY = 'd*fdv&4b@'
 DEBUG = True
 
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
 
 
 # Application definition
