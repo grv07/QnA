@@ -235,7 +235,7 @@ def save_test_data_to_db_helper(test_user, test_key, test_data):
 					print 'finish notification not sent'
 				# _filter_by_category = filter_by_category(sitting_obj)
 				data = {}
-				# data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+				data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending',' _filter_by_category', '-current_score')
 				data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
 				if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
 					print 'grade notification not sent'
