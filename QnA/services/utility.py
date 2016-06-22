@@ -8,7 +8,7 @@ from random import shuffle
 from QnA.settings import TEST_REPORT_URL
 
 from quiz.models import Question, SubCategory, Sitting, Quiz
-from mcq.models import Answer
+from mcq.models import Answer, MCQuestion
 from quizstack.models import QuizStack
 from objective.models import ObjectiveQuestion
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
@@ -88,6 +88,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 				if not is_have_sub_category:
 					d.update({ 'options'  : [{ 'id' : answer.id, 'content' : answer.content, 'correct' : answer.correct 
 					} for answer in Answer.objects.filter(question = question)] })
+					# d.update({ 'problem_type': MCQuestion.objects.get(question_ptr = question.id).problem_type })
 				sca['questions_type_info']['mcq'][3] += 1
 
 			elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
@@ -164,8 +165,8 @@ def checkIfTrue(str_value):
 	elif str_value == 'false':
 		return False
 
-def postNotifications(data = None, url = None):
-	if data and url:
+def postNotifications(data = None, url = None, allow = False):
+	if data and allow and url:
 		try:
 			data['notification_url'] = url
 			requests.post(url, data = json.dumps(data))
@@ -231,13 +232,13 @@ def save_test_data_to_db_helper(test_user, test_key, test_data):
 					print 'Cannot be saved'
 
 				data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
-				if not postNotifications(data, sitting_obj.quiz.finish_notification_url):
+				if not postNotifications(data, sitting_obj.quiz.finish_notification_url, test_data.get('toPost', False)):
 					print 'finish notification not sent'
 				# _filter_by_category = filter_by_category(sitting_obj)
 				data = {}
 				# data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
 				data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
-				if not postNotifications(data, sitting_obj.quiz.grade_notification_url):
+				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, test_data.get('toPost', False)) :
 					print 'grade notification not sent'
 					html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
 					send_mail(html, sitting_obj.user.email)

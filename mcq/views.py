@@ -5,13 +5,14 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 
 from QnA.services import answer_engine
-from quiz.models import Quiz
+from quiz.models import Quiz, Category, SubCategory
 from models import MCQuestion
 from serializer import MCQuestionSerializer
 from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
 from QnA.services.utility import verify_user_hash
 from pyexcel_xls import get_data
-import collections, ast
+import ast
+from collections import defaultdict, OrderedDict
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
@@ -22,10 +23,6 @@ def save_XLS_to_MCQ(request):
 		 u'level': u'easy', u'correctoption': u'1', u'content': u'eeeeeeeeee', 
 		 u'optioncontent': {u'1': u'eeeeeeeeee', u'2': u'eeeeeeeeeee'}}
 		'''
-		from pyexcel_xls import get_data
-		import collections
-		from quiz.models import Category, SubCategory
-
 		# _level_dict = {'medium': 'M', 'easy': 'E', 'hard': 'H'}
 		f = request.data['figure']
 
@@ -37,9 +34,9 @@ def save_XLS_to_MCQ(request):
 		total_entries = len(data)
 
 		temp_data = data[0]
-		_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content', 'ideal_time']
+		_dict_mcq_keys = ['category', 'sub_category', 'que_type', 'level', 'explanation', 'option_display_order_random', 'correctoption', 'content', 'ideal_time', 'problem_type']
 		# This dict contains raw-way data with specified keys from temp_data or xls keys
-		data_dict = collections.OrderedDict({})
+		data_dict = OrderedDict({})
 		# _quiz_id = None
 		category_dict = {}
 		sub_category_dict = {}
@@ -196,7 +193,6 @@ def all_mcq(request):
 	List of all MCQuestion's.
 	"""
 	try:
-		from collections import defaultdict
 		mcq_question_list = MCQuestion.objects.all()
 		data = defaultdict(list)
 		serializer = MCQuestionSerializer(mcq_question_list, many = True)

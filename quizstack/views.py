@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import QuizStack
 from .serializer import QuizStackSerializer
-from mcq.models import Answer
+from mcq.models import Answer, MCQuestion
 from objective.models import ObjectiveQuestion
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
 from QnA.services.constants import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS
@@ -197,6 +197,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 					# Check for diff. types of questions
 					if question.que_type == QUESTION_TYPE_OPTIONS[0][0]:
 						d[count]['options'] = [{ 'id' : answer.id, 'content' : answer.content } for answer in Answer.objects.filter(question = question)]
+						d[count]['problem_type'] = MCQuestion.objects.get(question_ptr = question.id).problem_type
 					elif question.que_type == QUESTION_TYPE_OPTIONS[1][0]:
 						d[count]['options'] = []
 					elif question.que_type == QUESTION_TYPE_OPTIONS[2][0]:

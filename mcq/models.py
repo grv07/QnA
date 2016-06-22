@@ -3,10 +3,18 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 from django.db import models
 from quiz.models import Question
-from QnA.services.constants import ANSWER_ORDER_OPTIONS
+from QnA.services.constants import ANSWER_ORDER_OPTIONS, MCQ_PROBLEM_OPTIONS
 
 
 class MCQuestion(Question):
+    problem_type = models.CharField(
+        max_length=18, null=True, blank=True,
+        choices=MCQ_PROBLEM_OPTIONS,
+        help_text=_("The problem  type in which according "
+                    "to which intructions will vary"
+                    "on teh screen."),
+        verbose_name=_("Problem Type"))
+
     answer_order = models.CharField(
         max_length=30, null=True, blank=True,
         choices=ANSWER_ORDER_OPTIONS,

@@ -169,7 +169,7 @@ def save_sitting_user(request):
 					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
 					  'email': sitting_obj.user.email }
 			
-			if not postNotifications(data, sitting_obj.quiz.start_notification_url):
+			if not postNotifications(data, sitting_obj.quiz.start_notification_url, request.GET.get('toPost')):
 				print 'start notification not sent'
 		return Response({ 'sitting': sitting_id }, status = status.HTTP_200_OK)
 	except Exception as e:
@@ -433,7 +433,7 @@ def get_bookmark_questions(request):
 		data = []
 		format_dict = lambda values : {
 									'figure': values[0],
-									"content": values[1].replace(BLANK_HTML, '_'*10),
+									"content": values[1],
 									"explanation": values[2],
 									"level":values[3],
 									"sub_category_name": values[4]
@@ -471,7 +471,7 @@ def question_stats(request, sitting_id):
 		sitting = Sitting.objects.get(id = sitting_id)
 		if count == 0:
 			all_questions = sitting.merge_user_answers_and_unanswered_questions()
-			print all_questions,'---'
+			# print all_questions,'---'
 			all_question_ids_keys = all_questions[QUESTION_TYPE_OPTIONS[0][0]].keys() + all_questions[QUESTION_TYPE_OPTIONS[2][0]].keys()
 			data['allQuestions'] = all_questions
 		else:

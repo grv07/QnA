@@ -647,7 +647,7 @@ class Question(models.Model):
 							   null=True,
 							   verbose_name=_("Figure"))
 
-	content = models.CharField(max_length=3000,
+	content = models.CharField(max_length=5000,
 							   blank=False,
 							   help_text=_("Enter the question text that "
 										   "you want displayed"),
