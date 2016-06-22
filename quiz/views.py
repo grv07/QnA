@@ -8,10 +8,10 @@ from QnA.services.utility import get_questions_format, checkIfTrue
 
 from django.contrib.auth.models import User
 from .models import Quiz, Category, SubCategory, Question
-from mcq.models import Answer
+from mcq.models import Answer, MCQuestion
 from home.models import InvitedUser
 
-from mcq.serializer import AnswerSerializer
+from mcq.serializer import AnswerSerializer, MCQuestionSerializer
 from objective.serializer import ObjectiveQuestionSerializer
 from quizstack.serializer import QuizStackSerializer
 from QnA.settings import TEST_URL
@@ -364,12 +364,14 @@ def question_operations(request, userid, question_id):
 			result = dict(questionserializer.data)
 			if question.que_type == QUESTION_TYPE_OPTIONS[2][0]:
 				result['heading'] = Comprehension.objects.get(question = question).heading
+			else:
+				result['problem_type'] = MCQuestion.objects.get(question_ptr = question.id).problem_type
 			result.update( { 'options' : answerserializer.data } )
 			result['sub_category_name'] = question.sub_category.sub_category_name
 			result['sub_category_id'] = question.sub_category.id
 			return Response({ 'question' : result }, status = status.HTTP_200_OK)
 		elif request.method == 'PUT':
-			result = None
+			result = {}
 			if request.data.get('figure', None):
 				if question.figure:
 					os.remove(str(question.figure))
@@ -388,6 +390,11 @@ def question_operations(request, userid, question_id):
 						result = comprehension_serializer.data
 					else:
 						return Response(comprehension_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+				else:
+					mcq_question_serailizer = MCQuestionSerializer(MCQuestion.objects.get(question_ptr = question.id), data = request.data)
+					result['problem_type'] = request.data.get('problem_type')
+					if mcq_question_serailizer.is_valid():
+						mcq_question_serailizer.save()
 			if serializer.is_valid():
 				serializer.save()
 				if result:

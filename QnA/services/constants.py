@@ -23,16 +23,28 @@ QUIZ_TYPE_OPTIONS = (
     ('LIVE', _('LIVE'))
 )
 
+MCQ_PROBLEM_OPTIONS = (
+	('correct value', _('correct value')),
+    ('incorrect sentence', _('incorrect sentence')),
+    ('coherent paragraph', _('coherent paragraph')),
+    ('meaning', _('meaning')),
+    ('antonym', _('antonym')),
+    ('conclusion', _('conclusion')),
+    ('relationship', _('relationship')),
+    ('best option',_('best option')),
+)
+
+
 SUBMISSION_TYPE = ( 'Normal', 'TimeUp', 'WindowClose', 'Retry', )
 
 MCQ_FILE_COLS = ['category', 'sub_category', 'level', 'explanation', 'answer_order', 'option1', 'option2', 'option3' ,
-'option4', 'option5', 'option6', 'correctoption', 'content', 'ideal_time']
+'option4', 'option5', 'option6', 'correctoption', 'content', 'ideal_time', 'problem_type']
 
 OBJECTIVE_FILE_COLS = ['sub_category', 'level', 'explanation', 'correct', 'content']
 
 QUIZ_ACCESS_FILE_COLS = ['user_name', 'email']
 
-BLANK_HTML = "<<Answer>>"
+BLANK_HTML = "_"*10
 
 CACHE_TIMEOUT = 72000
 
