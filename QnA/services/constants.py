@@ -29,7 +29,9 @@ MCQ_PROBLEM_OPTIONS = (
     ('coherent paragraph', _('coherent paragraph')),
     ('meaning', _('meaning')),
     ('antonym', _('antonym')),
-    ('conclusion', _('conclusion'))
+    ('conclusion', _('conclusion')),
+    ('relationship', _('relationship')),
+    ('best option',_('best option')),
 )
 
 
