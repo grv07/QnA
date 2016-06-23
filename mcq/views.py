@@ -9,11 +9,10 @@ from quiz.models import Quiz, Category, SubCategory
 from models import MCQuestion
 from serializer import MCQuestionSerializer
 from QnA.services.constants import BLANK_HTML, MAX_OPTIONS
-from QnA.services.utility import verify_user_hash
+from QnA.services.utility import verify_user_hash, ascii_safe
 from pyexcel_xls import get_data
 import ast
 from collections import defaultdict, OrderedDict
-from unidecode import unidecode
 
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
@@ -53,21 +52,13 @@ def save_XLS_to_MCQ(request):
 			data_list.append(data_dict.copy())
 			optioncontent = {}
 			for j, mcq_data in enumerate(list_data):
+				mcq_data = ascii_safe(mcq_data)
 				if temp_data[j] == 'correctoption':
-					try:
-						data_list[i][temp_data[j]] = str(mcq_data)
-					except UnicodeEncodeError as uee:
-						print uee.args,'+++'
-						data_list[i][temp_data[j]] = unidecode(mcq_data)
-		
+					data_list[i][temp_data[j]] = str(mcq_data)
 				# Check if row is for option then create a dict_ of options and add it on optioncontent ....
 				elif temp_data[j] in option_check:
 					if mcq_data:
-						try:
-							optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
-						except UnicodeEncodeError as uee:
-							print uee.args,'---'
-							optioncontent[option_check.index(temp_data[j])+1] = unidecode(mcq_data)
+						optioncontent[option_check.index(temp_data[j])+1] = str(mcq_data)
 						data_list[i]['optioncontent'] =  optioncontent
 
 
@@ -98,11 +89,7 @@ def save_XLS_to_MCQ(request):
 					except SubCategory.DoesNotExist as e:
 						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)				
 				else:
-					try:
-						data_list[i][temp_data[j]] = str(mcq_data)
-					except UnicodeEncodeError as uee:
-						print uee.args
-						data_list[i][temp_data[j]] = unidecode(mcq_data)
+					data_list[i][temp_data[j]] = str(mcq_data)
 
 		# DONE ........
 		 

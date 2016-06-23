@@ -16,6 +16,9 @@ from constants import QUESTION_TYPE_OPTIONS, RESULT_HTML, USER_COOKIE_SALT
 from generate_result_engine import generate_result, filter_by_category, find_and_save_rank
 from mail_handling import send_mail
 
+from unidecode import unidecode
+
+
 
 # UPLOAD_LOCATION = '/qna/media/'
 def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter_by_category = None, get_order_by = None):	
@@ -271,3 +274,11 @@ def verify_user_hash(user_id, cookie_hash):
 	if cookie_hash == make_user_hash(user_id):
 		return True
 	return False
+
+def ascii_safe(data):
+	try:
+		temp =  str(data)
+	except UnicodeEncodeError as uee:
+		# print uee.args,'+++'
+		temp = unidecode(data)
+	return temp	
