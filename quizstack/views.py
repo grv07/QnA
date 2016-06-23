@@ -51,6 +51,7 @@ def get_quizstack(request, quiz_id, quizstack_id):
 		try:
 			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('section_name')
 			serializer = QuizStackSerializer(quizstack_list, many = True)
+			print serializer.data
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			print e.args
