@@ -22,7 +22,7 @@ class QuizStack(models.Model):
 	# Selection criteria for questions
 	level = models.CharField(max_length = 30, choices = QUESTION_DIFFICULTY_OPTIONS, default='easy')
 	que_type = models.CharField(max_length = 30, choices = QUESTION_TYPE_OPTIONS, blank=True)
-	duration = models.CharField(max_length = 3, default = 0)
+	duration = models.CharField(max_length = 6, default = 0)
 	no_questions = models.IntegerField()
 	question_order = models.CharField(max_length=7, choices = ANSWER_ORDER_OPTIONS, default='random')
 
