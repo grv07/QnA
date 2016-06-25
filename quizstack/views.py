@@ -50,16 +50,20 @@ def get_quizstack(request, quiz_id, quizstack_id):
 	if quizstack_id == 'all':
 		try:
 			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('section_name')
+			section_data = {}
+			for quizstack in quizstack_list:
+				if not section_data.has_key(quizstack.section_name):
+					section_data[quizstack.section_name] = quizstack.subcategory.sub_category_name
 			serializer = QuizStackSerializer(quizstack_list, many = True)
-			print serializer.data
-			return Response(serializer.data, status = status.HTTP_200_OK)
+			result = { 'data': serializer.data, 'section_data': section_data }
+			return Response(result, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			print e.args
-			return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)
+			return Response({'errors': 'Quiz Stacks not found'}, status=status.HTTP_404_NOT_FOUND)
 	elif quizstack_id.isnumeric():
 		try:
 			quizstack = QuizStack.objects.get(id = quizstack_id, quiz=quiz_id)
-			serializer = QuizStackSerializer(quiz, many=False)
+			serializer = QuizStackSerializer(quizstack, many = False)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
 			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)

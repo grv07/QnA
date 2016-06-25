@@ -32,6 +32,7 @@ MCQ_PROBLEM_OPTIONS = (
     ('conclusion', _('conclusion')),
     ('relationship', _('relationship')),
     ('best option',_('best option')),
+    ('argument',_('argument')),
 )
 
 
