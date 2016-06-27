@@ -376,6 +376,8 @@ def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
 	test_key = request.data.get('test_key')
 	test_data = request.data.get('test_data')
+	to_post = bool(request.query_params.get('toPost'))
+	print to_post,'=============='
 	cache_key = "A|"+str(test_user)+"|"+str(test_key)
 	cache_value = cache.get(cache_key)
 	try:
@@ -385,7 +387,7 @@ def save_test_data_to_db(request):
 				cache.delete(cache_key)
 				print cache.get("A|"+str(test_user)+"|"+str(test_key)),'cache deletion after test completion'
 				test_data['is_normal_submission'] = False
-			data = save_test_data_to_db_helper(test_user, test_key, test_data)
+			data = save_test_data_to_db_helper(test_user, test_key, test_data, to_post)
 			return Response({ 'attempt_no': data.get('attempt_no', {}) }, status = status.HTTP_200_OK)
 		else:
 			cache.set(cache_key, test_data, timeout = CACHE_TIMEOUT)
