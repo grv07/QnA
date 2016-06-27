@@ -235,16 +235,21 @@ def save_test_data_to_db_helper(test_user, test_key, test_data):
 					print 'Cannot be saved'
 
 				data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
-				if not postNotifications(data, sitting_obj.quiz.finish_notification_url, test_data.get('toPost', False)):
+				if not postNotifications(data, sitting_obj.quiz.finish_notification_url, test_data.get('toPost', True)):
 					print 'finish notification not sent'
+				else:
+					print 'finish notification sent'
+
 				# _filter_by_category = filter_by_category(sitting_obj)
 				data = {}
-				# data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', _filter_by_category, '-current_score')
+				data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', '_filter_by_category', '-current_score')
 				data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
-				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, test_data.get('toPost', False)) :
+				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, test_data.get('toPost', True)) :
 					print 'grade notification not sent'
 					html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
 					send_mail(html, sitting_obj.user.email)
+				else:
+					print 'grade notification sent'
 				# Clean my cache ...
 				# cache.delete('sitting_id'+str(test_user))
 				# cache.delete(test_key + "|" + str(test_user) + "time")

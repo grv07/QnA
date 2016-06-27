@@ -169,7 +169,7 @@ def save_sitting_user(request):
 					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
 					  'email': sitting_obj.user.email }
 			
-			if not postNotifications(data, sitting_obj.quiz.start_notification_url, request.GET.get('toPost')):
+			if not postNotifications(data, sitting_obj.quiz.start_notification_url, request.data.get('toPost')):
 				print 'start notification not sent'
 		return Response({ 'sitting': sitting_id }, status = status.HTTP_200_OK)
 	except Exception as e:
