@@ -136,6 +136,7 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 @api_view(['POST'])
 def save_sitting_user(request):
 	try:
+		print request.data
 		sitting_id = request.data.get('existingSittingID')
 		print sitting_id,'sitting_id'
 		if not sitting_id:
@@ -169,7 +170,7 @@ def save_sitting_user(request):
 					 'test_user_id': test_user_id, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username,
 					  'email': sitting_obj.user.email }
 			
-			if not postNotifications(data, sitting_obj.quiz.start_notification_url, bool(request.query_params.get('toPost'))):
+			if not postNotifications(data, sitting_obj.quiz.start_notification_url, request.data.get('toPost', False)):
 				print 'start notification not sent'
 		return Response({ 'sitting': sitting_id }, status = status.HTTP_200_OK)
 	except Exception as e:
@@ -376,8 +377,6 @@ def save_test_data_to_db(request):
 	test_user = request.data.get('test_user')
 	test_key = request.data.get('test_key')
 	test_data = request.data.get('test_data')
-	to_post = bool(request.query_params.get('toPost'))
-	print to_post,'=============='
 	cache_key = "A|"+str(test_user)+"|"+str(test_key)
 	cache_value = cache.get(cache_key)
 	try:
@@ -387,7 +386,7 @@ def save_test_data_to_db(request):
 				cache.delete(cache_key)
 				print cache.get("A|"+str(test_user)+"|"+str(test_key)),'cache deletion after test completion'
 				test_data['is_normal_submission'] = False
-			data = save_test_data_to_db_helper(test_user, test_key, test_data, to_post)
+			data = save_test_data_to_db_helper(test_user, test_key, test_data)
 			return Response({ 'attempt_no': data.get('attempt_no', {}) }, status = status.HTTP_200_OK)
 		else:
 			cache.set(cache_key, test_data, timeout = CACHE_TIMEOUT)
