@@ -179,7 +179,7 @@ def postNotifications(data = None, url = None, allow = False):
 			return False
 	return False
 
-def save_test_data_to_db_helper(test_user, test_key, test_data, to_post):
+def save_test_data_to_db_helper(test_user, test_key, test_data):
 	sitting_id = test_data.get('sitting')
 	if sitting_id:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
@@ -235,7 +235,7 @@ def save_test_data_to_db_helper(test_user, test_key, test_data, to_post):
 					print 'Cannot be saved'
 
 				data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
-				if not postNotifications(data, sitting_obj.quiz.finish_notification_url, to_post):
+				if not postNotifications(data, sitting_obj.quiz.finish_notification_url, test_data['toPost']):
 					print 'finish notification not sent'
 				else:
 					print 'finish notification sent'
@@ -244,7 +244,7 @@ def save_test_data_to_db_helper(test_user, test_key, test_data, to_post):
 				data = {}
 				data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', '_filter_by_category', '-current_score')
 				data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
-				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, to_post) :
+				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, test_data['toPost']) :
 					print 'grade notification not sent'
 					html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
 					send_mail(html, sitting_obj.user.email)
