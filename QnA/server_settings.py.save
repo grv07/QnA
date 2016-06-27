@@ -1,0 +1,11 @@
+TEST_BASE_URL = 'http://52.77.85.150/test/'
+TEST_URL = TEST_BASE_URL+'#/open/test/'
+TEST_URL_THIRD_PARTY = TEST_BASE_URL+'#/allow/test/{quiz_key}/{test_user_id}/{token}'
+TEST_URL_THIRD_PARTY = TEST_BASE_URL+'#/allow/test/{quiz_key}/{test_user_id}/{token}'
+TEST_REPORT_URL = TEST_BASE_URL+'#/view/report/{test_user_id}/{quiz_key}/{attempt_no}'
+QNA_PATH = 'http://52.77.85.150/api/'
+
+TEST_BASE_URL = 'http://localhost:9001/'
+TEST_URL = TEST_BASE_URL+'#/allow/test/'
+TEST_URL_THIRD_PARTY = TEST_BASE_URL+'#/allow/test/{quiz_key}/{test_user_id}/{token}'
+TEST_REPORT_URL = TEST_BASE_URL+'#/view/report/{test_user_id}/{quiz_key}/{attempt_no}
