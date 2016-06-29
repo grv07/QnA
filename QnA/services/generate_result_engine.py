@@ -6,6 +6,9 @@ from home.models import TestUser
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
 from .constants import QUESTION_TYPE_OPTIONS, SUBMISSION_TYPE
 
+import logging
+logger = logging.getLogger(__name__)
+
 def generate_result(sitting_obj, quizstack, test_data):
 	'''
 	sitting_obj.unanswered_questions = {"mcq": {"11": [], "12": [], "13": [], "32": [], "33": [], "48": []}, "comprehension": {"46": {"4": 0, "6": 0}, "53": {"7": 0, "8": 0}}} 
@@ -20,7 +23,7 @@ def generate_result(sitting_obj, quizstack, test_data):
 	The data inside temp_user_answered_questions will be the final output for user_answers in Sitting table.
 	The data inside temp_user_incorrect_questions will be the final output for incorrect_questions in Sitting table.
 	'''
-
+	logger.info('QnA.services.generate_result_engine.save_test_data_to_db_helper SID: '+str(sitting_obj.id))
 
 	temp_unanswered_questions = { QUESTION_TYPE_OPTIONS[0][0]:{}, QUESTION_TYPE_OPTIONS[2][0]:{} }
 	temp_user_answered_questions = { QUESTION_TYPE_OPTIONS[0][0]:{}, QUESTION_TYPE_OPTIONS[2][0]:{} }
@@ -109,15 +112,18 @@ def generate_result(sitting_obj, quizstack, test_data):
 		sitting_obj.current_score = current_score
 		sitting_obj.complete = True
 		if time_remaining == 0:
+			logger.info('QnA.services.generate_result_engine.save_test_data_to_db_helper time_remaining = 0 SID: '+str(sitting_obj.id))
 			sitting_obj.submission_status = SUBMISSION_TYPE[1]
 		else:
 			if not test_data['is_normal_submission']:
+				logger.info('QnA.services.generate_result_engine.save_test_data_to_db_helper window_close=True SID: '+str(sitting_obj.id))
 				sitting_obj.submission_status = SUBMISSION_TYPE[2]
 		sitting_obj.time_spent = sitting_obj.quiz.total_duration - time_remaining
 		sitting_obj.save()
 		return True
 	except Exception as e:
 		print e.args,'---------'
+		logger.error('QnA.services.generate_result_engine.save_test_data_to_db_helper error '+str(e.args))
 		return False
 	
 
@@ -261,6 +267,7 @@ def find_and_save_rank(test_user_id, quiz_key, quiz_id, current_score, time_spen
 		return test_user.rank
 	except Exception as e:
 		print e.args
+		logger.error('QnA.services.generate_result_engine.find_and_save_rank error '+str(e.args))
 		return 0
 
 

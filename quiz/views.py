@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -27,7 +27,9 @@ from QnA.services.xls_operations import save_test_private_access_from_xls
 from QnA.services.constants import QUIZ_ACCESS_FILE_COLS, MCQ_FILE_COLS, OBJECTIVE_FILE_COLS
 from pyexcel_xls import save_data
 from collections import OrderedDict
-import os
+import os, logging
+
+logger = logging.getLogger(__name__)
 
 # >>>>>>>>>>>>>>>>>>>>>>>  Quiz Base functions  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#
 @api_view(['GET'])
@@ -36,38 +38,44 @@ def get_quiz(request, userid, quizid ,format = None):
 	Get a quiz.
 	"""
 	if verify_user_hash(userid, request.query_params.get('hash')):
+		logger.info('under quiz.get_quiz '+str(quizid))
 		if quizid == 'all':
 			try:
 				quiz_list = Quiz.objects.filter(user=userid).order_by('id')
 				serializer = QuizSerializer(quiz_list, many = True)
-				return Response(serializer.data, status = status.HTTP_200_OK)
 			except Quiz.DoesNotExist as e:
-				print e.args
-				return Response({'errors': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
+				logger.error('under quiz.get_quiz(all) - no quizzes '+str(e.args))
+				return Response({'errors': 'Quizzes not found'}, status=status.HTTP_404_NOT_FOUND)
 		elif quizid.isnumeric():
 			try:
 				quiz = Quiz.objects.get(id = quizid, user = userid)
 			except Quiz.DoesNotExist as e:
+				logger.error('under quiz.get_quiz '+str(e.args))
 				return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 			serializer = QuizSerializer(quiz)
-			serializer.data['quiz_key'] = quiz.quiz_key
-			return Response(serializer.data, status = status.HTTP_200_OK)
+			# serializer.data['quiz_key'] = quiz.quiz_key
 		else:
+			logger.error('under quiz.get_quiz wrong url passed')
 			return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	logger.error('under quiz.get_quiz wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
-@permission_classes((AllowAny,))
+@permission_classes([AllowAny,])
 def get_quiz_acc_key(request):
 	quiz_key = request.query_params.get('quiz_key')
+	logger.info('under quiz.get_quiz_acc_key')
 	if quiz_key:
 		try:
 			quiz = Quiz.objects.get(quiz_key = quiz_key)
 			serializer = QuizSerializer(quiz)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except Quiz.DoesNotExist as e:
+			logger.error('under quiz.get_quiz_acc_key '+str(e.args))
 			return Response({'errors': 'Quiz not found.'}, status = status.HTTP_404_NOT_FOUND)
 	else:
+		logger.error('under quiz.get_quiz_acc_key quiz_key not given')
 		return Response({'errors': 'Quiz Key not given.'}, status = status.HTTP_404_NOT_FOUND)
 
 
@@ -76,28 +84,37 @@ def update_quiz(request, userid, quizid ,format = None):
 	"""
 	Update a quiz.
 	"""
-	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+	if verify_user_hash(userid, request.data.get('hash')):
+		logger.info('under quiz.update_quiz')
 		try:
 			quiz = Quiz.objects.get(id = quizid, user = userid)
 		except Quiz.DoesNotExist as e:
+			logger.error('under quiz.update_quiz '+str(e.args))
 			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 		serializer = QuizSerializer(quiz, data = request.data)
 		if serializer.is_valid():
 			serializer.save()
 			return Response({ 'updatedQuiz' : serializer.data }, status = status.HTTP_200_OK)
 		else:
+			logger.error('under quiz.update_quiz '+str(serializer.errors))
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+	logger.error('under quiz.get_quiz wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['PUT'])
 def mark_quiz_public(request, userid, quizid):
-	try:
-		quiz = Quiz.objects.get(id = quizid, user = userid)
-		quiz.allow_public_access = False if quiz.allow_public_access else True
-		quiz.save()
-		return Response({ 'title':quiz.title, "allow_public_access":quiz.allow_public_access, 'id':quiz.id }, status = status.HTTP_200_OK)
-	except Quiz.DoesNotExist as e:
-		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+	if verify_user_hash(userid, request.query_params.get('hash')):
+		logger.info('under quiz.mark_quiz_public')
+		try:
+			quiz = Quiz.objects.get(id = quizid, user = userid)
+			quiz.allow_public_access = not quiz.allow_public_access
+			quiz.save()
+			return Response({ 'title':quiz.title, "allow_public_access":quiz.allow_public_access, 'id':quiz.id }, status = status.HTTP_200_OK)
+		except Quiz.DoesNotExist as e:
+			logger.error('under quiz.mark_quiz_public '+str(e.args))
+			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+	logger.error('under quiz.mark_quiz_public wrong hash')
+	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
@@ -106,6 +123,7 @@ def create_quiz(request, format = None):
 	Create a new quiz.
 	"""
 	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		logger.info('under quiz.create_quiz')
 		serializer = QuizSerializer(data = request.data)
 		if serializer.is_valid():
 			quiz = serializer.save()
@@ -120,7 +138,9 @@ def create_quiz(request, format = None):
 			data['total_sections'] = quiz.total_sections 
 			data['url'] = quiz.url 
 			return Response(data, status = status.HTTP_200_OK)
+		logger.error('under quiz.create_quiz '+str(serializer.errors))
 		return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+	logger.error('under quiz.mark_quiz_public wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -129,13 +149,18 @@ def delete_quiz(request, user_id, quiz_id, format = None):
 	"""
 	Delete a quiz.
 	"""
-	try:
-		print user_id, quiz_id, '---------'
-		quiz = Quiz.objects.get(id = quiz_id, user = user_id)
-	except Quiz.DoesNotExist as e:
-		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
-	quiz.delete()
-	return Response({}, status = status.HTTP_200_OK)
+	if verify_user_hash(userid, request.query_params.get('hash')):
+		logger.info('under quiz.delete_quiz')
+		try:
+			quiz = Quiz.objects.get(id = quiz_id, user = user_id)
+			quiz.delete()
+			return Response({}, status = status.HTTP_200_OK)
+		except Quiz.DoesNotExist as e:
+			logger.error('under quiz.delete_quiz '+str(e.args))
+			return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
+	logger.error('under quiz.delete_quiz wrong hash')
+	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 #>>>>>>>>>>>>>>>>>>>>> Category Base Functions Start <<<<<<<<<<<<<<<<<<<#
@@ -147,6 +172,7 @@ def create_category(request):
 	"""
 	# print request.data
 	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		logger.info('under quiz.create_category')
 		try:
 			serializer = CategorySerializer(data = request.data)
 			# print serializer
@@ -154,11 +180,12 @@ def create_category(request):
 				serializer.save()
 				return Response(serializer.data, status = status.HTTP_200_OK)
 			else:
-				print serializer.errors
+				logger.error('under quiz.create_category '+str(serializer.errors))
 				return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 		except Exception as e:
-			print e.args
+			logger.error('under quiz.create_category error '+str(e.args))
 			return Response({'errors' : 'Cannot create the category.'}, status = status.HTTP_400_BAD_REQUEST)
+	logger.error('under quiz.create_category wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -180,22 +207,27 @@ def category_list(request, userid, categoryid, format = None):
 	Either get a single quiz or all.
 	"""
 	if verify_user_hash(userid, request.query_params.get('hash')):
-		try:
-			categories = []
-			if categoryid == 'all': 
-				for category in Category.objects.filter(user = userid):
-					categories.append(category)
+		logger.info('under quiz.category_list '+str(categoryid))
+		if categoryid == 'all': 
+			categories = Category.objects.filter(user = userid)
+			if categories:
 				serializer = CategorySerializer(categories, many = True)
 			else:
-				if categoryid.isnumeric():
-					category = Category.objects.filter(id = categoryid, user=userid)
+				logger.error('under quiz.category_list no categories found')
+				return Response({'errors': 'Categories not found'}, status=status.HTTP_404_NOT_FOUND)
+		else:
+			if categoryid.isnumeric():
+				try:
+					category = Category.objects.get(id = categoryid, user=userid)
 					serializer = CategorySerializer(category, many = False)
-				else:
-					return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
-			return Response(serializer.data, status = status.HTTP_200_OK)
-		except Category.DoesNotExist as e:
-			print e.args
-			return Response({'errors': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+				except Category.DoesNotExist as e:
+					logger.error('under quiz.category_list '+str(e.args))
+					return Response({'errors': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+			else:
+				logger.error('under quiz.category_list wrong hash')
+				return Response({'errors': 'Wrong URL passed.'}, status=status.HTTP_404_NOT_FOUND)
+		return Response(serializer.data, status = status.HTTP_200_OK)
+	logger.error('under quiz.category_list wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -225,11 +257,14 @@ def delete_category(request, pk, format = None):
 @api_view(['POST'])
 def create_subcategory(request):
 	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		logger.info('under quiz.create_subcategory')
 		serializer = SubCategorySerializer(data = request.data)
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status = status.HTTP_200_OK)
+		logger.error('under quiz.create_subcategory '+str(e.args))
 		return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+	logger.error('under quiz.create_subcategory wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -240,6 +275,7 @@ def get_subcategory(request, userid, categoryid, format = None):
 	Either get all subcategories under each quiz and category or get subcategories under specifc quiz and category.
 	"""
 	if verify_user_hash(userid, request.query_params.get('hash')):
+		logger.info('under quiz.get_subcategory')
 		serializer = None
 		subcategories = []
 		if categoryid == 'all':
@@ -248,17 +284,18 @@ def get_subcategory(request, userid, categoryid, format = None):
 			else:
 				subcategories = SubCategory.objects.filter(user = userid, category = None)
 			serializer = SubCategorySerializer(subcategories, many = True)
-			return Response(serializer.data, status = status.HTTP_200_OK) 
 		elif categoryid.isnumeric():
 			try:
 				subcategories = SubCategory.objects.filter(category = categoryid, user = userid)
 				serializer = SubCategorySerializer(subcategories, many = True)
-				return Response(serializer.data, status = status.HTTP_200_OK) 
 			except SubCategory.DoesNotExist as e:
-				print e.args
+				logger.error('under quiz.get_subcategory '+str(e.args))
 				return Response({'errors': 'Sub-categories not found'}, status = status.HTTP_404_NOT_FOUND)
 		else:
+			logger.error('under quiz.get_subcategory wrong hash')
 			return Response({'errors': 'Wrong URL passed.'}, status = status.HTTP_404_NOT_FOUND)
+		return Response(serializer.data, status = status.HTTP_200_OK) 
+	logger.error('under quiz.get_subcategory wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -270,10 +307,11 @@ def all_questions(request, user_id):
 	Either get all questions under each quiz and category or get questions under specifc quiz and category.
 	"""
 	if request.query_params.get('subCategoryId'):
+		logger.info('under quiz.all_questions')
 		try:
 			subcategory_id = request.query_params.get('subCategoryId')
 		except SubCategory.DoesNotExist as e:
-			print e.args
+			logger.error('under quiz.all_questions '+str(e.args))
 			return Response({'errors': 'Questions not found'}, status=status.HTTP_404_NOT_FOUND)
 		if request.query_params.get('questionFormat'):
 			result = get_questions_format(user_id, subcategory_id, True)
@@ -304,7 +342,6 @@ def all_questions_under_quiz(request, userid, quizid):
 	try:
 		quiz = Quiz.objects.get(id=quizid, user=userid)
 		quizzes = get_questions_format(quiz, Category, SubCategory, Question, Answer)
-
 		return Response(quizzes, status = status.HTTP_200_OK)
 	except SubCategory.DoesNotExist as e:
 		print e.args
@@ -333,6 +370,7 @@ def all_questions_under_subcategory(request, user_id, subcategory_id):
 	Otherwise, we ignore them.
 	"""
 	if verify_user_hash(user_id, request.query_params.get('hash')):
+		logger.info('under quiz.all_questions_under_subcategory')
 		try:
 			if not checkIfTrue(request.query_params.get('questionFormat')):
 				quizzes = get_questions_format(user_id, subcategory_id, True)
@@ -340,8 +378,9 @@ def all_questions_under_subcategory(request, user_id, subcategory_id):
 				quizzes = get_questions_format(user_id, subcategory_id)
 			return Response(quizzes, status = status.HTTP_200_OK)	
 		except SubCategory.DoesNotExist as e:
-			print e.args
+			logger.error('under quiz.all_questions_under_subcategory '+str(e.args))
 			return Response({'errors': 'Questions not found'}, status = status.HTTP_404_NOT_FOUND)
+	logger.error('under quiz.all_questions_under_subcategory wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -353,9 +392,11 @@ def question_operations(request, userid, question_id):
 	if not _hash:
 		_hash = request.data.get('hash')
 	if verify_user_hash(userid, _hash):
+		logger.info('under quiz.question_operations '+str(request.method))
 		try:
 			question = Question.objects.get(id = question_id)
 		except Question.DoesNotExist:
+			logger.error('under quiz.question_operations '+str(e.args))
 			return Response({'errors': 'Question not found.'}, status=status.HTTP_404_NOT_FOUND)
 		if request.method == 'GET':
 			questionserializer = QuestionSerializer(question, many = False)
@@ -379,6 +420,7 @@ def question_operations(request, userid, question_id):
 				if BLANK_HTML in request.data['content']:
 					serializer = ObjectiveQuestionSerializer(question, data = request.data)
 				else:
+					logger.error('under quiz.question_operations error no blank field present')
 					return Response({ "content" : ["No blank field present.Please add one."] } , status = status.HTTP_400_BAD_REQUEST)
 			else:
 				serializer = QuestionSerializer(question, data = request.data)
@@ -403,7 +445,7 @@ def question_operations(request, userid, question_id):
 					result = serializer.data
 				return Response(result, status = status.HTTP_200_OK)
 			else:
-				print serializer.errors,'==========='
+				logger.error('under quiz.question_operations '+str(serializer.errors))
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 		elif request.method == 'DELETE':
@@ -411,6 +453,7 @@ def question_operations(request, userid, question_id):
 				os.remove(str(question.figure))
 			question.delete()
 			return Response(status=status.HTTP_204_NO_CONTENT)
+	logger.error('under quiz.question_operations wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -422,6 +465,7 @@ def answers_operations(request, userid, question_id):
 	Get answers to a question or update.
 	"""
 	if verify_user_hash(userid, request.query_params.get('hash')):
+		logger.info('under quiz.answers_operations '+str(request.method))
 		try:
 			result = {}
 			question = Question.objects.get(pk = question_id)
@@ -430,6 +474,7 @@ def answers_operations(request, userid, question_id):
 			elif request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[1][0]:
 				answer = ObjectiveQuestion.objects.get(pk=question)
 		except Question.DoesNotExist:
+			logger.error('under quiz.answers_operations '+str(e.args))
 			return Response({'errors': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
 		if request.method == 'GET':
 			if request.query_params['que_type'] == QUESTION_TYPE_OPTIONS[0][0]:
@@ -461,79 +506,93 @@ def answers_operations(request, userid, question_id):
 					serializer.save()
 					result['options'].append(serializer.data)
 				else:
+					logger.error('under quiz.answers_operations '+str(serializer.errors))
 					return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 			return Response(result, status = status.HTTP_200_OK)
+	logger.error('under quiz.answers_operations wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def download_xls_file(request):
-	que_type = request.data.get('que_type')	
-	if request.data.get('sub_cat_info'):
-		sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
-		sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
-	else:
-		return Response({'errors': 'Select a sub-category first.'}, status=status.HTTP_400_BAD_REQUEST)
-
-	try:
-		sub_category = SubCategory.objects.get(pk = sub_category_id, sub_category_name = sub_category_name)
-	except SubCategory.DoesNotExist as e:
-		print e.args
-		return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-	data = OrderedDict()
-	if que_type == 'mcq':
-		data.update({"Sheet 1": [MCQ_FILE_COLS,["", sub_category_name]]})
-	elif que_type == 'objective':
-		data.update({"Sheet 1": [OBJECTIVE_FILE_COLS,[sub_category_name]]})
-	save_data(sub_category_name+"_"+que_type+"_file.xls", data)
-	
-	from django.http import FileResponse
-	response = FileResponse(open(sub_category_name+"_"+que_type+"_file.xls", 'rb'))
-	try:
-		import os
-		os.remove(sub_category_name+"_"+que_type+"_file.xls")
-	except OSError:
-		pass
-	return response
+	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		logger.info('under quiz.download_xls_file')
+		que_type = request.data.get('que_type')	
+		if request.data.get('sub_cat_info'):
+			sub_category_id =  request.data.get('sub_cat_info').split('>>')[0]
+			sub_category_name =  request.data.get('sub_cat_info').split('>>')[1]
+		else:
+			logger.error('under quiz.download_xls_file error no subcategory selected')
+			return Response({'errors': 'Select a sub-category first.'}, status=status.HTTP_400_BAD_REQUEST)
+		try:
+			sub_category = SubCategory.objects.get(pk = sub_category_id, sub_category_name = sub_category_name)
+		except SubCategory.DoesNotExist as e:
+			logger.error('under quiz.download_xls_file '+str(e.args))
+			return Response({'errors': 'Sub-category does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+		data = OrderedDict()
+		if que_type == 'mcq':
+			data.update({"Sheet 1": [MCQ_FILE_COLS,["", sub_category_name]]})
+		elif que_type == 'objective':
+			data.update({"Sheet 1": [OBJECTIVE_FILE_COLS,[sub_category_name]]})
+		save_data(sub_category_name+"_"+que_type+"_file.xls", data)
+		
+		from django.http import FileResponse
+		response = FileResponse(open(sub_category_name+"_"+que_type+"_file.xls", 'rb'))
+		try:
+			import os
+			os.remove(sub_category_name+"_"+que_type+"_file.xls")
+		except OSError as ose:
+			logger.error('under quiz.download_xls_file '+str(ose.args))
+		return response
+	logger.error('under quiz.download_xls_file wrong hash')
+	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET','POST'])
 @permission_classes((AllowAny,))
 def download_access_xls_file(request):
-	test_id = request.data.get('test_id')
-	if test_id:
-		quiz = Quiz.objects.get(pk = test_id)
-	else:
-		return Response({'errors': 'Invalid data here.'}, status=status.HTTP_400_BAD_REQUEST)
-	data = {"Sheet 1": [QUIZ_ACCESS_FILE_COLS]}
-	save_data(quiz.title+"_file.xls", data)
-	
-	from django.http import FileResponse
-	response = FileResponse(open(quiz.title+"_file.xls", 'rb'))
-	try:
-		import os
-		os.remove(quiz.title+"access_file.xls")
-	except OSError:
-		pass
-	return response
+	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		logger.info('under quiz.download_access_xls_file')		
+		test_id = request.data.get('test_id')
+		if test_id:
+			quiz = Quiz.objects.get(pk = test_id)
+		else:
+			logger.error('under quiz.download_access_xls_file error invalid data')
+			return Response({'errors': 'Invalid data here.'}, status=status.HTTP_400_BAD_REQUEST)
+		data = {"Sheet 1": [QUIZ_ACCESS_FILE_COLS]}
+		save_data(quiz.title+"_file.xls", data)
+		
+		from django.http import FileResponse
+		response = FileResponse(open(quiz.title+"_file.xls", 'rb'))
+		try:
+			import os
+			os.remove(quiz.title+"access_file.xls")
+		except OSError as ose:
+			logger.error('under quiz.download_access_xls_file '+str(ose.args))
+		return response
+	logger.error('under quiz.download_access_xls_file wrong hash')
+	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
 def upload_private_access_xls(request):
 	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
+		logger.info('under quiz.upload_private_access_xls')
 		try:
 			file = request.data.get('file_data')
 			quiz_id = request.data.get('quiz_id')
 			if file and quiz_id and save_test_private_access_from_xls(file, quiz_id):
 				return Response({'msg': 'Private access user create successfully'}, status=status.HTTP_200_OK)
 		except Exception as e:
-			print e.args
+			logger.error('under quiz.upload_private_access_xls '+str(e.args))
 		return Response({'errors': 'Invalid data here.'}, status=status.HTTP_400_BAD_REQUEST)
+	logger.error('under quiz.upload_private_access_xls wrong hash')
 	return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def create_live_test(request, live_key):
+	logger.info('under quiz.create_live_test')
 	print request.data
 	quiz_obj = None
 	is_quiz_new = False
@@ -541,13 +600,12 @@ def create_live_test(request, live_key):
 	LIVE_TEST_CREATION_DATA = request.data['LIVE_TEST_CREATION_DATA']
 	#Live test number should be start with 0 index. 
 	def create_quiz_stack(quiz_stack_data, quiz_obj, sub_category_obj, live_test_number):
+		logger.info('under quiz.create_live_test.create_quiz_stack')
 		questions_list = Question.objects.filter(sub_category = sub_category_obj, que_type = quiz_stack_data['que_type'])
-		
 		if len(questions_list)>=30*(live_test_number+1):
 			questions_list = questions_list[30*live_test_number:30*(live_test_number+1)]
 		else:
 			questions_list = questions_list.order_by('?')[:30]
-
 		qs = QuizStackSerializer(data = quiz_stack_data)
 		if qs.is_valid():
 			print quiz_stack_data['que_type'],len(questions_list)
@@ -555,17 +613,18 @@ def create_live_test(request, live_key):
 			qs.add_selected_questions([que.id for que in questions_list])
 			return qs
 		else:
-			print qs.errors
+			logger.error('under quiz.create_live_test.create_quiz_stack error '+str(qs.errors))
 			return None
 	try:
 		user = User.objects.get(username = LIVE_TEST_CREATION_DATA['user_name'], email = LIVE_TEST_CREATION_DATA['user_email'])
 		quiz_obj = Quiz.objects.get(user = user, title = LIVE_TEST_CREATION_DATA['title'], quiz_key = LIVE_TEST_CREATION_DATA['live_test_key'])		
 	except User.DoesNotExist as e:
-		print e.args
+		logger.error('under quiz.create_live_test '+str(e.args))
 		user = User.objects.create_user(username = LIVE_TEST_CREATION_DATA['user_name'], email = LIVE_TEST_CREATION_DATA['user_email'], password = 'livetester')
 		quiz_obj = Quiz.objects.get(user = user, quiz_key = LIVE_TEST_CREATION_DATA['live_test_key'], title = LIVE_TEST_CREATION_DATA['title'])
 		
 	except Quiz.DoesNotExist as e:
+		logger.error('under quiz.create_live_test create a new quiz '+str(e.args))
 		is_quiz_new = True
 		print 'Create a new quiz here'	
 		quiz_serializer = QuizSerializer(data =
@@ -582,8 +641,11 @@ def create_live_test(request, live_key):
 			quiz_obj = quiz_serializer.save()
 		else:
 			print quiz_serializer.errors
+			logger.error('under quiz.create_live_test create a new quiz error '+str(quiz_serializer.errors))
+
 	print '>>>>>>>',quiz_obj
 	if quiz_obj and is_quiz_new:
+		logger.info('under quiz.create_live_test '+str(quiz_obj)+' a new quiz ')
 		invited_user, is_new = InvitedUser.objects.get_or_create(user_name = user.username, user_email = user.email, defaults={})
 		invited_user.add_inviteduser(quiz_obj.id)
 		for category_details in LIVE_TEST_CREATION_DATA['section_details']:
@@ -606,6 +668,7 @@ def create_live_test(request, live_key):
 		return Response({'msg': 'Live quiz created successfully.', 'access_url':TEST_URL+LIVE_TEST_CREATION_DATA['live_test_key'], 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
 	else:
 		print 'Quiz is pre existed'
+		logger.info('under quiz.create_live_test '+str(quiz_obj)+' already existing quiz')
 		return Response({'msg': 'Live quiz pre-created', 'access_url':TEST_URL+LIVE_TEST_CREATION_DATA['live_test_key'], 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
 
 
