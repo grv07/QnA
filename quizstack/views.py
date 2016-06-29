@@ -12,9 +12,14 @@ from comprehension.models import Comprehension, ComprehensionQuestion, Comprehen
 from QnA.services.constants import QUESTION_TYPE_OPTIONS, ANSWER_ORDER_OPTIONS
 from QnA.services.utility import shuffleList
 from django.core.cache import cache
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @api_view(['POST'])
 def create_quizstack(request):
+	logger.info('under quizstack.create_quizstack')
 	try:
 		quiz = Quiz.objects.get(id = request.data.get('quiz'))
 		quizstack_list = QuizStack.objects.filter(quiz = quiz)
@@ -35,18 +40,20 @@ def create_quizstack(request):
 				quiz.total_sections = len(set([qs.section_name for qs in quizstack_list]))
 				quiz.save()
 			else:
-				print serializer.errors
+				logger.error('under quizstack.create_quizstack' +str(serializer.errors))
 				return Response({ 'errors' : 'Unable to add to stack.' }, status = status.HTTP_400_BAD_REQUEST)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
+			logger.error('under quizstack.create_quizstack duplicate questions')
 			return Response({ 'errors' :'Duplicate questions set is not allowed.' }, status = status.HTTP_400_BAD_REQUEST)
 	except Exception as e:
-		print e.args
+		logger.error('under quizstack.create_quizstack '+str(e.args))
 		return Response({'errors' : 'Cannot add to the stack.'}, status = status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
 def get_quizstack(request, quiz_id, quizstack_id):
+	logger.info('under quizstack.get_quizstack '+str(quizstack_id))
 	if quizstack_id == 'all':
 		try:
 			quizstack_list = QuizStack.objects.filter(quiz=quiz_id).order_by('section_name')
@@ -58,7 +65,7 @@ def get_quizstack(request, quiz_id, quizstack_id):
 			result = { 'data': serializer.data, 'section_data': section_data }
 			return Response(result, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
-			print e.args
+			logger.error('under quizstack.get_quizstack quiz stacks not found '+str(e.args))
 			return Response({'errors': 'Quiz Stacks not found'}, status=status.HTTP_404_NOT_FOUND)
 	elif quizstack_id.isnumeric():
 		try:
@@ -66,6 +73,7 @@ def get_quizstack(request, quiz_id, quizstack_id):
 			serializer = QuizStackSerializer(quizstack, many = False)
 			return Response(serializer.data, status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
+			logger.error('under quizstack.get_quizstack '+str(e.args))
 			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)
 
 
@@ -88,16 +96,16 @@ def get_quizstack_for_uncomplete_test(request):
 
 @api_view(['DELETE'])
 def delete_quizstack(request, quiz_id, quizstack_id):
+	logger.info('under quizstack.delete_quizstack '+str(quizstack_id))	
 	if quizstack_id == 'all':
-		try:
-			quizstack_list = QuizStack.objects.filter(quiz=quiz_id)
+		quizstack_list = QuizStack.objects.filter(quiz=quiz_id)
+		if quizstack_list:
 			for quizstack in quizstack_list:
 				quizstack.delete()
 			return Response(status = status.HTTP_200_OK)
-		except QuizStack.DoesNotExist as e:
-			print e.args
-			return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)
-	
+		else:
+			logger.error('under quizstack.delete_quizstack not found')	
+			return Response({'errors': 'Quiz Stack not found'}, status=status.HTTP_404_NOT_FOUND)	
 	elif quizstack_id.isnumeric():
 		try:
 			quiz = Quiz.objects.get(id = quiz_id)
@@ -118,6 +126,7 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 			quizstack.delete()
 			return Response(status = status.HTTP_200_OK)
 		except QuizStack.DoesNotExist as e:
+			logger.error('under quizstack.delete_quizstack '+str(e.args))
 			return Response({'errors': 'Quiz Stack not found'}, status = status.HTTP_404_NOT_FOUND)
 
 
@@ -180,6 +189,7 @@ def delete_quizstack(request, quiz_id, quizstack_id):
 @permission_classes((AllowAny,))
 def get_quizstack_questions_basedon_section(request, quiz_id):
 	section_name = request.query_params.get('sectionName')
+	logger.info('under quizstack.get_quizstack_questions_basedon_section section-name '+section_name)
 	try:
 		# data = { 'questions' : [{ 1: {'content' : '', 'options' : [] } }] } --> This format is used
 		data = { 'questions' : [] }
@@ -223,7 +233,7 @@ def get_quizstack_questions_basedon_section(request, quiz_id):
 		# print data
 		return Response(data, status = status.HTTP_200_OK)
 	except Exception as e:
-		print e.args
+		logger.info('under quizstack.get_quizstack_questions_basedon_section section-name '+section_name+' '+str(e.args))
 		return Response({}, status = status.HTTP_400_BAD_REQUEST) 
 
 

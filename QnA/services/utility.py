@@ -2,7 +2,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 import requests
-import json, hashlib
+import json, hashlib, logging
 from random import shuffle
 
 from QnA.settings import TEST_REPORT_URL
@@ -18,10 +18,11 @@ from mail_handling import send_mail
 
 from unidecode import unidecode
 
-
+logger = logging.getLogger(__name__)
 
 # UPLOAD_LOCATION = '/qna/media/'
-def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter_by_category = None, get_order_by = None):	
+def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter_by_category = None, get_order_by = None):
+	logger.info('QnA.services.utility.get_user_result SID: '+str(sitting.id))
 	get_order = order
 	quiz = sitting.quiz
 	user = sitting.user
@@ -61,12 +62,13 @@ def get_user_result_helper(sitting, test_user_id, quiz_key, order = None, filter
 
 
 def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = False):
+	logger.info('QnA.services.utility.get_questions_format UID: '+str(user_id))
 	sca = {'subcategory' : None, 'id' : None, 'question' : None, 'questions_type_info': { 'mcq': [0, 0, 0, 0], 'comprehension': [0, 0, 0, 0] } }
-
 	if subcategory_id:
 		try:
 			sc = SubCategory.objects.get(id = subcategory_id, user = user_id)
 		except SubCategory.DoesNotExist as e:
+			logger.error('QnA.services.utility.get_questions_format error '+str(e.args))
 			print e.args
 			return None
 	else:
@@ -80,6 +82,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 	sca['id'] = sc.id
 	sca['questions'] = []
 	if questions:
+		logger.info('QnA.services.utility.get_questions_format YES questions UID: '+str(user_id))
 		for question in questions:
 			d = {
 				'id' : question.id,
@@ -112,6 +115,7 @@ def get_questions_format(user_id, subcategory_id = None, is_have_sub_category = 
 			if not is_have_sub_category:
 				sca['questions'].append(d)
 	else:
+		logger.info('QnA.services.utility.get_questions_format NO questions UID: '+str(user_id))
 		print 'Not have questions <<<<<<<<<<<>>>>>>>>>>>>'
 	return sca
 
@@ -181,11 +185,13 @@ def postNotifications(data = None, url = None, allow = False):
 
 def save_test_data_to_db_helper(test_user, test_key, test_data):
 	sitting_id = test_data.get('sitting')
+	logger.info('QnA.services.utility.save_test_data_to_db_helper TUID: '+str(test_user)+' SID: '+str(sitting_id))
 	if sitting_id:
 		# _test_user_obj = TestUser.objects.get(pk = test_user)
 		sitting_obj = Sitting.objects.get(id = sitting_id)
 		print sitting_obj,'sitting_obj'
 		if not sitting_obj.complete:
+			logger.info('QnA.services.utility.save_test_data_to_db_helper test not complete TUID: '+str(test_user)+' SID: '+str(sitting_id))
 			# unanswered_questions = sitting_obj.unanswered_questions
 			# print unanswered_questions, 'unanswered_questions'
 			# comprehension_unanswered_questions = unanswered_questions[QUESTION_TYPE_OPTIONS[2][0]]
@@ -231,36 +237,35 @@ def save_test_data_to_db_helper(test_user, test_key, test_data):
 
 			# find and save the rank
 			if is_saved_correctly and test_data['is_normal_submission']:
+				logger.info('QnA.services.utility.save_test_data_to_db_helper is_saved_correctly TUID: '+str(test_user)+' SID: '+str(sitting_id))
 				if not find_and_save_rank(test_user, test_key, sitting_obj.quiz.id, sitting_obj.current_score, sitting_obj.time_spent):
-					print 'Cannot be saved'
+					logger.info('QnA.services.utility.save_test_data_to_db_helper rank not saved TUID: '+str(test_user)+' SID: '+str(sitting_id))
+					print 'Rank not be saved'
 
 				data = { 'EVENT_TYPE': 'finishTest', 'test_key': test_key, 'sitting_id': sitting_id, 'test_user_id': test_user, 'timestamp_IST': str(timezone.now()), 'username': sitting_obj.user.username, 'email': sitting_obj.user.email, 'finish_mode': 'NormalSubmission' }
 				if not postNotifications(data, sitting_obj.quiz.finish_notification_url, test_data['toPost']):
-					print 'finish notification not sent'
-				else:
-					print 'finish notification sent'
+					logger.info('QnA.services.utility.save_test_data_to_db_helper finish notification not sent TUID: '+str(test_user)+' SID: '+str(sitting_id))
 
 				# _filter_by_category = filter_by_category(sitting_obj)
 				data = {}
 				data = get_user_result_helper(sitting_obj, test_user, test_key, 'acending', '_filter_by_category', '-current_score')
 				data['htmlReport'] = TEST_REPORT_URL.format(test_user_id = test_user, quiz_key = test_key, attempt_no = sitting_obj.attempt_no)
 				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, test_data['toPost']) :
-					print 'grade notification not sent'
+					logger.info('QnA.services.utility.save_test_data_to_db_helper grade notification not sent TUID: '+str(test_user)+' SID: '+str(sitting_id))
 					html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
 					send_mail(html, sitting_obj.user.email)
-				else:
-					print 'grade notification sent'
 				# Clean my cache ...
 				# cache.delete('sitting_id'+str(test_user))
 				# cache.delete(test_key + "|" + str(test_user) + "time")
 				# cache.delete(test_key + "|" + str(test_user) + "qtime")
 				return { 'attempt_no': sitting_obj.attempt_no }
 			else:
+				logger.error('QnA.services.utility.save_test_data_to_db_helper data not saved correctly TUID: '+str(test_user)+' SID: '+str(sitting_id))
 				return {}
 		else:
 			return { 'attempt_no': sitting_obj.attempt_no }
-
 	else:
+		logger.error('QnA.services.utility.save_test_data_to_db_helper test is already completed TUID: '+str(test_user)+' SID: '+str(sitting_id))
 		raise ValueError('Any None not accepted ::: test_user: {0}, sitting_id: {1}, test_key: {2}, time_spent: {3}'.format(test_user, sitting_id, test_key, time_spent))
 
 
@@ -269,11 +274,10 @@ def merge_two_dicts(d1, d2):
 	d.update(d2)
 	return d
 
-
-
 # Make a hash and check for correct hash for user ID.
 def make_user_hash(user_id):
-	return hashlib.md5(str(user_id)+USER_COOKIE_SALT).hexdigest()
+	c = hashlib.md5(str(user_id)+USER_COOKIE_SALT).hexdigest()
+	return c
 
 def verify_user_hash(user_id, cookie_hash):
 	if cookie_hash == make_user_hash(user_id):

@@ -14,10 +14,14 @@ from pyexcel_xls import get_data
 import ast
 from collections import defaultdict, OrderedDict
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 @api_view(['POST'])
 def save_XLS_to_MCQ(request):
 	if verify_user_hash(request.data.get('user'), request.data.get('hash')):
-		# Touch on your risk ...
+		logger.info('under mcq.save_XLS_to_MCQ')
 		'''
 		{u'sub_category': u'5', u'answer_order': u'random', u'explanation': u'eeeeeeeeee',
 		 u'level': u'easy', u'correctoption': u'1', u'content': u'eeeeeeeeee', 
@@ -72,7 +76,7 @@ def save_XLS_to_MCQ(request):
 						try:
 							category_id = Category.objects.get(category_name = mcq_data).id
 						except Exception as e:
-							print e.args
+							logger.error('under mcq.save_XLS_to_MCQ '+str(e.args))
 							category_id = None
 						category_dict[mcq_data] = category_id
 					data_list[i][temp_data[j]] = str(category_id)
@@ -87,6 +91,7 @@ def save_XLS_to_MCQ(request):
 							sub_category_dict[mcq_data] = sub_category_id
 						data_list[i][temp_data[j]] = str(sub_category_id)
 					except SubCategory.DoesNotExist as e:
+						logger.error('under mcq.save_XLS_to_MCQ wrong subcategory specified '+str(e.args))
 						return Response({ "errors" : "Wrong sub-category specified." } , status = status.HTTP_400_BAD_REQUEST)				
 				else:
 					data_list[i][temp_data[j]] = str(mcq_data)
@@ -96,6 +101,7 @@ def save_XLS_to_MCQ(request):
 		return create_mcq(request, data_list)
 		# return Response({'msg' : data_list}, status = status.HTTP_200_OK)
 	else:
+		logger.error('under quiz.save_XLS_to_MCQ wrong hash')
 		return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -104,6 +110,7 @@ def create_mcq(request, xls_read_data = None):
 	"""
 	Create a MCQuestion. 
 	"""
+	logger.info('under mcq.create_mcq xls_read_data = '+str(xls_read_data))
 	if xls_read_data:
 		last_resp = []
 		for data in xls_read_data:
@@ -118,10 +125,11 @@ def create_mcq(request, xls_read_data = None):
 				try:
 					import os
 					os.remove('mcq_read_now.xls')
-				except OSError:
-					pass
+				except OSError as ose:
+					logger.error('under mcq.create_mcq '+str(ose.args))
 				return Response( {'msg': 'All questions upload successfully.',} ,status = last_resp[::-1][0].status_code)	
 			else:
+				logger.error('under mcq.create_mcq not uploaded successfully')
 				return Response( {'msg': 'All questions not uploaded successfully.',} ,status = last_resp[::-1][0].status_code)
 	else:
 		if verify_user_hash(request.data.get('user'), request.data.get('hash')):
@@ -132,12 +140,15 @@ def create_mcq(request, xls_read_data = None):
 				serializer = MCQuestionSerializer(data = request.data)
 				return save_mcq_question(request, serializer, data['options_data'], request.data.get('correctoption'))
 			else:
+				logger.error('under mcq.create_mcq correct option not provided')
 				return Response({'optionerrors' : 'Correct answer must be provided.'}, status = status.HTTP_400_BAD_REQUEST)
+		logger.error('under quiz.create_mcq wrong hash')
 		return Response({'errors': 'Corrupted User.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
 def save_mcq_question(request, serializer, options_data, correct_option):
+	logger.info('under mcq.save_mcq_question')
 	options = []
 	if serializer.is_valid():
 		if options_data:
@@ -149,11 +160,14 @@ def save_mcq_question(request, serializer, options_data, correct_option):
 			mcq = serializer.save()			
 			isAnswerSaved, errors = answer_engine.create_mcq_answer(mcq, options)
 			if not isAnswerSaved:
+				logger.error('under mcq.save_mcq_question error answer not saved '+str(errors))
 				return Response(errors, status = status.HTTP_400_BAD_REQUEST)
 			else:
 				return Response(serializer.data, status = status.HTTP_200_OK)
 		else:
+			logger.error('under mcq.save_mcq_question correct option not provided')
 			return Response({'optionerrors' : 'Options must be provided with correct answer.'}, status = status.HTTP_400_BAD_REQUEST)
+	logger.error('under mcq.save_mcq_question error '+str(serializer.errors))
 	return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET','POST'])

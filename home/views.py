@@ -28,7 +28,9 @@ from home.models import TestUser, BookMarks, InvitedUser
 from quizstack.models import QuizStack
 from mcq.models import Answer
 from comprehension.models import Comprehension, ComprehensionQuestion, ComprehensionAnswer
-import ast
+import ast, logging
+
+logger = logging.getLogger(__name__)
 # Generate pdf from html
 def generate_PDF(request, html):
 	import xhtml2pdf.pisa as pisa
@@ -97,10 +99,13 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 		get_order_by = '-current_score'
 		quiz = Quiz.objects.get(quiz_key = quiz_key)
 		sitting = Sitting.objects.order_by(get_order_by).get(user = test_user.user, quiz = quiz, attempt_no = attempt_no)
+		logger.info('home.get_user_result SID: '+str(sitting.id))
 	except Exception as e:
+		logger.error('home.get_user_result - Incorrect data SID: '+str(sitting.id))
 		return Response({'errors':'Incorrect data'}, status = status.HTTP_400_BAD_REQUEST)
 	
 	if sitting.complete:
+		logger.error('home.get_user_result - test complete data SID: '+str(sitting.id))
 		# unanswered_questions_list = sitting.unanswered_questions.keys()
 		# incorrect_question_list = sitting.get_all_incorrect_questions_keys()
 		# _filter_by_category = filter_by_category(sitting)
@@ -124,23 +129,23 @@ def get_user_result(request, test_user_id, quiz_key, attempt_no):
 		data_for_analysis = get_data_for_analysis(quiz, sitting.unanswered_questions, sitting.incorrect_questions)
 		data['analysis']['section_wise_results'] = data_for_analysis['section_wise']
 		data['questions_stats'] = data_for_analysis['selected_questions']
-		if data['view_format'] == 'pdf':
-			return None
-			# return generate_PDF(request, html)
-		else:
-			return Response(data, status = status.HTTP_200_OK)
+		# if data['view_format'] == 'pdf':
+		# 	return None
+		# 	# return generate_PDF(request, html)
+		# else:
+		return Response(data, status = status.HTTP_200_OK)
 	else:
+		logger.error('home.get_user_result - test not complete data SID: '+str(sitting.id))
 		return Response({'errors':''}, status = status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 def save_sitting_user(request):
 	try:
-		print request.data
 		sitting_id = request.data.get('existingSittingID')
 		print sitting_id,'sitting_id'
+		logger.info('home.save_sitting_user SID: '+str(sitting_id))
 		if not sitting_id:
-			print '------------------'
 			test_user_id = request.data.get('test_user')
 			# sitting_id = cache.get('sitting_id'+str(test_user_id), None)
 			# if not sitting_id:
@@ -154,9 +159,10 @@ def save_sitting_user(request):
 			sitting_obj.intialize()
 
 			if not sitting_obj.complete:
+				logger.info('home.save_sitting_user test not complete')
 				for quizstack in QuizStack.objects.filter(quiz = quiz):
 					for question_id in quizstack.fetch_selected_questions():
-						print question_id,'question_id'
+						# print question_id,'question_id'
 						if quizstack.que_type == QUESTION_TYPE_OPTIONS[0][0]:
 							sitting_obj.add_unanswered_mcq_question(question_id, [])
 						elif quizstack.que_type == QUESTION_TYPE_OPTIONS[2][0]:
@@ -171,10 +177,10 @@ def save_sitting_user(request):
 					  'email': sitting_obj.user.email }
 			
 			if not postNotifications(data, sitting_obj.quiz.start_notification_url, request.data.get('toPost', False)):
-				print 'start notification not sent'
+				logger.info('home.save_sitting_user start notification not sent')
 		return Response({ 'sitting': sitting_id }, status = status.HTTP_200_OK)
 	except Exception as e:
-		print e.args,'----'
+		logger.error('home.save_sitting_user '+str(e.args))
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 # Helper function for get users cache data if exist in cache.
@@ -192,6 +198,7 @@ def test_data_helper(test_user):
 		u'time_remaining': 55 
 	}
 	'''
+	logger.info('home.test_data_helper')
 	test_data = { 'isTestNotCompleted': False }
 	cache_key = "A|"+str(test_user.id)+"|"+str(test_user.test_key)
 	cache_value = cache.get(cache_key)
@@ -222,6 +229,7 @@ def test_data_helper(test_user):
 def test_user_data(request):
 	data = { 'test': {} }
 	if request.method == 'GET':
+		logger.info('home.test_user_data GET call')
 		test_user_id = request.query_params.get('test_user_id', None)
 		token = request.query_params.get('token', None)
 		if test_user_id and token:
@@ -234,6 +242,7 @@ def test_user_data(request):
 			data['test'].update(test_data_helper(test_user))
 			return Response(data, status = status.HTTP_200_OK)
 		else:
+			logger.error('home.test_user_data GET call error - Unable to get test details')
 			return Response({'errors': 'Unable to get test details.'}, status=status.HTTP_400_BAD_REQUEST)
 
 	elif request.method == 'POST':
@@ -241,6 +250,7 @@ def test_user_data(request):
 		name = request.data.get('username')
 		email = request.data.get('email')
 		test_key = request.data.get('test_key')
+		logger.info('home.test_user_data POST call')
 		try:
 			quiz = Quiz.objects.get(quiz_key = test_key)
 			# If test is not public then check private access of user.
@@ -249,22 +259,25 @@ def test_user_data(request):
 					# Is user invited check.
 					invited_user = InvitedUser.objects.get(user_name = name, user_email = email)
 					if not invited_user.check_if_invited(quiz.id)[0]:
+						logger.error('home.test_user_data POST call - Unable to access this test')
 						return Response({'status':'NOT-ALLOW', 'errors': 'Unable to access this test.'}, status=status.HTTP_400_BAD_REQUEST)
 				except InvitedUser.DoesNotExist as e:
 					# User can't access this test.
-					print e.args
+					logger.error('home.test_user_data POST call - Unable to access this test '+str(e.args))					
 					return Response({'status':'NOT-ALLOW', 'errors': 'Unable to access this test.'}, status=status.HTTP_400_BAD_REQUEST)
 			
 			user  = User.objects.get(username = name, email = email)
 			create = False
 		except User.DoesNotExist as e:
 			try:
+				logger.info('home.test_user_data POST call - User.DoesNotExist')
 				user  = User.objects.create_user(username = name, email = email, password = name[::-1]+email[::-1])
 				create = True
 			except Exception as e:
-				print e.args
+				logger.error('home.test_user_data POST call - Unable to create user '+str(e.args))
 				return Response({'status':'FAIL', 'errors': 'Unable to create user.'}, status=status.HTTP_400_BAD_REQUEST)	
 		except Quiz.DoesNotExist as e:
+			logger.error('home.test_user_data POST call - Unable to find this test '+str(e.args))
 			return Response({'status':'FAIL', 'errors': 'Unable to find this test.'}, status=status.HTTP_400_BAD_REQUEST)
 			
 		serializer = TestUserSerializer(data = {'user': user.id, 'test_key' : test_key})
@@ -281,11 +294,13 @@ def test_user_data(request):
 					test_user = TestUser.objects.get(user = user, test_key = test_key)
 					is_new = False
 					test_user.save()
-				except 	TestUser.DoesNotExist as e:
+				except TestUser.DoesNotExist as e:
+					logger.error('home.test_user_data POST call '+str(e.args))
 					test_user = serializer.save()
-			if not test_user.no_attempt < quiz.no_of_attempt: 
+			if not test_user.no_attempt < quiz.no_of_attempt:
+				logger.info('home.test_user_data POST call - NOT_REMAINING')
 				return Response({'status':'SUCCESS', 'test':{'status':'NOT_REMAINING'}, 'errors': 'There are no remaining attempts left for this test.'},
-				 status = status.HTTP_400_BAD_REQUEST)				
+					status = status.HTTP_400_BAD_REQUEST)				
 			else:
 				data['test'].update({'remaining_attempts':quiz.no_of_attempt - test_user.no_attempt })	
 			token = generate_token(user)
@@ -296,7 +311,7 @@ def test_user_data(request):
 			data['test'].update({'testURL':TEST_URL_THIRD_PARTY.format(quiz_key = test_key, test_user_id = test_user.id, token = token)})
 			return Response(data, status = status.HTTP_200_OK)
 		else:
-			print serializer.errors
+			logger.error('home.test_user_data POST call '+str(serializer.errors))
 			return Response({'status':'FAIL', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -382,20 +397,24 @@ def save_test_data_to_db(request):
 	try:
 		data = {}
 		if test_data.get('is_normal_submission'):
+			logger.info('home.save_test_data_to_db  is_normal_submission = True')
 			if cache_value:
 				cache.delete(cache_key)
 				print cache.get("A|"+str(test_user)+"|"+str(test_key)),'cache deletion after test completion'
+				logger.info('home.save_test_data_to_db delete cache value')
 				test_data['is_normal_submission'] = False
 			data = save_test_data_to_db_helper(test_user, test_key, test_data)
 			return Response({ 'attempt_no': data.get('attempt_no', {}) }, status = status.HTTP_200_OK)
 		else:
 			cache.set(cache_key, test_data, timeout = CACHE_TIMEOUT)
 			print cache.get(cache_key),'cache.get(cache_key)'
+			logger.info('home.save_test_data_to_db fill cache')
 			# print cache.delete(cache_key),'-----'
 			# print cache.get(cache_key),'cache.get(cache_key)'
 			return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
+		logger.error('home.save_test_data_to_db '+str(e.args))
 		return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -404,12 +423,14 @@ def save_test_bookmarks(request):
 	test_user = request.data.get('test_user')
 	try:
 		bookmarked_questions = request.data.get('bookmarked_questions')
+		logger.info('home.save_test_bookmarks bookmarks '+str(bookmarked_questions))
 		print bookmarked_questions,'bookmarks'
 		existing_bookmarks = {}
 		if bookmarked_questions['mcq'] or bookmarked_questions['comprehension']:
 			bookmark, created = BookMarks.objects.get_or_create(user = TestUser.objects.get(id = test_user).user)
 			if not created:
 				existing_bookmarks = bookmark.fetch_bookmarks()
+				logger.info('home.save_test_bookmarks existing_bookmarks '+str(existing_bookmarks))
 				print existing_bookmarks,'existing_bookmarks'
 				for que_type in bookmarked_questions.keys():
 					for question_id in bookmarked_questions[que_type]:
@@ -422,6 +443,7 @@ def save_test_bookmarks(request):
 		return Response({}, status = status.HTTP_200_OK)
 	except Exception as e:
 		print e.args
+		logger.error('home.save_test_bookmarks error'+str(e.args))
 	return Response({}, status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -470,9 +492,11 @@ def question_stats(request, sitting_id):
 	try:
 		data = { 'questionStats': { QUESTION_TYPE_OPTIONS[0][0]: [], QUESTION_TYPE_OPTIONS[2][0]: [] }, 'stop': False }
 		sitting = Sitting.objects.get(id = sitting_id)
+		logger.info('under home.question_stats')
 		if count == 0:
 			all_questions = sitting.merge_user_answers_and_unanswered_questions()
 			# print all_questions,'---'
+			logger.info('under home.question_stats count = 0')
 			all_question_ids_keys = all_questions[QUESTION_TYPE_OPTIONS[0][0]].keys() + all_questions[QUESTION_TYPE_OPTIONS[2][0]].keys()
 			data['allQuestions'] = all_questions
 		else:
@@ -527,7 +551,7 @@ def question_stats(request, sitting_id):
 				data['questionStats'][QUESTION_TYPE_OPTIONS[2][0]].append(temp)
 		return Response(data, status = status.HTTP_200_OK)
 	except Sitting.DoesNotExist as e:
-		print e.args
+		logger.error('home.question_stats error '+str(e.args))
 		return Response({ 'errors': '' }, status = status.HTTP_400_BAD_REQUEST)
 
 
