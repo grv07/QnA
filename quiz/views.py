@@ -149,7 +149,8 @@ def delete_quiz(request, user_id, quiz_id, format = None):
 	"""
 	Delete a quiz.
 	"""
-	if verify_user_hash(userid, request.query_params.get('hash')):
+	print user_id,'----'
+	if verify_user_hash(user_id, request.query_params.get('hash')):
 		logger.info('under quiz.delete_quiz')
 		try:
 			quiz = Quiz.objects.get(id = quiz_id, user = user_id)
@@ -202,23 +203,23 @@ def get_category(request, pk ,format = None):
 		return Response({'errors': 'Quiz not found'}, status = status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
-def category_list(request, userid, categoryid, format = None):
+def category_list(request, user_id, category_id, format = None):
 	"""
 	Either get a single quiz or all.
 	"""
-	if verify_user_hash(userid, request.query_params.get('hash')):
-		logger.info('under quiz.category_list '+str(categoryid))
-		if categoryid == 'all': 
-			categories = Category.objects.filter(user = userid)
+	if verify_user_hash(user_id, request.query_params.get('hash')):
+		logger.info('under quiz.category_list '+str(category_id))
+		if category_id == 'all': 
+			categories = Category.objects.filter(user = user_id)
 			if categories:
 				serializer = CategorySerializer(categories, many = True)
 			else:
 				logger.error('under quiz.category_list no categories found')
 				return Response({'errors': 'Categories not found'}, status=status.HTTP_404_NOT_FOUND)
 		else:
-			if categoryid.isnumeric():
+			if category_id.isnumeric():
 				try:
-					category = Category.objects.get(id = categoryid, user=userid)
+					category = Category.objects.get(id = category_id, user=user_id)
 					serializer = CategorySerializer(category, many = False)
 				except Category.DoesNotExist as e:
 					logger.error('under quiz.category_list '+str(e.args))
@@ -665,10 +666,10 @@ def create_live_test(request, live_key):
 					data['level'] = question_level
 					data['no_questions'] = no_of_questions
 					create_quiz_stack(data, quiz_obj, sub_category_obj, LIVE_TEST_CREATION_DATA['test_no'])					
-		return Response({'msg': 'Live quiz created successfully.', 'access_url':TEST_URL+LIVE_TEST_CREATION_DATA['live_test_key'], 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
+		return Response({'msg': 'Live quiz created successfully.', 'access_url':TEST_URL.format(quiz_key = LIVE_TEST_CREATION_DATA['live_test_key']), 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
 	else:
 		print 'Quiz is pre existed'
 		logger.info('under quiz.create_live_test '+str(quiz_obj)+' already existing quiz')
-		return Response({'msg': 'Live quiz pre-created', 'access_url':TEST_URL+LIVE_TEST_CREATION_DATA['live_test_key'], 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
+		return Response({'msg': 'Live quiz pre-created', 'access_url':TEST_URL.format(quiz_key = LIVE_TEST_CREATION_DATA['live_test_key']), 'is_quiz_new':is_quiz_new}, status=status.HTTP_200_OK)
 
 

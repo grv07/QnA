@@ -253,7 +253,7 @@ def save_test_data_to_db_helper(test_user, test_key, test_data):
 				if not postNotifications(data, sitting_obj.quiz.grade_notification_url, test_data['toPost']) :
 					logger.info('QnA.services.utility.save_test_data_to_db_helper grade notification not sent TUID: '+str(test_user)+' SID: '+str(sitting_id))
 					html = RESULT_HTML.format(username = sitting_obj.user.username, quiz_name = sitting_obj.quiz.title, report_link = data['htmlReport'])
-					send_mail(html, sitting_obj.user.email)
+					send_mail(html, sitting_obj.user.email, subject = 'QnA Test Report')
 				# Clean my cache ...
 				# cache.delete('sitting_id'+str(test_user))
 				# cache.delete(test_key + "|" + str(test_user) + "time")

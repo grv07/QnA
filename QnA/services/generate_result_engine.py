@@ -223,7 +223,7 @@ def get_rank(real_test_user_id, quiz_key, quiz_id, current_score, time_spent):
 	all_test_users = TestUser.objects.filter(test_key = quiz_key)
 	# all_sitting_objs = Sitting.objects.filter(quiz = quiz_id)
 	total = all_test_users.count()
-	if total == 0:
+	if total == 0 or total == 1 :
 		return 1
 	else:
 		# total = all_test_users.exclude(rank = 0).count()

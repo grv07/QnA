@@ -110,8 +110,8 @@ def create_mcq(request, xls_read_data = None):
 	"""
 	Create a MCQuestion. 
 	"""
-	logger.info('under mcq.create_mcq xls_read_data = '+str(xls_read_data))
 	if xls_read_data:
+		logger.info('under mcq.create_mcq xls_read_data = some value')
 		last_resp = []
 		for data in xls_read_data:
 			data['que_type'] = 'mcq'
@@ -132,6 +132,7 @@ def create_mcq(request, xls_read_data = None):
 				logger.error('under mcq.create_mcq not uploaded successfully')
 				return Response( {'msg': 'All questions not uploaded successfully.',} ,status = last_resp[::-1][0].status_code)
 	else:
+		logger.info('under mcq.create_mcq xls_read_data = no value')
 		if verify_user_hash(request.data.get('user'), request.data.get('hash')):
 			if request.data.get('correctoption'):
 				data = {}
