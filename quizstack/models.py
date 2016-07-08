@@ -35,7 +35,7 @@ class QuizStack(models.Model):
 	created_date = models.DateTimeField(auto_now_add = True)
 	updated_date = models.DateTimeField(auto_now = True)
 	
-	objects = QuizStackManager()
+	# objects = QuizStackManager()
 
 	class Meta:
 		verbose_name = _('QuizStack')

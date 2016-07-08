@@ -14,7 +14,7 @@ urlpatterns = [
 	#Category Related Urls 
 	url(r'^category/create/$', views.create_category),
 	url(r'^category/detail/(?P<pk>[0-9]+)/$', views.get_category),
-	url(r'^category/get/(?P<userid>\d+)/(?P<categoryid>[a-l0-9]+)/$', views.category_list),
+	url(r'^category/get/(?P<user_id>\d+)/(?P<category_id>[a-l0-9]+)/$', views.category_list),
 	url(r'^category/delete/(?P<pk>[0-9]+)/$', views.delete_category),
 
     #SubCategory Related Urls

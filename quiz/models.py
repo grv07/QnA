@@ -97,7 +97,7 @@ class Quiz(models.Model):
 	def save(self, force_insert=False, force_update=False, *args, **kwargs):
 		if not self.quiz_key:
 			self.quiz_key = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(10))
-			self.url = settings.TEST_URL+str(self.quiz_key)
+			self.url = settings.TEST_URL.format(quiz_key = str(self.quiz_key))
 		super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
 	class Meta:
@@ -602,7 +602,6 @@ class Sitting(models.Model):
 			user_answers = json.loads(self.user_answers)
 			for question in questions:
 				question.user_answer = user_answers[str(question.id)]
-
 		return questions
 
 	@property
