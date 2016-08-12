@@ -2,7 +2,7 @@ from home.models import InvitedUser
 from pyexcel_xls import get_data
 from mail_handling import send_mail
 from constants import PRIVATE_TEST_ACCESS_HTML
-from QnA.local_settings import TEST_URL
+from QnA.settings import TEST_URL
 from quiz.models import Quiz
 
 def validate_xls_file():
